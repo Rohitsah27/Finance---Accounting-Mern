@@ -1,83 +1,51 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useAuth } from '../../context/AuthContext';
 import './commission-engine.css';
 
-const DEFAULT_PLANS = [
-  { id: 'plan-1', name: 'HIT Commercial Trucking Agency Plan', type: 'Tiered', summary: '8% on base premium; 10% on surplus lines', date: '08/20/2026', status: 'Active' },
-  { id: 'plan-2', name: 'Standard Agent Flat Plan', type: 'Flat', summary: '15% of gross written premium', date: '01/01/2026', status: 'Active' },
-  { id: 'plan-3', name: 'MGA Tiered Production Plan (NTA)', type: 'Tiered', summary: '10% up to $500K; 13% $500K–$1.5M; 16% above $1.5M', date: '01/01/2026', status: 'Active' },
-  { id: 'plan-4', name: 'Sliding Scale Loss Ratio Incentive', type: 'Sliding Scale', summary: 'Base 12%; +2% if LR < 55%; -3% if LR > 70%', date: '02/15/2026', status: 'Active' },
-  { id: 'plan-5', name: 'Annual Volume Bonus Agreement', type: 'Volume', summary: '2% kicker on annual written premium > $5M', date: '01/01/2026', status: 'Active' },
-  { id: 'plan-6', name: 'Highland Specialty Lines Override', type: 'Tiered', summary: '14% pass-through; 4% MGA program retention', date: '03/01/2026', status: 'Active' }
-];
-
-const DEFAULT_TRANSACTIONS = [
-  {
-    id: 'COMM-V8NHT',
-    producer: 'HIT',
-    producerName: 'HIT (Insurance Agency / Broker)',
-    policyNumber: 'POL-V8NHT',
-    invoiceRef: 'INV-V8NHT-1',
-    insured: 'Ayushi',
-    lob: 'Commercial Trucking',
-    mga: 'NTA',
-    carrier: 'SOUTHLAKE',
-    grossPremium: 39260.00,
-    ratePct: 7.75,
-    grossCommission: 2500.00,
-    clawback: 0.00,
-    netPayable: 2500.00,
-    status: 'Approved',
-    period: 'Aug 2026',
-    date: '08/20/2026'
+// Role-specific framing: the same commission ledger means something
+// different depending on which side of the money you're on.
+//   - carrier pays MGAs (a distribution expense) — there's no "earning" here.
+//   - mga both earns an override from the carrier AND owes producers below it.
+//   - agency/broker (and any other role) is a producer being paid — commission is receivable, not payable.
+const ROLE_CONFIG = {
+  carrier: {
+    subtitle: 'Commission expense paid out to appointed MGAs and programs',
+    payableLabel: 'Commission Payable (This Period)',
+    earnedLabel: 'Commission Expense YTD',
+    showHierarchy: false,
+    showMgaSummary: true,
+    producerColumnLabel: 'MGA / Program'
   },
-  {
-    id: 'COMM-POL-002',
-    producer: 'Coastal Risk Advisors',
-    producerName: 'Coastal Risk Advisors',
-    policyNumber: 'POL-COMM-2026-0002',
-    invoiceRef: 'INV-CR-002',
-    insured: 'Texas Fleet Haulers',
-    lob: 'Commercial Auto',
-    mga: 'NTA',
-    carrier: 'SOUTHLAKE',
-    grossPremium: 45000.00,
-    ratePct: 15.00,
-    grossCommission: 6750.00,
-    clawback: 0.00,
-    netPayable: 6750.00,
-    status: 'Approved',
-    period: 'Aug 2026',
-    date: '08/22/2026'
+  mga: {
+    subtitle: 'Producer commission schedules, multi-level agent hierarchies, and statement generation',
+    payableLabel: 'Commission Payable (To Producers)',
+    earnedLabel: 'Commission Earned YTD (Override)',
+    showHierarchy: true,
+    showMgaSummary: false,
+    producerColumnLabel: 'Producer / Agency'
   },
-  {
-    id: 'COMM-POL-003',
-    producer: 'Pinecrest Insurance Services',
-    producerName: 'Pinecrest Insurance Services',
-    policyNumber: 'POL-SPEC-902',
-    invoiceRef: 'INV-PI-003',
-    insured: 'Highland Energy Corp',
-    lob: 'Specialty Property',
-    mga: 'Highland Underwriting',
-    carrier: 'SOUTHLAKE',
-    grossPremium: 68000.00,
-    ratePct: 14.00,
-    grossCommission: 9520.00,
-    clawback: 0.00,
-    netPayable: 9520.00,
-    status: 'Approved',
-    period: 'Aug 2026',
-    date: '08/25/2026'
+  default: {
+    subtitle: 'Your commission schedules, earned transactions, and remittance statements',
+    payableLabel: 'Commission Receivable (This Period)',
+    earnedLabel: 'Commission Earned YTD',
+    showHierarchy: false,
+    showMgaSummary: false,
+    producerColumnLabel: 'Producer / Agency'
   }
-];
+};
 
 export function CommissionEnginePage() {
+  const { activeEntity, currentUser } = useAuth();
+  const bType = currentUser?.businessType || activeEntity?.businessType || 'mga';
+  const roleConfig = ROLE_CONFIG[bType] || ROLE_CONFIG.default;
+
   const [activeTab, setActiveTab] = useState('schedules');
   const [plans, setPlans] = useState(() => {
     try {
       const saved = localStorage.getItem('v_commission_plans');
       if (saved) return JSON.parse(saved);
     } catch (e) {}
-    return DEFAULT_PLANS;
+    return [];
   });
 
   const [transactions, setTransactions] = useState(() => {
@@ -85,7 +53,7 @@ export function CommissionEnginePage() {
       const saved = localStorage.getItem('v_commission_transactions');
       if (saved) return JSON.parse(saved);
     } catch (e) {}
-    return DEFAULT_TRANSACTIONS;
+    return [];
   });
 
   const [searchPlan, setSearchPlan] = useState('');
@@ -100,14 +68,19 @@ export function CommissionEnginePage() {
   ]);
 
   const [statementModalProducer, setStatementModalProducer] = useState(null);
-  const [treeExpanded, setTreeExpanded] = useState({
-    southlake: true,
-    nta: true,
-    hit: false,
-    coastal: false,
-    highland: false,
-    pinecrest: false
-  });
+  const [expandedMgaNodes, setExpandedMgaNodes] = useState({});
+
+  const [isNewTxnOpen, setIsNewTxnOpen] = useState(false);
+  const [newTxnProducer, setNewTxnProducer] = useState('');
+  const [newTxnPolicy, setNewTxnPolicy] = useState('');
+  const [newTxnInsured, setNewTxnInsured] = useState('');
+  const [newTxnLob, setNewTxnLob] = useState('');
+  const [newTxnMga, setNewTxnMga] = useState('');
+  const [newTxnCarrier, setNewTxnCarrier] = useState('');
+  const [newTxnPremium, setNewTxnPremium] = useState('');
+  const [newTxnRate, setNewTxnRate] = useState('');
+  const [newTxnClawback, setNewTxnClawback] = useState('0');
+
   const [toast, setToast] = useState(null);
 
   const showToast = (msg, type = 'info') => {
@@ -140,12 +113,12 @@ export function CommissionEnginePage() {
   const statementsSummary = useMemo(() => {
     const summary = {};
     transactions.forEach(t => {
-      const prod = t.producer || 'HIT';
+      const prod = t.producer || t.producerName || 'Unassigned';
       if (!summary[prod]) {
         summary[prod] = {
           producer: prod,
           producerName: t.producerName || prod,
-          period: t.period || 'Aug 2026',
+          period: t.period || '—',
           count: 0,
           total: 0,
           status: 'Ready'
@@ -156,6 +129,78 @@ export function CommissionEnginePage() {
     });
     return Object.values(summary);
   }, [transactions]);
+
+  // Grouped by MGA/Program — carrier's view of who it pays.
+  const mgaSummary = useMemo(() => {
+    const summary = {};
+    transactions.forEach(t => {
+      const key = t.mga || 'Unassigned';
+      if (!summary[key]) summary[key] = { mga: key, count: 0, total: 0, producers: new Set() };
+      summary[key].count += 1;
+      summary[key].total += (parseFloat(t.netPayable) || 0);
+      summary[key].producers.add(t.producerName || t.producer);
+    });
+    return Object.values(summary).map(s => ({ ...s, producers: Array.from(s.producers) }));
+  }, [transactions]);
+
+  // Grouped by MGA -> producer — the MGA's own view of its downstream splits,
+  // built from real transactions instead of a fixed decorative tree.
+  const producerHierarchy = useMemo(() => {
+    const byMga = {};
+    transactions.forEach(t => {
+      const mgaKey = t.mga || 'Unassigned';
+      const prodKey = t.producerName || t.producer || 'Unknown Producer';
+      if (!byMga[mgaKey]) byMga[mgaKey] = { mga: mgaKey, total: 0, producers: {} };
+      byMga[mgaKey].total += (parseFloat(t.netPayable) || 0);
+      if (!byMga[mgaKey].producers[prodKey]) {
+        byMga[mgaKey].producers[prodKey] = { producer: prodKey, count: 0, total: 0, carrier: t.carrier || '' };
+      }
+      byMga[mgaKey].producers[prodKey].count += 1;
+      byMga[mgaKey].producers[prodKey].total += (parseFloat(t.netPayable) || 0);
+    });
+    return Object.values(byMga).map(m => ({ ...m, producers: Object.values(m.producers) }));
+  }, [transactions]);
+
+  const toggleMgaNode = (key) => {
+    setExpandedMgaNodes(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const handleSubmitNewTxn = () => {
+    if (!newTxnProducer.trim() || !newTxnPolicy.trim() || !newTxnPremium || !newTxnRate) {
+      showToast('Producer, policy number, premium and rate are required.', 'warning');
+      return;
+    }
+    const premium = parseFloat(newTxnPremium) || 0;
+    const rate = parseFloat(newTxnRate) || 0;
+    const clawback = parseFloat(newTxnClawback) || 0;
+    const grossCommission = premium * (rate / 100);
+    const netPayable = grossCommission - clawback;
+    const today = new Date();
+    const newTxn = {
+      id: `COMM-${Date.now()}`,
+      producer: newTxnProducer.trim(),
+      producerName: newTxnProducer.trim(),
+      policyNumber: newTxnPolicy.trim(),
+      invoiceRef: '',
+      insured: newTxnInsured.trim(),
+      lob: newTxnLob.trim(),
+      mga: newTxnMga.trim(),
+      carrier: newTxnCarrier.trim(),
+      grossPremium: premium,
+      ratePct: rate,
+      grossCommission,
+      clawback,
+      netPayable,
+      status: 'Pending',
+      period: today.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+      date: today.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
+    };
+    setTransactions([newTxn, ...transactions]);
+    setIsNewTxnOpen(false);
+    setNewTxnProducer(''); setNewTxnPolicy(''); setNewTxnInsured(''); setNewTxnLob('');
+    setNewTxnMga(''); setNewTxnCarrier(''); setNewTxnPremium(''); setNewTxnRate(''); setNewTxnClawback('0');
+    showToast(`Commission transaction for ${newTxn.producerName} added.`, 'success');
+  };
 
   // Filtered views
   const filteredPlans = useMemo(() => {
@@ -220,10 +265,6 @@ export function CommissionEnginePage() {
     return modalTxns.reduce((sum, t) => sum + (parseFloat(t.netPayable) || 0), 0);
   }, [modalTxns]);
 
-  const toggleTreeNode = (key) => {
-    setTreeExpanded(prev => ({ ...prev, [key]: !prev[key] }));
-  };
-
   return (
     <>
       {toast && (
@@ -237,7 +278,7 @@ export function CommissionEnginePage() {
       <div className="page-header">
         <div>
           <div className="page-title">Commission Engine</div>
-          <div className="page-subtitle">Producer commission schedules, multi-level agent hierarchies, and statement generation</div>
+          <div className="page-subtitle">{roleConfig.subtitle}</div>
         </div>
         <div className="page-actions">
           <button className="btn btn-outline" onClick={() => showToast('Exporting commission ledger to CSV...', 'info')}>
@@ -260,7 +301,7 @@ export function CommissionEnginePage() {
           </div>
           <div className="stat-info">
             <div className="stat-value">${Math.round(totalPayable).toLocaleString('en-US')}</div>
-            <div className="stat-label">Commission Payable (This Period)</div>
+            <div className="stat-label">{roleConfig.payableLabel}</div>
           </div>
         </div>
         <div className="stat-card">
@@ -271,7 +312,7 @@ export function CommissionEnginePage() {
           </div>
           <div className="stat-info">
             <div className="stat-value">${Math.round(totalEarned).toLocaleString('en-US')}</div>
-            <div className="stat-label">Commission Earned YTD</div>
+            <div className="stat-label">{roleConfig.earnedLabel}</div>
           </div>
         </div>
         <div className="stat-card">
@@ -450,135 +491,116 @@ export function CommissionEnginePage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredPlans.map(p => (
-                  <tr key={p.id || p.name}>
-                    <td><input type="checkbox" className="table-check" /></td>
-                    <td className="font-semibold cell-link">{p.name}</td>
-                    <td>
-                      <span className={`badge ${
-                        p.type === 'Tiered' ? 'badge-navy' : p.type === 'Flat' ? 'badge-gray' : 'badge-orange'
-                      }`}>
-                        {p.type}
-                      </span>
+                {filteredPlans.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} style={{ textAlign: 'center', padding: '28px 16px', color: 'var(--color-muted, #64748b)', fontSize: '12.5px' }}>
+                      No commission plans yet. Use "+ New Plan" to create one.
                     </td>
-                    <td>{p.summary}</td>
-                    <td>{p.date}</td>
-                    <td><span className="badge badge-green">{p.status || 'Active'}</span></td>
                   </tr>
-                ))}
+                ) : (
+                  filteredPlans.map(p => (
+                    <tr key={p.id || p.name}>
+                      <td><input type="checkbox" className="table-check" /></td>
+                      <td className="font-semibold cell-link">{p.name}</td>
+                      <td>
+                        <span className={`badge ${
+                          p.type === 'Tiered' ? 'badge-navy' : p.type === 'Flat' ? 'badge-gray' : 'badge-orange'
+                        }`}>
+                          {p.type}
+                        </span>
+                      </td>
+                      <td>{p.summary}</td>
+                      <td>{p.date}</td>
+                      <td><span className="badge badge-green">{p.status || 'Active'}</span></td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
 
-          {/* Multi-Level Hierarchy Tree */}
-          <div className="table-wrap" style={{ padding: '16px', marginBottom: '24px' }}>
-            <div className="table-head-row" style={{ padding: '0 0 12px' }}>
-              <div className="table-head-title">
-                Multi-Level Hierarchy — Commission Splits (SOUTHLAKE &bull; NTA &bull; HIT)
+          {/* Multi-Level Hierarchy / Distribution — shape depends on which side of the
+              money this role is on. Carriers see who they pay (MGAs/programs); MGAs see
+              their own downstream producer splits; a plain producer/agency has no
+              downstream to show, so the block doesn't render at all for that role. */}
+          {roleConfig.showMgaSummary && (
+            <div className="table-wrap" style={{ padding: '16px', marginBottom: '24px' }}>
+              <div className="table-head-row" style={{ padding: '0 0 12px' }}>
+                <div className="table-head-title">MGA / Program Distribution — Commission Payable by MGA</div>
               </div>
-            </div>
-            <div className="v-tree">
-              {/* Carrier */}
-              <div className="v-tree-node">
-                <div className="v-tree-row" onClick={() => toggleTreeNode('southlake')} style={{ cursor: 'pointer' }}>
-                  <span className="v-tree-toggle">{treeExpanded.southlake ? '▼' : '▶'}</span>
-                  <strong>SOUTHLAKE Insurance Co. (Carrier)</strong>
-                  <span className="v-tree-badge">Carrier</span>
-                  <span className="v-tree-amount">100% pool</span>
+              {mgaSummary.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '28px 16px', color: 'var(--color-muted, #64748b)', fontSize: '12.5px' }}>
+                  No commission transactions posted yet, so there's nothing to distribute by MGA.
                 </div>
-                {treeExpanded.southlake && (
-                  <div className="v-tree-children" style={{ paddingLeft: '24px' }}>
-                    <div style={{ fontSize: '11.5px', color: 'var(--color-muted, #64748b)', padding: '2px 0 8px', lineHeight: 1.55 }}>
-                      Retains base risk margin; distributes remaining commission pool downstream to appointed MGAs.
-                    </div>
-
-                    {/* NTA MGA */}
-                    <div className="v-tree-node">
-                      <div className="v-tree-row" onClick={() => toggleTreeNode('nta')} style={{ cursor: 'pointer' }}>
-                        <span className="v-tree-toggle">{treeExpanded.nta ? '▼' : '▶'}</span>
-                        <strong>NTA (Managing General Agent)</strong>
-                        <span className="v-tree-badge">MGA</span>
-                        <span className="v-tree-amount">22% split</span>
-                      </div>
-                      {treeExpanded.nta && (
-                        <div className="v-tree-children" style={{ paddingLeft: '24px' }}>
-                          <div style={{ fontSize: '11.5px', color: 'var(--color-muted, #64748b)', padding: '2px 0 8px', lineHeight: 1.55 }}>
-                            Receives 22% of gross written premium; passes 15–18% through to appointed retail agents.
-                          </div>
-
-                          {/* HIT Agency */}
-                          <div className="v-tree-node">
-                            <div className="v-tree-row" onClick={() => toggleTreeNode('hit')} style={{ cursor: 'pointer' }}>
-                              <span className="v-tree-toggle">{treeExpanded.hit ? '▼' : '▶'}</span>
-                              <strong>HIT (Insurance Agency / Broker)</strong>
-                              <span className="v-tree-badge" style={{ background: '#e8f5e9', color: '#2e7d32' }}>Producer</span>
-                              <span className="v-tree-amount">17% split</span>
-                            </div>
-                            {treeExpanded.hit && (
-                              <div className="v-tree-children" style={{ paddingLeft: '24px' }}>
-                                <div style={{ fontSize: '11.5px', color: 'var(--color-muted, #64748b)', padding: '2px 0 8px', lineHeight: 1.55 }}>
-                                  Top-producing agency; appointed for Commercial Trucking (POL-V8NHT &bull; Insured: Ayushi).
-                                </div>
-                              </div>
-                            )}
-                          </div>
-
-                          {/* Coastal Risk */}
-                          <div className="v-tree-node">
-                            <div className="v-tree-row" onClick={() => toggleTreeNode('coastal')} style={{ cursor: 'pointer' }}>
-                              <span className="v-tree-toggle">{treeExpanded.coastal ? '▼' : '▶'}</span>
-                              <strong>Coastal Risk Advisors</strong>
-                              <span className="v-tree-badge">Agent</span>
-                              <span className="v-tree-amount">15% split</span>
-                            </div>
-                            {treeExpanded.coastal && (
-                              <div className="v-tree-children" style={{ paddingLeft: '24px' }}>
-                                <div style={{ fontSize: '11.5px', color: 'var(--color-muted, #64748b)', padding: '2px 0 8px', lineHeight: 1.55 }}>
-                                  Sliding-scale eligible; loss-ratio-linked commercial auto book.
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Highland MGA */}
-                    <div className="v-tree-node">
-                      <div className="v-tree-row" onClick={() => toggleTreeNode('highland')} style={{ cursor: 'pointer' }}>
-                        <span className="v-tree-toggle">{treeExpanded.highland ? '▼' : '▶'}</span>
-                        <strong>Highland Underwriting MGA</strong>
-                        <span className="v-tree-badge">MGA</span>
-                        <span className="v-tree-amount">18% split</span>
-                      </div>
-                      {treeExpanded.highland && (
-                        <div className="v-tree-children" style={{ paddingLeft: '24px' }}>
-                          <div style={{ fontSize: '11.5px', color: 'var(--color-muted, #64748b)', padding: '2px 0 8px', lineHeight: 1.55 }}>
-                            Program administrator for specialty lines; passes 14% through to appointed agents.
-                          </div>
-                          <div className="v-tree-node">
-                            <div className="v-tree-row" onClick={() => toggleTreeNode('pinecrest')} style={{ cursor: 'pointer' }}>
-                              <span className="v-tree-toggle">{treeExpanded.pinecrest ? '▼' : '▶'}</span>
-                              <strong>Pinecrest Insurance Services</strong>
-                              <span className="v-tree-badge">Agent</span>
-                              <span className="v-tree-amount">14% split</span>
-                            </div>
-                            {treeExpanded.pinecrest && (
-                              <div className="v-tree-children" style={{ paddingLeft: '24px' }}>
-                                <div style={{ fontSize: '11.5px', color: 'var(--color-muted, #64748b)', padding: '2px 0 8px', lineHeight: 1.55 }}>
-                                  Specialty lines producer, appointed under Highland Underwriting MGA.
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                )}
-              </div>
+              ) : (
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>MGA / Program</th>
+                      <th>Downstream Producers</th>
+                      <th style={{ textAlign: 'right' }}>Transactions</th>
+                      <th style={{ textAlign: 'right' }}>Total Payable</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {mgaSummary.map(s => (
+                      <tr key={s.mga}>
+                        <td className="font-semibold">{s.mga}</td>
+                        <td>{s.producers.join(', ')}</td>
+                        <td style={{ textAlign: 'right' }}>{s.count}</td>
+                        <td style={{ textAlign: 'right', fontWeight: 700, color: '#0d1b4b' }}>
+                          ${Number(s.total).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
-          </div>
+          )}
+
+          {roleConfig.showHierarchy && (
+            <div className="table-wrap" style={{ padding: '16px', marginBottom: '24px' }}>
+              <div className="table-head-row" style={{ padding: '0 0 12px' }}>
+                <div className="table-head-title">Multi-Level Hierarchy — Downstream Producer Splits</div>
+              </div>
+              {producerHierarchy.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '28px 16px', color: 'var(--color-muted, #64748b)', fontSize: '12.5px' }}>
+                  No commission transactions have been recorded yet, so there's no hierarchy to show. Add a transaction under the Transactions tab to build the tree.
+                </div>
+              ) : (
+                <div className="v-tree">
+                  {producerHierarchy.map(m => (
+                    <div className="v-tree-node" key={m.mga}>
+                      <div className="v-tree-row" onClick={() => toggleMgaNode(m.mga)} style={{ cursor: 'pointer' }}>
+                        <span className="v-tree-toggle">{expandedMgaNodes[m.mga] ? '▼' : '▶'}</span>
+                        <strong>{m.mga}</strong>
+                        <span className="v-tree-badge">MGA</span>
+                        <span className="v-tree-amount">${Number(m.total).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      {expandedMgaNodes[m.mga] && (
+                        <div className="v-tree-children" style={{ paddingLeft: '24px' }}>
+                          {m.producers.map(p => (
+                            <div className="v-tree-node" key={p.producer}>
+                              <div className="v-tree-row">
+                                <span className="v-tree-toggle" style={{ visibility: 'hidden' }}>▶</span>
+                                <strong>{p.producer}</strong>
+                                <span className="v-tree-badge" style={{ background: '#e8f5e9', color: '#2e7d32' }}>Producer</span>
+                                <span className="v-tree-amount">${Number(p.total).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                              </div>
+                              <div style={{ fontSize: '11.5px', color: 'var(--color-muted, #64748b)', padding: '2px 0 8px 24px', lineHeight: 1.55 }}>
+                                {p.count} transaction{p.count === 1 ? '' : 's'}{p.carrier ? ` • Carrier: ${p.carrier}` : ''}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </>
       )}
 
@@ -602,14 +624,72 @@ export function CommissionEnginePage() {
                   style={{ width: '220px' }}
                 />
               </div>
+              <button className="btn btn-primary" onClick={() => setIsNewTxnOpen(!isNewTxnOpen)}>
+                + New Transaction
+              </button>
             </div>
           </div>
+
+          {isNewTxnOpen && (
+            <div style={{ padding: '16px', background: 'var(--color-bg, #f8fafc)', borderBottom: '1px solid var(--color-border, #e2e8f0)' }}>
+              <div style={{ fontSize: '13px', fontWeight: 700, color: '#0d1b4b', marginBottom: '12px' }}>
+                Record Commission Transaction
+              </div>
+              <div className="form-grid-3">
+                <div>
+                  <label className="field-label">Producer / Agency *</label>
+                  <input className="field-input" placeholder="e.g. HIT Retail Producers Inc." value={newTxnProducer} onChange={(e) => setNewTxnProducer(e.target.value)} />
+                </div>
+                <div>
+                  <label className="field-label">Policy Number *</label>
+                  <input className="field-input" placeholder="e.g. POL-12345" value={newTxnPolicy} onChange={(e) => setNewTxnPolicy(e.target.value)} />
+                </div>
+                <div>
+                  <label className="field-label">Insured Name</label>
+                  <input className="field-input" value={newTxnInsured} onChange={(e) => setNewTxnInsured(e.target.value)} />
+                </div>
+                <div>
+                  <label className="field-label">Line of Business</label>
+                  <input className="field-input" placeholder="e.g. Commercial Trucking" value={newTxnLob} onChange={(e) => setNewTxnLob(e.target.value)} />
+                </div>
+                <div>
+                  <label className="field-label">MGA</label>
+                  <input className="field-input" value={newTxnMga} onChange={(e) => setNewTxnMga(e.target.value)} />
+                </div>
+                <div>
+                  <label className="field-label">Carrier</label>
+                  <input className="field-input" value={newTxnCarrier} onChange={(e) => setNewTxnCarrier(e.target.value)} />
+                </div>
+                <div>
+                  <label className="field-label">Gross Written Premium *</label>
+                  <input className="field-input" type="number" step="0.01" value={newTxnPremium} onChange={(e) => setNewTxnPremium(e.target.value)} />
+                </div>
+                <div>
+                  <label className="field-label">Commission Rate (%) *</label>
+                  <input className="field-input" type="number" step="0.1" value={newTxnRate} onChange={(e) => setNewTxnRate(e.target.value)} />
+                </div>
+                <div>
+                  <label className="field-label">Clawback Adjustment</label>
+                  <input className="field-input" type="number" step="0.01" value={newTxnClawback} onChange={(e) => setNewTxnClawback(e.target.value)} />
+                </div>
+              </div>
+              <div style={{ marginTop: '14px', display: 'flex', gap: '8px' }}>
+                <button className="btn btn-primary btn-sm" onClick={handleSubmitNewTxn}>
+                  Save Transaction
+                </button>
+                <button className="btn btn-ghost btn-sm" onClick={() => setIsNewTxnOpen(false)}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+
           <div style={{ overflowX: 'auto' }}>
             <table className="data-table">
               <thead>
                 <tr>
                   <th style={{ width: '32px' }}><input type="checkbox" className="table-check" /></th>
-                  <th>Producer / Agency</th>
+                  <th>{roleConfig.producerColumnLabel}</th>
                   <th>Policy / Invoice Ref</th>
                   <th style={{ textAlign: 'right' }}>Gross Written Premium</th>
                   <th style={{ textAlign: 'right' }}>Commission Rate</th>
@@ -621,7 +701,13 @@ export function CommissionEnginePage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredTxns.map(t => (
+                {filteredTxns.length === 0 ? (
+                  <tr>
+                    <td colSpan={10} style={{ textAlign: 'center', padding: '28px 16px', color: 'var(--color-muted, #64748b)', fontSize: '12.5px' }}>
+                      No commission transactions recorded yet. Use "+ New Transaction" to add one.
+                    </td>
+                  </tr>
+                ) : filteredTxns.map(t => (
                   <tr key={t.id}>
                     <td><input type="checkbox" className="table-check" /></td>
                     <td className="font-semibold">
@@ -687,7 +773,7 @@ export function CommissionEnginePage() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Producer / Agency</th>
+                <th>{roleConfig.producerColumnLabel}</th>
                 <th>Period</th>
                 <th>Policies Count</th>
                 <th style={{ textAlign: 'right' }}>Total Net Commission</th>
@@ -696,7 +782,13 @@ export function CommissionEnginePage() {
               </tr>
             </thead>
             <tbody>
-              {statementsSummary.map(s => (
+              {statementsSummary.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '28px 16px', color: 'var(--color-muted, #64748b)', fontSize: '12.5px' }}>
+                    No commission transactions to statement yet. Statements generate automatically once transactions exist.
+                  </td>
+                </tr>
+              ) : statementsSummary.map(s => (
                 <tr key={s.producer}>
                   <td className="font-semibold">{s.producerName}</td>
                   <td>{s.period}</td>
@@ -733,7 +825,7 @@ export function CommissionEnginePage() {
             No Pending Disputes
           </div>
           <div style={{ fontSize: '12.5px', color: 'var(--color-muted, #64748b)' }}>
-            All producer commissions and multi-level splits are balanced, verified, and validated against PAS bordereaux.
+            No commission disputes have been raised for this period. A dispute is opened when a producer or MGA contests a commission amount, and will appear here for review once one is filed.
           </div>
         </div>
       )}
@@ -761,12 +853,12 @@ export function CommissionEnginePage() {
                   </strong>
                   <br />
                   <span style={{ fontSize: '12px', color: 'var(--color-muted, #64748b)' }}>
-                    Carrier: {modalTxns[0]?.carrier || 'SOUTHLAKE'} &bull; Managing General Agent: {modalTxns[0]?.mga || 'NTA'}
+                    Carrier: {modalTxns[0]?.carrier || '—'} &bull; Managing General Agent: {modalTxns[0]?.mga || '—'}
                   </span>
                 </div>
                 <div style={{ textAlign: 'right', fontSize: '13px' }}>
-                  <div>Statement Period: <strong>Aug 2026</strong></div>
-                  <div>Issue Date: <strong>08/20/2026</strong></div>
+                  <div>Statement Period: <strong>{modalTxns[0]?.period || '—'}</strong></div>
+                  <div>Issue Date: <strong>{modalTxns[0]?.date || '—'}</strong></div>
                   <div>Status: <span className="badge badge-green">Approved for Settlement</span></div>
                 </div>
               </div>
@@ -785,8 +877,8 @@ export function CommissionEnginePage() {
                   {modalTxns.map(t => (
                     <tr key={t.id}>
                       <td className="font-semibold">{t.policyNumber}</td>
-                      <td>{t.insured || 'Ayushi'}</td>
-                      <td>{t.lob || 'Commercial Trucking'}</td>
+                      <td>{t.insured || '—'}</td>
+                      <td>{t.lob || '—'}</td>
                       <td style={{ textAlign: 'right' }}>${Number(t.grossPremium).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                       <td style={{ textAlign: 'right', fontWeight: 700, color: '#0d1b4b' }}>
                         ${Number(t.netPayable).toLocaleString('en-US', { minimumFractionDigits: 2 })}

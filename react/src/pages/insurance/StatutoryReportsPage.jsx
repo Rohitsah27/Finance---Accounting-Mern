@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import './statutory-reports.css';
 
 const NAIC_SCHEDULES = [
   { code: 'Schedule P (Parts 1-4)', name: 'Loss & LAE Development Triangles', lines: 'Commercial Auto Liability, Physical Damage, Cargo', status: 'Generated (100%)', due: '2027-03-01' },
@@ -6,6 +7,26 @@ const NAIC_SCHEDULES = [
   { code: 'Schedule T', name: 'Premiums Written & Allocated by State', lines: 'Texas, Florida, California, Georgia', status: 'Ready for Review', due: '2027-03-01' },
   { code: 'Schedule D', name: 'Invested Assets & High-Grade Bonds', lines: 'US Treasuries, Investment Grade Municipal Bonds', status: 'Audited', due: '2027-03-01' }
 ];
+
+// The SAP/GAAP toggle used to just re-color the active button — nothing on
+// the page actually changed when you clicked it. SAP and GAAP genuinely
+// report different things here (admitted-asset/RBC solvency measures only
+// exist under SAP), and this app doesn't maintain a separate GAAP-basis
+// ledger, so GAAP mode says so honestly instead of inventing GAAP figures.
+const STAT_CARDS = {
+  SAP: [
+    { key: 'assets', color: 'c-navy', label: 'Net Admitted Assets', value: '$1,870,600.00', note: 'Excludes non-admitted furniture & fixtures' },
+    { key: 'surplus', color: 'c-green', label: "Policyholders' Surplus", value: '$1,833,840.00', note: 'SAP Capital & Retained Surplus' },
+    { key: 'rbc', color: 'c-blue', label: 'RBC Solvency Ratio', value: '412.5%', note: 'Well above 200% Company Action Level' },
+    { key: 'filings', color: 'c-coral', label: 'Upcoming Filings', value: '3', note: 'Texas Q3 Quarterly due in 45 days' }
+  ],
+  GAAP: [
+    { key: 'assets', color: 'c-navy', label: 'Total Assets (GAAP)', value: '—', note: 'GAAP-basis total assets are not tracked separately from the SAP ledger yet' },
+    { key: 'surplus', color: 'c-green', label: "Total Stockholders' Equity (GAAP)", value: '—', note: 'GAAP-basis equity is not tracked separately from SAP surplus yet' },
+    { key: 'rbc', color: 'c-blue', label: 'RBC Solvency Ratio', value: 'N/A', note: 'Risk-Based Capital is a statutory (SAP) measure — no GAAP equivalent applies' },
+    { key: 'filings', color: 'c-coral', label: 'Upcoming Filings', value: '3', note: 'Texas Q3 Quarterly due in 45 days' }
+  ]
+};
 
 export function StatutoryReportsPage() {
   const [activeTab, setActiveTab] = useState('naic');
@@ -35,84 +56,37 @@ export function StatutoryReportsPage() {
           </div>
         </div>
         <div className="page-actions">
-          <div className="sr-std-toggle" style={{ display: 'flex', gap: '6px' }}>
+          <div className="sr-std-toggle">
             {['SAP', 'GAAP'].map(std => (
               <button
                 key={std}
                 type="button"
                 className={`sr-std-btn ${accountingStd === std ? 'active' : ''}`}
                 onClick={() => setAccountingStd(std)}
-                style={{
-                  padding: '5px 14px',
-                  fontSize: '11.5px',
-                  fontWeight: 600,
-                  border: '1.5px solid var(--color-border)',
-                  borderRadius: '6px',
-                  background: accountingStd === std ? 'var(--color-brand)' : '#fff',
-                  color: accountingStd === std ? '#fff' : 'var(--color-muted)',
-                  cursor: 'pointer'
-                }}
               >
                 {std} Standard
               </button>
             ))}
           </div>
-          <button className="btn btn-outline btn-sm" onClick={() => showToast('Exporting Statutory Yellow Book Pack...')}>
+          <button className="btn btn-outline btn-sm" onClick={() => showToast(`Exporting Statutory Yellow Book Pack (${accountingStd} basis)...`)}>
             Export NAIC Pack
           </button>
         </div>
       </div>
 
-      {/* Stats Row matching statutory-reports.html */}
-      <div className="sr-stats" style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-        gap: '14px',
-        marginBottom: '20px'
-      }}>
-        <div className="sr-stat c-navy" style={{ background: '#fff', border: '1.5px solid var(--color-border)', borderRadius: '10px', padding: '15px 18px', borderTop: '3px solid #0d1b4b' }}>
-          <div style={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.4px', color: 'var(--color-muted)' }}>
-            Net Admitted Assets
+      {/* Stats Row matching statutory-reports.html — content swaps with the SAP/GAAP toggle above */}
+      <div className="sr-stats">
+        {STAT_CARDS[accountingStd].map(stat => (
+          <div key={stat.key} className={`sr-stat ${stat.color}`}>
+            <div className="sr-stat-label">{stat.label}</div>
+            <div className="sr-stat-value">{stat.value}</div>
+            <div className="sr-stat-note">{stat.note}</div>
           </div>
-          <div style={{ fontSize: '22px', fontWeight: 800, color: 'var(--color-ink)', margin: '4px 0 2px' }}>
-            $1,870,600.00
-          </div>
-          <div style={{ fontSize: '11px', color: 'var(--color-muted)' }}>Excludes non-admitted furniture &amp; fixtures</div>
-        </div>
-
-        <div className="sr-stat c-green" style={{ background: '#fff', border: '1.5px solid var(--color-border)', borderRadius: '10px', padding: '15px 18px', borderTop: '3px solid #2e7d32' }}>
-          <div style={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.4px', color: 'var(--color-muted)' }}>
-            Policyholders' Surplus
-          </div>
-          <div style={{ fontSize: '22px', fontWeight: 800, color: '#2e7d32', margin: '4px 0 2px' }}>
-            $1,833,840.00
-          </div>
-          <div style={{ fontSize: '11px', color: '#2e7d32' }}>SAP Capital &amp; Retained Surplus</div>
-        </div>
-
-        <div className="sr-stat c-blue" style={{ background: '#fff', border: '1.5px solid var(--color-border)', borderRadius: '10px', padding: '15px 18px', borderTop: '3px solid #1565c0' }}>
-          <div style={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.4px', color: 'var(--color-muted)' }}>
-            RBC Solvency Ratio
-          </div>
-          <div style={{ fontSize: '22px', fontWeight: 800, color: '#1565c0', margin: '4px 0 2px' }}>
-            412.5%
-          </div>
-          <div style={{ fontSize: '11px', color: '#1565c0' }}>Well above 200% Company Action Level</div>
-        </div>
-
-        <div className="sr-stat c-coral" style={{ background: '#fff', border: '1.5px solid var(--color-border)', borderRadius: '10px', padding: '15px 18px', borderTop: '3px solid #f97316' }}>
-          <div style={{ fontSize: '10.5px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '.4px', color: 'var(--color-muted)' }}>
-            Upcoming Filings
-          </div>
-          <div style={{ fontSize: '22px', fontWeight: 800, color: 'var(--color-ink)', margin: '4px 0 2px' }}>
-            3
-          </div>
-          <div style={{ fontSize: '11px', color: 'var(--color-muted)' }}>Texas Q3 Quarterly due in 45 days</div>
-        </div>
+        ))}
       </div>
 
       {/* Tabs Strip matching statutory-reports.html */}
-      <div className="sr-tabs" style={{ display: 'flex', background: '#fff', border: '1.5px solid var(--color-border)', borderRadius: '10px', overflow: 'hidden', marginBottom: '20px' }}>
+      <div className="sr-tabs">
         {[
           { id: 'naic', label: 'NAIC Yellow Book Schedules' },
           { id: 'statements', label: 'Statutory Statements (SAP)' },
@@ -124,17 +98,6 @@ export function StatutoryReportsPage() {
             type="button"
             className={`sr-tab ${activeTab === t.id ? 'active' : ''}`}
             onClick={() => setActiveTab(t.id)}
-            style={{
-              flex: 1,
-              padding: '11px 14px',
-              fontSize: '12.5px',
-              fontWeight: 600,
-              border: 'none',
-              cursor: 'pointer',
-              background: activeTab === t.id ? 'var(--color-brand)' : '#fff',
-              color: activeTab === t.id ? '#fff' : 'var(--color-muted)',
-              borderRight: '1px solid var(--color-border)'
-            }}
           >
             {t.label}
           </button>
@@ -143,29 +106,23 @@ export function StatutoryReportsPage() {
 
       {/* Tab 1: NAIC Yellow Book Schedules */}
       {activeTab === 'naic' && (
-        <div className="sr-panel" style={{ background: '#fff', border: '1.5px solid var(--color-border)', borderRadius: '10px', overflow: 'hidden' }}>
-          <div className="sr-panel-hdr" style={{ padding: '13px 18px', background: '#f8f9fb', borderBottom: '1.5px solid var(--color-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <div className="sr-panel-title" style={{ fontSize: '13.5px', fontWeight: 700, color: 'var(--color-ink)' }}>
+        <div className="sr-panel">
+          <div className="sr-panel-hdr">
+            <div className="sr-panel-title">
               Official NAIC Annual Statement Filing Packages (P&amp;C Yellow Book)
             </div>
             <span className="v-badge-config">NAIC Standard Co. Code: 89410</span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '14px', padding: '18px' }}>
+          <div className="sr-schedule-grid">
             {NAIC_SCHEDULES.map(sc => (
-              <div key={sc.code} className="card" style={{ padding: '16px' }}>
-                <div style={{ fontSize: '11px', fontWeight: 800, textTransform: 'uppercase', color: 'var(--color-muted)' }}>
-                  {sc.code}
-                </div>
-                <div style={{ fontSize: '14px', fontWeight: 700, color: 'var(--color-ink)', margin: '4px 0 6px' }}>
-                  {sc.name}
-                </div>
-                <div style={{ fontSize: '11.5px', color: 'var(--color-ink-secondary)', marginBottom: '12px' }}>
-                  {sc.lines}
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderTop: '1px solid var(--color-border)', paddingTop: '10px' }}>
+              <div key={sc.code} className="card sr-schedule-card">
+                <div className="sr-sched-code">{sc.code}</div>
+                <div className="sr-sched-name">{sc.name}</div>
+                <div className="sr-sched-lines">{sc.lines}</div>
+                <div className="sr-schedule-actions">
                   <span className="badge badge-green">{sc.status}</span>
-                  <div style={{ display: 'flex', gap: '6px' }}>
+                  <div className="sr-sched-btns">
                     <button
                       className="btn btn-outline btn-sm"
                       onClick={() => showToast(`Generating ${sc.code} drilldown view...`)}

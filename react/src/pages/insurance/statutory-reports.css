@@ -1,0 +1,212 @@
+/* Statutory Reports — dedicated stylesheet (responsive)
+   Moves what used to be inline layout styles into real classes so the
+   existing breakpoints (1024 / 768 / 480 from styles.css) and the ones
+   below can actually override them — inline styles can't be beaten by a
+   media query, which is why this page didn't respond to a resize before. */
+
+.sr-std-toggle {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.sr-std-btn {
+  padding: 5px 14px;
+  font-size: 11.5px;
+  font-weight: 600;
+  border: 1.5px solid var(--color-border);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--color-muted);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sr-std-btn.active {
+  background: var(--color-brand);
+  color: #fff;
+  border-color: var(--color-brand);
+}
+
+/* Stats row */
+.sr-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.sr-stat {
+  background: #fff;
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+  padding: 15px 18px;
+  border-top: 3px solid var(--color-border);
+  min-width: 0;
+}
+.sr-stat.c-navy { border-top-color: #0d1b4b; }
+.sr-stat.c-green { border-top-color: #2e7d32; }
+.sr-stat.c-blue { border-top-color: #1565c0; }
+.sr-stat.c-coral { border-top-color: #f97316; }
+
+.sr-stat-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .4px;
+  color: var(--color-muted);
+}
+
+.sr-stat-value {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--color-ink);
+  margin: 4px 0 2px;
+  overflow-wrap: break-word;
+}
+.sr-stat.c-green .sr-stat-value { color: #2e7d32; }
+.sr-stat.c-blue .sr-stat-value { color: #1565c0; }
+
+.sr-stat-note { font-size: 11px; color: var(--color-muted); }
+.sr-stat.c-green .sr-stat-note { color: #2e7d32; }
+.sr-stat.c-blue .sr-stat-note { color: #1565c0; }
+
+/* Tab strip — keeps the boxed / pill look from the mock, but scrolls
+   horizontally instead of squeezing every label into a sliver once the
+   four tabs no longer fit their equal-width share. */
+.sr-tabs {
+  display: flex;
+  background: #fff;
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-bottom: 20px;
+  scrollbar-width: thin;
+}
+
+.sr-tab {
+  flex: 1 1 160px;
+  padding: 11px 14px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  background: #fff;
+  color: var(--color-muted);
+  border-right: 1px solid var(--color-border);
+  border-radius: 0;
+  white-space: nowrap;
+}
+.sr-tab:last-child { border-right: none; }
+.sr-tab.active {
+  background: var(--color-brand);
+  color: #fff;
+}
+
+/* Panel */
+.sr-panel {
+  background: #fff;
+  border: 1.5px solid var(--color-border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.sr-panel-hdr {
+  padding: 13px 18px;
+  background: #f8f9fb;
+  border-bottom: 1.5px solid var(--color-border);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+}
+
+.sr-panel-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--color-ink);
+}
+
+/* Schedule cards grid */
+.sr-schedule-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+  padding: 18px;
+}
+
+.sr-schedule-card {
+  padding: 16px;
+}
+
+.sr-sched-code {
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+.sr-sched-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-ink);
+  margin: 4px 0 6px;
+}
+
+.sr-sched-lines {
+  font-size: 11.5px;
+  color: var(--color-ink-secondary);
+  margin-bottom: 12px;
+}
+
+.sr-schedule-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 10px;
+}
+
+.sr-schedule-actions .sr-sched-btns {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .sr-tab {
+    flex: 0 0 auto;
+  }
+  .sr-schedule-grid {
+    padding: 14px;
+  }
+  .sr-panel-hdr {
+    padding: 12px 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .sr-std-toggle {
+    flex: 1 1 auto;
+  }
+  .sr-std-btn {
+    flex: 1;
+    text-align: center;
+  }
+  .sr-stat-value {
+    font-size: 19px;
+  }
+  .sr-schedule-actions {
+    justify-content: flex-start;
+  }
+  .sr-schedule-actions .sr-sched-btns {
+    width: 100%;
+  }
+  .sr-schedule-actions .sr-sched-btns .btn {
+    flex: 1;
+  }
+}
