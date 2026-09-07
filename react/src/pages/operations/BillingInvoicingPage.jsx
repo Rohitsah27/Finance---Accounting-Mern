@@ -9,7 +9,6 @@ export function BillingInvoicingPage() {
   const [invoices, setInvoices] = useState([]);
   const [plans, setPlans] = useState([]);
   const [selectedIds, setSelectedIds] = useState(new Set());
-  const [activityLogs, setActivityLogs] = useState([]);
 
   // Modals & form toggles
   const [isNewInvoiceOpen, setIsNewInvoiceOpen] = useState(false);
@@ -40,19 +39,9 @@ export function BillingInvoicingPage() {
   const [newPlanNextRun, setNewPlanNextRun] = useState('2026-09-20');
   const [newPlanAutoPost, setNewPlanAutoPost] = useState(true);
 
-  // MGA Selection State
-  const [selectedMga, setSelectedMga] = useState('MGA-NTA');
-
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
     setTimeout(() => setToast(null), 3500);
-  };
-
-  const logActivity = (msg) => {
-    setActivityLogs(prev => [
-      { time: new Date().toLocaleTimeString(), text: msg },
-      ...prev
-    ]);
   };
 
   // Badge Class Helpers
@@ -194,46 +183,13 @@ export function BillingInvoicingPage() {
 
     setInvoices([newInvoice, ...invoices]);
     setIsNewInvoiceOpen(false);
-    logActivity(`Generated new ${newInvType} invoice ${invNo} for ${newInvoice.customer} totaling $${newInvTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`);
     showToast(`Invoice ${invNo} successfully generated & saved!`, 'success');
-  };
-
-  // MGA Settlement Invoice Generation
-  const handleGenerateMgaInvoice = () => {
-    const mgaName = selectedMga === 'MGA-NTA' ? 'NTA' : 'VeriDex MGA';
-    const invoiceNo = 'PRM-INV-' + Math.floor(1000 + Math.random() * 9000);
-    const invoiceTotal = 32257.00;
-
-    const mgaInvoice = {
-      id: invoiceNo,
-      invoiceNumber: invoiceNo,
-      policyNumber: 'POL-V8NHT',
-      customer: mgaName,
-      type: 'Premium Invoice',
-      issueDate: new Date().toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' }),
-      dueDate: '09/19/2026',
-      amount: invoiceTotal,
-      paidAmount: 0.00,
-      status: 'Issued',
-      producer: 'HIT',
-      mga: mgaName,
-      carrier: 'SOUTHLAKE',
-      lob: 'Commercial Trucking',
-      lines: [
-        { desc: 'Net Written Settlement Premium - Policy POL-V8NHT (Ayushi)', qty: 1, price: 32257.00, amt: 32257.00 }
-      ]
-    };
-
-    setInvoices([mgaInvoice, ...invoices]);
-    logActivity(`Generated MGA settlement invoice ${invoiceNo} for ${mgaName} ($${invoiceTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })})`);
-    showToast(`Settlement Invoice ${invoiceNo} generated for ${mgaName} ($${invoiceTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })})!`, 'success');
   };
 
   // Mark invoice paid
   const handleMarkPaid = (invId) => {
     setInvoices(prev => prev.map(i => {
       if (i.id === invId) {
-        logActivity(`Payment of $${i.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })} recorded for invoice ${i.invoiceNumber} (${i.customer})`);
         return { ...i, status: 'Paid', paidAmount: i.amount };
       }
       return i;
@@ -246,7 +202,6 @@ export function BillingInvoicingPage() {
     setInvoices(prev => prev.map(i => {
       if (i.id === invId) {
         const newNo = i.invoiceNumber.replace('PF-', 'INV-');
-        logActivity(`Pro-Forma invoice ${i.invoiceNumber} converted to Standard Invoice ${newNo}`);
         return { ...i, invoiceNumber: newNo, type: 'Standard', status: 'Sent' };
       }
       return i;
@@ -268,7 +223,6 @@ export function BillingInvoicingPage() {
     setPlans([plan, ...plans]);
     setIsNewPlanOpen(false);
     showToast(`Recurring billing plan "${plan.name}" created successfully!`);
-    logActivity(`Created recurring billing plan for ${plan.customer}: $${plan.amount.toLocaleString()} (${plan.freq})`);
   };
 
   const handleToggleAutoPost = (index) => {
@@ -576,61 +530,6 @@ export function BillingInvoicingPage() {
         />
       </div>
 
-      {/* Real MGA Premium Invoice Generation Card */}
-      <div className="form-card" style={{ marginBottom: '20px', padding: '20px' }}>
-        <div className="card-title">
-          Generate MGA Premium Invoice <span className="v-badge-config" style={{ marginLeft: '6px' }}>real, from Premium &amp; Claims</span>
-        </div>
-        <div className="form-grid-3" style={{ marginTop: '12px' }}>
-          <div>
-            <label className="field-label">Managing General Agent (MGA)</label>
-            <select
-              className="field-input"
-              value={selectedMga}
-              onChange={(e) => setSelectedMga(e.target.value)}
-            >
-              <option value="MGA-NTA">NTA (Managing General Agent)</option>
-              <option value="MGA-VERIDEX">VeriDex Specialty Underwriters</option>
-            </select>
-          </div>
-          <div style={{ gridColumn: 'span 2' }}>
-            <div style={{ fontSize: '12.5px', color: 'var(--gray-500)', paddingTop: '22px' }}>
-              <strong>1 active policy batch (POL-V8NHT - Ayushi)</strong>, unbilled balance:{' '}
-              <strong>$39,260.00</strong> (Carrier: SOUTHLAKE &bull; MGA: {selectedMga === 'MGA-NTA' ? 'NTA' : 'VeriDex Specialty'})
-            </div>
-          </div>
-        </div>
-        <div style={{ marginTop: '12px' }}>
-          <button className="btn btn-primary btn-sm" onClick={handleGenerateMgaInvoice}>
-            ⚡ Generate MGA Settlement Invoice
-          </button>
-        </div>
-      </div>
-
-      {/* Activity Log */}
-      {activityLogs.length > 0 && (
-        <div className="table-wrap" style={{ marginBottom: '16px' }}>
-          <div className="table-head-row">
-            <div className="table-head-title">Activity Log</div>
-          </div>
-          <div className="log-body" style={{ padding: '6px 16px 10px' }}>
-            {activityLogs.slice(0, 5).map((log, idx) => (
-              <div
-                key={idx}
-                style={{
-                  fontSize: '12px',
-                  color: 'var(--gray-600)',
-                  padding: '5px 0',
-                  borderTop: idx > 0 ? '1px solid var(--gray-100)' : 'none'
-                }}
-              >
-                {log.time} - {log.text}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
       {/* Invoice Register Table */}
       <div className="table-wrap" style={{ marginBottom: '24px' }}>
         <div className="table-head-row">
@@ -663,7 +562,15 @@ export function BillingInvoicingPage() {
             </tr>
           </thead>
           <tbody>
-            {filteredInvoices.map((inv) => {
+            {filteredInvoices.length === 0 ? (
+              <tr>
+                <td colSpan={9} style={{ textAlign: 'center', padding: '28px 16px', color: 'var(--gray-400)', fontSize: '12.5px' }}>
+                  {invoices.length === 0
+                    ? 'No invoices to display yet. Use "+ New Invoice" or generate an MGA settlement invoice below.'
+                    : 'No invoices match the current filters.'}
+                </td>
+              </tr>
+            ) : filteredInvoices.map((inv) => {
               const amt = parseFloat(inv.amount) || 0;
               return (
                 <tr key={inv.id}>

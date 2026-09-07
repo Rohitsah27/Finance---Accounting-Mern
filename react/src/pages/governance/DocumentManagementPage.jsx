@@ -56,19 +56,9 @@ export default function DocumentManagementPage() {
   return (
     <div className="page-container">
       {toast && (
-        <div style={{
-          position: 'fixed',
-          top: '20px',
-          right: '20px',
-          padding: '10px 16px',
-          background: 'var(--navy)',
-          color: '#fff',
-          borderRadius: '6px',
-          zIndex: 9999,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-          fontSize: '13px'
-        }}>
-          {toast}
+        <div className="veridex-toast veridex-toast-success">
+          <span>✓</span>
+          <span>{toast}</span>
         </div>
       )}
 

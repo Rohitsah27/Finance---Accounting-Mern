@@ -184,8 +184,7 @@ export const NAV_CONFIG = [
     children: [
       { id: 'admin-config', label: 'Configuration Centre', href: '/admin-config' },
       { id: 'setup-wizard', label: 'Setup Wizard', href: '/setup-wizard' },
-      { id: 'excel-onboarding', label: 'Excel Onboarding', href: '/excel-onboarding' },
-      { id: 'clear-all', label: 'Database Reset DevTools', href: '/clear-all' }
+      { id: 'excel-onboarding', label: 'Excel Onboarding', href: '/excel-onboarding' }
     ]
   },
   {

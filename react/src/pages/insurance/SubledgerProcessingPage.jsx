@@ -39,7 +39,6 @@ export function SubledgerProcessingPage() {
       return {
         name: sl.name,
         val: fmtCurrency(bal.balance),
-        sub: `Control Acct ${sl.code}`,
         status: bal.balance > 0 ? 'In Balance' : 'No Activity',
         color: sl.color
       };
@@ -118,14 +117,19 @@ export function SubledgerProcessingPage() {
         </div>
       </div>
 
-      {/* Subledger Health Cards (6-Grid) */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '10px', marginBottom: '18px' }}>
+      {/* Subledger Health Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '10px', marginBottom: '18px' }}>
         {HEALTH.map((h, idx) => (
-          <div key={idx} className="stat-card" style={{ borderTop: `3px solid ${h.color}`, padding: '12px' }}>
-            <div className="stat-label" style={{ fontSize: '10px' }}>{h.name}</div>
-            <div className="stat-value" style={{ fontSize: '16px', margin: '4px 0' }}>{h.val}</div>
-            <div style={{ fontSize: '10px', color: 'var(--color-muted)' }}>{h.sub}</div>
-            <div style={{ fontSize: '10px', color: '#2e7d32', fontWeight: 700, marginTop: '4px' }}>✓ {h.status}</div>
+          <div key={idx} className="stat-card" style={{ borderTop: `3px solid ${h.color}`, padding: '14px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', width: '100%' }}>
+              <div style={{ fontSize: '10.5px', fontWeight: 700, color: 'var(--color-muted)', textTransform: 'uppercase', letterSpacing: '.4px' }}>
+                {h.name}
+              </div>
+              <div className="stat-value" style={{ fontSize: '20px' }}>{h.val}</div>
+              <span className={`badge ${h.status === 'In Balance' ? 'badge-green' : 'badge-gray'}`} style={{ alignSelf: 'flex-start' }}>
+                ✓ {h.status}
+              </span>
+            </div>
           </div>
         ))}
       </div>

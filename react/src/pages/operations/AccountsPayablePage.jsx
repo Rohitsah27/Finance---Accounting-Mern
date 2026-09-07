@@ -816,6 +816,13 @@ export function AccountsPayablePage() {
                 </tr>
               </thead>
               <tbody>
+                {filteredPayables.length === 0 && (
+                  <tr>
+                    <td colSpan={11} style={{ textAlign: 'center', padding: '32px 0', color: 'var(--gray-400)' }}>
+                      No invoices found for the selected filters.
+                    </td>
+                  </tr>
+                )}
                 {filteredPayables.map(inv => {
                   const amt = Number(inv.amount || 0);
                   const paid = Number(inv.paidAmount || 0);
@@ -933,6 +940,13 @@ export function AccountsPayablePage() {
               </tr>
             </thead>
             <tbody>
+              {displayPayables.filter(p => p.method === 'ACH').length === 0 && (
+                <tr>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '32px 0', color: 'var(--gray-400)' }}>
+                    No ACH payments found.
+                  </td>
+                </tr>
+              )}
               {displayPayables.filter(p => p.method === 'ACH').map(inv => {
                 const bal = inv.amount - (inv.paidAmount || 0);
                 return (
@@ -1001,6 +1015,13 @@ export function AccountsPayablePage() {
               </tr>
             </thead>
             <tbody>
+              {displayPayables.filter(p => p.method === 'E-Check' || p.method === 'Check').length === 0 && (
+                <tr>
+                  <td colSpan={9} style={{ textAlign: 'center', padding: '32px 0', color: 'var(--gray-400)' }}>
+                    No e-check payments found.
+                  </td>
+                </tr>
+              )}
               {displayPayables.filter(p => p.method === 'E-Check' || p.method === 'Check').map(inv => {
                 const bal = inv.amount - (inv.paidAmount || 0);
                 return (

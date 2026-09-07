@@ -58,6 +58,7 @@ export const api = {
     method: 'PUT',
     body: JSON.stringify(accountData),
   }),
+  deleteAccount: (code) => request(`/accounts/${encodeURIComponent(code)}`, { method: 'DELETE' }),
 
   // Journal Entries
   getJournalEntries: (params = {}) => {
@@ -121,7 +122,27 @@ export const api = {
   matchBankTransaction: (id, matchData) => request(`/bank-transactions/${id}/match`, {
     method: 'PATCH',
     body: JSON.stringify(matchData),
-  })
+  }),
+
+  // Commission Engine
+  getCommissionPlans: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/commission-plans${query ? `?${query}` : ''}`);
+  },
+  createCommissionPlan: (planData) => request('/commission-plans', {
+    method: 'POST',
+    body: JSON.stringify(planData),
+  }),
+  getCommissionTransactions: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/commission-transactions${query ? `?${query}` : ''}`);
+  },
+  createCommissionTransaction: (txnData) => request('/commission-transactions', {
+    method: 'POST',
+    body: JSON.stringify(txnData),
+  }),
+  deleteCommissionPlan: (id) => request(`/commission-plans/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  deleteCommissionTransaction: (id) => request(`/commission-transactions/${encodeURIComponent(id)}`, { method: 'DELETE' })
 };
 
 export default api;

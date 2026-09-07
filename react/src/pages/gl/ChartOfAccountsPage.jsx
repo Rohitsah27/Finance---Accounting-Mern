@@ -10,27 +10,12 @@ const GROUP_BADGE = {
   expense: 'badge-expense'
 };
 
-const ALL_DIMENSIONS = [
-  { id: 'cost-center', label: 'Cost Centre' },
-  { id: 'location', label: 'Location / Department' },
-  { id: 'mga', label: 'MGA' },
-  { id: 'broker', label: 'Broker / Producer' },
-  { id: 'state', label: 'State / Jurisdiction' },
-  { id: 'lob', label: 'Line of Business (LOB)' },
-  { id: 'treaty', label: 'Treaty / Program' },
-  { id: 'reinsurer', label: 'Reinsurer' },
-  { id: 'product-line', label: 'Product / SKU Line' },
-  { id: 'carrier-dim', label: 'Carrier' },
-  { id: 'class', label: 'Class' },
-  { id: 'customer-job', label: 'Customer:Job' }
-];
-
 export function ChartOfAccountsPage() {
   const {
     accounts,
     addAccount,
     toggleAccountStatus: contextToggleStatus,
-    setOpeningBalance: contextSetOpeningBalance,
+    deleteAccount,
     getAccountBalance,
     getAccountLedger
   } = useFinance();
@@ -43,13 +28,11 @@ export function ChartOfAccountsPage() {
   const [isAddOpen, setIsAddOpen] = useState(false);
   const [newCode, setNewCode] = useState('');
   const [newName, setNewName] = useState('');
+  const [newParent, setNewParent] = useState('');
   const [newGroup, setNewGroup] = useState('asset');
-  const [selectedDims, setSelectedDims] = useState(['cost-center', 'location']);
-
-  // Opening Balance Form State
-  const [obTarget, setObTarget] = useState(null);
-  const [obDebit, setObDebit] = useState('');
-  const [obCredit, setObCredit] = useState('');
+  const [newDescription, setNewDescription] = useState('');
+  const [newStatus, setNewStatus] = useState('active');
+  const [newOpeningBalance, setNewOpeningBalance] = useState('');
 
   // Ledger Detail Modal State
   const [ledgerModalCode, setLedgerModalCode] = useState(null);
@@ -72,52 +55,47 @@ export function ChartOfAccountsPage() {
     const code = newCode.trim();
     const name = newName.trim();
     if (!code || !name) {
-      showToast('Enter an account code and name', 'error');
+      showToast('Enter a ledger code and name', 'error');
       return;
     }
     try {
       addAccount({
         code,
         name,
+        parentCode: newParent,
         group: newGroup,
         type: newGroup.charAt(0).toUpperCase() + newGroup.slice(1),
-        dimensions: selectedDims,
-        status: 'active'
+        description: newDescription.trim(),
+        status: newStatus,
+        balance: newOpeningBalance
       });
       setIsAddOpen(false);
       setNewCode('');
       setNewName('');
-      setSelectedDims(['cost-center', 'location']);
+      setNewParent('');
+      setNewDescription('');
+      setNewStatus('active');
+      setNewOpeningBalance('');
       showToast(`Account ${code} - ${name} created`, 'success');
     } catch (err) {
       showToast(err.message || 'Error creating account', 'error');
     }
   };
 
-  const toggleOpeningBalanceForm = (acc) => {
-    if (obTarget && obTarget.code === acc.code) {
-      setObTarget(null);
-      return;
-    }
-    setObTarget(acc);
-    const bal = getAccountBalance(acc.code);
-    setObDebit(bal.debit > 0 ? String(bal.debit) : '');
-    setObCredit(bal.credit > 0 ? String(bal.credit) : '');
-  };
-
-  const handleSaveOpeningBalance = () => {
-    if (!obTarget) return;
-    const dr = parseFloat(obDebit) || 0;
-    const cr = parseFloat(obCredit) || 0;
-    contextSetOpeningBalance(obTarget.code, dr, cr);
-    showToast(`Opening balance set for ${obTarget.code}`, 'success');
-    setObTarget(null);
-  };
-
   const handleToggleStatus = (code, currentStatus) => {
     contextToggleStatus(code);
     const nextStatus = currentStatus === 'active' ? 'inactive' : 'active';
     showToast(`${code} marked ${nextStatus}`, 'info');
+  };
+
+  const handleDeleteAccount = (code, name) => {
+    if (!window.confirm(`Permanently delete account ${code} - ${name}? This cannot be undone.`)) return;
+    try {
+      deleteAccount(code);
+      showToast(`Account ${code} - ${name} deleted`, 'success');
+    } catch (err) {
+      showToast(err.message || 'Error deleting account', 'error');
+    }
   };
 
   // Filtered and strictly sorted accounts
@@ -264,18 +242,7 @@ export function ChartOfAccountsPage() {
           <form onSubmit={handleSaveAccount}>
             <div className="form-grid-3">
               <div>
-                <label className="field-label">Account code *</label>
-                <input
-                  className="field-input"
-                  id="na-code"
-                  placeholder="e.g. 1200"
-                  value={newCode}
-                  onChange={(e) => setNewCode(e.target.value)}
-                  required
-                />
-              </div>
-              <div>
-                <label className="field-label">Account name *</label>
+                <label className="field-label">Ledger Name *</label>
                 <input
                   className="field-input"
                   id="na-name"
@@ -286,7 +253,35 @@ export function ChartOfAccountsPage() {
                 />
               </div>
               <div>
-                <label className="field-label">Type *</label>
+                <label className="field-label">Ledger Code *</label>
+                <input
+                  className="field-input"
+                  id="na-code"
+                  placeholder="e.g. 1200"
+                  value={newCode}
+                  onChange={(e) => setNewCode(e.target.value)}
+                  required
+                />
+              </div>
+              <div>
+                <label className="field-label">Parent Account</label>
+                <select
+                  className="field-input"
+                  id="na-parent"
+                  value={newParent}
+                  onChange={(e) => setNewParent(e.target.value)}
+                >
+                  <option value="">— None —</option>
+                  {sortedAccounts.map((a) => (
+                    <option key={a.code} value={a.code}>{a.code} - {a.name}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            <div className="form-grid-3" style={{ marginTop: '12px' }}>
+              <div>
+                <label className="field-label">Account Type *</label>
                 <select
                   className="field-input"
                   id="na-group"
@@ -300,28 +295,42 @@ export function ChartOfAccountsPage() {
                   <option value="expense">Expense</option>
                 </select>
               </div>
+              <div>
+                <label className="field-label">Status</label>
+                <select
+                  className="field-input"
+                  id="na-status"
+                  value={newStatus}
+                  onChange={(e) => setNewStatus(e.target.value)}
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
+              <div>
+                <label className="field-label">Opening Balance</label>
+                <input
+                  className="field-input"
+                  id="na-opening-balance"
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  value={newOpeningBalance}
+                  onChange={(e) => setNewOpeningBalance(e.target.value)}
+                />
+              </div>
             </div>
 
             <div style={{ marginTop: '12px' }}>
-              <label className="field-label">
-                Applicable dimensions <span className="v-badge-config">shown on Journal Entry lines for this account</span>
-              </label>
-              <div id="na-dims" style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '6px' }}>
-                {ALL_DIMENSIONS.map((dim) => (
-                  <label key={dim.id} style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer' }}>
-                    <input
-                      type="checkbox"
-                      value={dim.id}
-                      checked={selectedDims.includes(dim.id)}
-                      onChange={(e) => {
-                        if (e.target.checked) setSelectedDims([...selectedDims, dim.id]);
-                        else setSelectedDims(selectedDims.filter(d => d !== dim.id));
-                      }}
-                    />
-                    {dim.label}
-                  </label>
-                ))}
-              </div>
+              <label className="field-label">Description</label>
+              <textarea
+                className="field-input"
+                id="na-description"
+                rows={2}
+                placeholder="What this ledger is used for..."
+                value={newDescription}
+                onChange={(e) => setNewDescription(e.target.value)}
+              />
             </div>
 
             <div style={{ marginTop: '14px', display: 'flex', gap: '8px' }}>
@@ -333,59 +342,6 @@ export function ChartOfAccountsPage() {
               </button>
             </div>
           </form>
-        </div>
-      )}
-
-      {/* Opening balance form */}
-      {obTarget && (
-        <div className="form-card" id="opening-balance-form-wrap" style={{ marginBottom: '16px' }}>
-          <div style={{ fontSize: '12.5px', fontWeight: 800, color: 'var(--gray-600, #4B5563)', marginBottom: '10px' }}>
-            Set Opening Balance: <span id="ob-account-label">{obTarget.code} - {obTarget.name}</span>
-          </div>
-          <div className="form-grid-3">
-            <div>
-              <label className="field-label">Debit</label>
-              <input
-                className="field-input"
-                type="number"
-                step="0.01"
-                id="ob-debit"
-                placeholder="0.00"
-                value={obDebit}
-                onChange={(e) => setObDebit(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="field-label">Credit</label>
-              <input
-                className="field-input"
-                type="number"
-                step="0.01"
-                id="ob-credit"
-                placeholder="0.00"
-                value={obCredit}
-                onChange={(e) => setObCredit(e.target.value)}
-              />
-            </div>
-            <div>
-              <label className="field-label">As of</label>
-              <input
-                className="field-input"
-                type="text"
-                id="ob-asof"
-                value={new Date().toISOString().slice(0, 10)}
-                disabled
-              />
-            </div>
-          </div>
-          <div style={{ marginTop: '14px', display: 'flex', gap: '8px' }}>
-            <button className="btn btn-primary btn-sm" onClick={handleSaveOpeningBalance}>
-              Save Opening Balance
-            </button>
-            <button className="btn btn-ghost btn-sm" onClick={() => setObTarget(null)}>
-              Cancel
-            </button>
-          </div>
         </div>
       )}
 
@@ -527,15 +483,16 @@ export function ChartOfAccountsPage() {
                     <td style={{ whiteSpace: 'nowrap' }}>
                       <button
                         className="btn btn-ghost btn-sm"
-                        onClick={() => toggleOpeningBalanceForm(a)}
-                      >
-                        Opening Bal.
-                      </button>
-                      <button
-                        className="btn btn-ghost btn-sm"
                         onClick={() => handleToggleStatus(a.code, a.status)}
                       >
                         {a.status === 'active' ? 'Deactivate' : 'Activate'}
+                      </button>
+                      <button
+                        className="btn btn-ghost btn-sm"
+                        style={{ color: 'var(--coral, #DC2626)' }}
+                        onClick={() => handleDeleteAccount(a.code, a.name)}
+                      >
+                        Delete
                       </button>
                     </td>
                   </tr>

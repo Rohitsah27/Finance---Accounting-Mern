@@ -313,14 +313,15 @@ export function Header() {
                 }}
                 onClick={async () => {
                   const confirmed = window.confirm(
-                    'Reset Data will permanently delete all Accounts, Journal Entries, Periods, Bank Transactions, and AR/AP Invoices from MongoDB Atlas. Login credentials will be kept. This cannot be undone. Continue?'
+                    'Reset Data will permanently delete all Journal Entries, Periods, Bank Transactions, and AR/AP Invoices from MongoDB Atlas, and zero out every account balance. The Chart of Accounts itself (including any custom accounts you\'ve added) and login credentials are kept. This cannot be undone. Continue?'
                   );
                   if (!confirmed) return;
                   try {
                     setIsResetting(true);
                     await api.resetData();
                     clearAllData();
-                    setToastMessage('All data cleared. Only login credentials remain.');
+                    await syncWithBackend();
+                    setToastMessage('Transactions cleared. Chart of Accounts and login credentials kept.');
                     setTimeout(() => setToastMessage(null), 3500);
                   } catch (e) {
                     setToastMessage('Reset error: ' + e.message);

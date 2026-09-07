@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useFinance } from '../../context/FinanceContext';
+import { api } from '../../services/api';
 
 export default function ClearAllPage() {
   const navigate = useNavigate();
+  const { resetAll, clearAllData, syncWithBackend } = useFinance();
   const [logs, setLogs] = useState([
     'Veridex Ledger Diagnostics v1.7.0 initialized.',
     'Connected to Local Database Storage [Active].',
@@ -11,60 +14,69 @@ export default function ClearAllPage() {
   const [inProgress, setInProgress] = useState(false);
   const [toast, setToast] = useState(null);
 
-  const showToast = (msg) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 3000);
+  const showToast = (msg, type = 'success') => {
+    setToast({ msg, type });
+    setTimeout(() => setToast(null), 3500);
   };
 
   const addLog = (line) => {
     setLogs(prev => [...prev, `[${new Date().toLocaleTimeString()}] ${line}`]);
   };
 
-  const handleResetSeeds = () => {
+  // Actually wipes and reseeds MongoDB Atlas (server/seed-cli.js
+  // seedDatabase(clean=true) deletes every collection, including any
+  // manually-added accounts, then re-inserts the standard demo dataset),
+  // then resets local state and re-syncs from Atlas so the UI reflects
+  // the fresh baseline instead of a stale local cache.
+  const handleResetSeeds = async () => {
     setInProgress(true);
     addLog('Initiating ledger state reset...');
-    setTimeout(() => {
-      addLog('Clearing transactional caches and unposted vouchers...');
-      setTimeout(() => {
-        addLog('Rebuilding Chart of Accounts standard catalog...');
-        setTimeout(() => {
-          addLog('Restoring demo entity master records (Apex, Starlight Re, Meridian)...');
-          addLog('SUCCESS: System restored to baseline demonstration state.');
-          setInProgress(false);
-          showToast('Database reset complete!');
-        }, 600);
-      }, 600);
-    }, 600);
+    try {
+      addLog('Wiping Atlas collections (Accounts, Journal Entries, Periods, Bank Txns, Invoices, Users)...');
+      await api.seedDatabase(true);
+      addLog('Rebuilding Chart of Accounts standard catalog and demo dataset...');
+      resetAll();
+      addLog('Re-syncing local state from MongoDB Atlas...');
+      await syncWithBackend();
+      addLog('SUCCESS: System restored to baseline demonstration state.');
+      showToast('Database reset complete!');
+    } catch (err) {
+      addLog(`ERROR: ${err.message || 'Reset failed — is the server running?'}`);
+      showToast('Reset failed — check server connection', 'error');
+    } finally {
+      setInProgress(false);
+    }
   };
 
-  const handlePurgeTransactions = () => {
+  // Wipes transactional collections on Atlas but keeps the Chart of
+  // Accounts structure and login users (server/seed-cli.js
+  // resetDataKeepUsers) — so a custom account added by hand is retained
+  // here by design, only its balance and postings are cleared.
+  const handlePurgeTransactions = async () => {
     setInProgress(true);
     addLog('Purging all journal vouchers, payments, and invoice transactions...');
-    setTimeout(() => {
+    try {
+      await api.resetData();
       addLog('Retaining Chart of Accounts and master profiles intact.');
-      addLog('Recalculating trial balance to $0.00 zero-state...');
+      clearAllData();
+      addLog('Re-syncing local state from MongoDB Atlas...');
+      await syncWithBackend();
       addLog('SUCCESS: All subledger transactions purged cleanly.');
-      setInProgress(false);
       showToast('Transactions purged cleanly!');
-    }, 1000);
+    } catch (err) {
+      addLog(`ERROR: ${err.message || 'Purge failed — is the server running?'}`);
+      showToast('Purge failed — check server connection', 'error');
+    } finally {
+      setInProgress(false);
+    }
   };
 
   return (
     <div className="page-container" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
       {toast && (
-        <div style={{
-          position: 'fixed',
-          top: '20px',
-          right: '20px',
-          padding: '10px 16px',
-          background: 'var(--navy)',
-          color: '#fff',
-          borderRadius: '6px',
-          zIndex: 9999,
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-          fontSize: '13px'
-        }}>
-          {toast}
+        <div className={`veridex-toast veridex-toast-${toast.type}`}>
+          <span>{toast.type === 'error' ? '✕' : '✓'}</span>
+          <span>{toast.msg}</span>
         </div>
       )}
 

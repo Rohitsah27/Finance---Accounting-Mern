@@ -442,11 +442,12 @@ export function FinanceProvider({ children }) {
       id: `ACC-${newAcc.code}`,
       code: newAcc.code,
       name: newAcc.name,
+      parentCode: newAcc.parentCode || '',
       type: newAcc.type || 'Asset',
       subtype: newAcc.subtype || (newAcc.type === 'Asset' ? 'Current Assets' : 'Operating'),
       normalBalance: newAcc.normalBalance || (['Asset', 'Expense'].includes(newAcc.type) ? 'Debit' : 'Credit'),
       dimensions: newAcc.dimensions || ['mga', 'state', 'lob'],
-      status: 'active',
+      status: newAcc.status || 'active',
       balance: parseFloat(newAcc.balance) || 0,
       description: newAcc.description || ''
     };
@@ -463,11 +464,14 @@ export function FinanceProvider({ children }) {
     api.createAccount({
       code: created.code,
       name: created.name,
+      parentCode: created.parentCode,
       group: (created.type || 'Asset').toLowerCase(),
       type: created.type,
       dimensions: created.dimensions,
       normalBalance: created.normalBalance,
-      balance: created.balance
+      balance: created.balance,
+      status: created.status,
+      description: created.description
     }).catch(err => console.warn('[Atlas Account Sync]:', err.message));
 
     return created;
@@ -484,6 +488,30 @@ export function FinanceProvider({ children }) {
       }
       return a;
     }));
+  };
+
+  // Permanently removes one account — unlike Reset Data (which wipes every
+  // transaction in the database), this only touches the single account the
+  // caller asked for. Refuses when the account has posted journal activity
+  // against it, since deleting it out from under real ledger history would
+  // leave those postings pointing at a GL code that no longer exists;
+  // deactivating is the right move for an account that's actually been used.
+  const deleteAccount = (code) => {
+    const hasActivity = journalEntries.some(je =>
+      (je.lines || []).some(line => line.accountCode === code || line.acct === code)
+    );
+    if (hasActivity) {
+      throw new Error(`${code} has posted journal activity and can't be deleted — deactivate it instead.`);
+    }
+
+    setAccounts(prev => prev.filter(a => a.code !== code));
+    setOpeningBalances(prev => {
+      const next = { ...prev };
+      delete next[code];
+      return next;
+    });
+
+    api.deleteAccount(code).catch(err => console.warn('[Atlas Account Delete]:', err.message));
   };
 
   const setOpeningBalance = (code, debit, credit) => {
@@ -1136,6 +1164,7 @@ export function FinanceProvider({ children }) {
       addAccount,
       updateAccount,
       toggleAccountStatus,
+      deleteAccount,
       openingBalances,
       setOpeningBalance,
       getAccountBalance,

@@ -80,4 +80,15 @@ router.put('/:code', async (req, res) => {
   }
 });
 
+// DELETE account
+router.delete('/:code', async (req, res) => {
+  try {
+    const account = await Account.findOneAndDelete({ code: req.params.code });
+    if (!account) return res.status(404).json({ error: 'Account not found' });
+    res.json({ message: 'Account deleted', code: req.params.code });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;
