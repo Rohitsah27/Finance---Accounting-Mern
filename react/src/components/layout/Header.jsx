@@ -38,6 +38,7 @@ export function Header() {
   const [isDbMenuOpen, setIsDbMenuOpen] = useState(false);
   const [isSeeding, setIsSeeding] = useState(false);
   const [isResetting, setIsResetting] = useState(false);
+  const [isResetConfirmOpen, setIsResetConfirmOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
   const densityRef = useRef(null);
@@ -132,7 +133,25 @@ export function Header() {
     navigate('/login');
   };
 
+  const handleConfirmResetData = async () => {
+    setIsResetConfirmOpen(false);
+    try {
+      setIsResetting(true);
+      await api.resetData();
+      clearAllData();
+      await syncWithBackend();
+      setToastMessage('Transactions cleared. Chart of Accounts and login credentials kept.');
+      setTimeout(() => setToastMessage(null), 3500);
+    } catch (e) {
+      setToastMessage('Reset error: ' + e.message);
+      setTimeout(() => setToastMessage(null), 4000);
+    } finally {
+      setIsResetting(false);
+    }
+  };
+
   return (
+    <>
     <header className="app-header" role="banner">
       {toastMessage && (
         <div className="veridex-toast veridex-toast-info">
@@ -311,25 +330,7 @@ export function Header() {
                   color: '#dc2626',
                   cursor: isResetting ? 'wait' : 'pointer'
                 }}
-                onClick={async () => {
-                  const confirmed = window.confirm(
-                    'Reset Data will permanently delete all Journal Entries, Periods, Bank Transactions, and AR/AP Invoices from MongoDB Atlas, and zero out every account balance. The Chart of Accounts itself (including any custom accounts you\'ve added) and login credentials are kept. This cannot be undone. Continue?'
-                  );
-                  if (!confirmed) return;
-                  try {
-                    setIsResetting(true);
-                    await api.resetData();
-                    clearAllData();
-                    await syncWithBackend();
-                    setToastMessage('Transactions cleared. Chart of Accounts and login credentials kept.');
-                    setTimeout(() => setToastMessage(null), 3500);
-                  } catch (e) {
-                    setToastMessage('Reset error: ' + e.message);
-                    setTimeout(() => setToastMessage(null), 4000);
-                  } finally {
-                    setIsResetting(false);
-                  }
-                }}
+                onClick={() => { setIsDbMenuOpen(false); setIsResetConfirmOpen(true); }}
               >
                 {isResetting ? 'Resetting...' : '🗑 Reset Data'}
               </button>
@@ -728,5 +729,61 @@ export function Header() {
         </div>
       </div>
     </header>
+
+    {/* Reset Data Confirmation Modal — replaces window.confirm for a
+        destructive action so it matches the app's own styling instead of
+        the browser's native dialog chrome. Fully inline-styled (no
+        external CSS class) since Header renders on every route and can't
+        rely on any one page's stylesheet being loaded. */}
+    {isResetConfirmOpen && (
+      <div
+        onClick={() => setIsResetConfirmOpen(false)}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          zIndex: 2000,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center'
+        }}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            width: '440px',
+            maxWidth: '94vw',
+            padding: '24px',
+            background: '#fff',
+            borderRadius: '12px',
+            boxShadow: '0 8px 30px rgba(0, 0, 0, 0.25)'
+          }}
+        >
+          <div style={{ fontSize: '16px', fontWeight: 800, color: '#0f172a', marginBottom: '12px' }}>
+            🗑 Reset Data
+          </div>
+          <p style={{ fontSize: '13px', color: '#475569', marginBottom: '20px', lineHeight: 1.6 }}>
+            Reset Data will permanently delete all Journal Entries, Periods, Bank Transactions, and AR/AP Invoices from MongoDB Atlas, and zero out every account balance. The Chart of Accounts itself (including any custom accounts you've added) and login credentials are kept. <strong>This cannot be undone.</strong> Continue?
+          </p>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+            <button
+              type="button"
+              onClick={() => setIsResetConfirmOpen(false)}
+              style={{ padding: '8px 16px', fontSize: '12.5px', fontWeight: 600, borderRadius: '6px', border: '1px solid #cbd5e1', background: '#fff', color: '#334155', cursor: 'pointer' }}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmResetData}
+              style={{ padding: '8px 16px', fontSize: '12.5px', fontWeight: 600, borderRadius: '6px', border: '1px solid #dc2626', background: '#dc2626', color: '#fff', cursor: 'pointer' }}
+            >
+              🗑 Reset Data
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }
