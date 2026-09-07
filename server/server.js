@@ -14,6 +14,8 @@ import userRoutes from './routes/users.js';
 import invoiceRoutes from './routes/invoices.js';
 import bankRoutes from './routes/bankTransactions.js';
 import authRoutes from './routes/auth.js';
+import commissionPlanRoutes from './routes/commissionPlans.js';
+import commissionTransactionRoutes from './routes/commissionTransactions.js';
 
 dotenv.config();
 
@@ -51,6 +53,8 @@ app.use('/api/users', userRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/invoices', invoiceRoutes);
 app.use('/api/bank-transactions', bankRoutes);
+app.use('/api/commission-plans', commissionPlanRoutes);
+app.use('/api/commission-transactions', commissionTransactionRoutes);
 
 // 404 Handler
 app.use((req, res) => {
