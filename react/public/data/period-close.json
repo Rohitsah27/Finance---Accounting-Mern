@@ -1,0 +1,48 @@
+{
+  "policy": {
+    "mgaCloseWindowDays": 45,
+    "description": "MGA month-end close must complete within 45 days of period end. Days 1–30: manual close steps. Days 31–40: automated validation reminders. Days 41–45: escalation and soft-lock recommendation.",
+    "automation": {
+      "validationReminderDay": 30,
+      "escalationDay": 40,
+      "autoSoftLockSuggestionDay": 45
+    }
+  },
+  "currentPeriod": {
+    "label": "April 2026",
+    "periodEnd": "2026-04-30",
+    "status": "open",
+    "mga": "All MGA",
+    "states": ["TX", "CA", "FL"]
+  },
+  "steps": [
+    { "id": 1, "key": "pre-start", "title": "Pre Start Month Close", "mode": "manual", "description": "Initiate the monthly close process. Once started, prior-step rollback is restricted.", "auto": false },
+    { "id": 2, "key": "update-ledgers", "title": "Update Ledgers", "mode": "auto", "description": "Sync subledgers to GL by state and MGA. Bordereaux and commission accruals posted automatically.", "auto": true },
+    { "id": 3, "key": "validations", "title": "Run Validations", "mode": "mixed", "description": "Review pre-validation checks for data integrity before generating reports.", "auto": true },
+    { "id": 4, "key": "generate-reports", "title": "Generate Reports", "mode": "mixed", "description": "Generate monthly closing reports by state. Individual or bulk generation.", "auto": false },
+    { "id": 5, "key": "close-month", "title": "Close Month", "mode": "manual", "description": "Finalize and lock the period. Prevents further postings after controller sign-off.", "auto": false }
+  ],
+  "closeReports": [
+    { "id": 1, "name": "Invoice Register Report", "states": ["TX", "CA", "FL"], "status": "completed", "progress": 100 },
+    { "id": 2, "name": "ITD ACE Report", "states": ["TX", "FL"], "status": "completed", "progress": 100 },
+    { "id": 3, "name": "ACE Report - Current Month", "states": ["TX", "CA", "FL"], "status": "completed", "progress": 100 },
+    { "id": 4, "name": "State Premium Tax - TX", "states": ["TX"], "status": "completed", "progress": 100 },
+    { "id": 5, "name": "State Premium Tax - CA", "states": ["CA"], "status": "in_progress", "progress": 65 },
+    { "id": 6, "name": "MGA Bordereau Settlement - FL", "states": ["FL"], "status": "pending", "progress": 0 }
+  ],
+  "validations": [
+    { "id": "V001", "state": "TX", "mga": "Futuristic", "name": "Cash Receipt Register Validation", "status": "pass", "createdAt": "2026-04-05 13:20:17", "createdBy": "Puneet Khurana" },
+    { "id": "V002", "state": "TX", "mga": "NTA", "name": "Tax Invoice Validation", "status": "pass", "createdAt": "2026-04-05 14:02:41", "createdBy": "Puneet Khurana" },
+    { "id": "V003", "state": "CA", "mga": "ACCL", "name": "Premium Recognition by State", "status": "pass", "createdAt": "2026-04-06 09:15:00", "createdBy": "J. Smith" },
+    { "id": "V004", "state": "FL", "mga": "Futuristic", "name": "Claims Reserve Rollforward", "status": "fail", "statusLabel": "blocker", "createdAt": "2026-04-06 11:30:22", "createdBy": "Actuary" },
+    { "id": "V005", "state": "TX", "mga": "Futuristic", "name": "Trial Balance Tie-Out", "status": "pass", "createdAt": "2026-04-07 08:00:00", "createdBy": "Controller" },
+    { "id": "V006", "state": "CA", "mga": "NTA", "name": "Reinsurance Recoverable Aging", "status": "fail", "statusLabel": "blocker", "createdAt": "2026-04-07 10:45:00", "createdBy": "Reinsurance Ops" }
+  ],
+  "periodsByState": [
+    { "state": "TX", "period": "April 2026", "status": "open", "daysSinceEnd": 21, "daysRemaining": 24, "mga": "Futuristic" },
+    { "state": "CA", "period": "April 2026", "status": "in_close", "daysSinceEnd": 21, "daysRemaining": 24, "mga": "ACCL" },
+    { "state": "FL", "period": "April 2026", "status": "in_close", "daysSinceEnd": 21, "daysRemaining": 24, "mga": "NTA" },
+    { "state": "TX", "period": "March 2026", "status": "soft_closed", "daysSinceEnd": 51, "daysRemaining": 0, "mga": "Futuristic" },
+    { "state": "NY", "period": "March 2026", "status": "hard_closed", "daysSinceEnd": 51, "daysRemaining": 0, "mga": "ACCL" }
+  ]
+}

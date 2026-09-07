@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Controller Workspace — Dashboard | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/layout.js"></script>
+  <style>
+    .ctl-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;}
+    @media(max-width:900px){.ctl-stats{grid-template-columns:1fr 1fr;}}
+    .close-wrap{background:#fff;border:1px solid var(--gray-200);border-radius:10px;box-shadow:var(--shadow-sm);padding:18px 20px;margin-bottom:18px;}
+    .close-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+    .close-title{font-size:13px;font-weight:700;color:var(--gray-900);}
+    .close-meta{font-size:11px;color:var(--gray-400);}
+    .tb-alert{background:var(--red-bg);border:1px solid rgba(211,47,47,.25);border-radius:10px;padding:14px 18px;margin-bottom:18px;display:flex;align-items:center;gap:14px;}
+    .tb-alert-icon{width:36px;height:36px;border-radius:50%;background:var(--red);color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;}
+    .tb-alert-title{font-size:13px;font-weight:700;color:var(--red);}
+    .tb-alert-desc{font-size:11.5px;color:var(--gray-700);margin-top:2px;}
+    .ctl-2col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;}
+    @media(max-width:1000px){.ctl-2col{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body>
+<main class="main-content" id="main-content">
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">Controller Dashboard</div>
+      <div class="page-subtitle" id="dash-subtitle">Books management overview</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline btn-sm" onclick="refreshDash()">Refresh</button>
+      <button class="btn btn-primary btn-sm" onclick="window.location.href='period-locking.html'">Go to Period Close</button>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <span class="filter-bar-label">Period</span>
+    <select class="filter-select" id="sel-period" onchange="setFilter('period',this.value)">
+      <option value="current" selected>Current Period</option>
+      <option value="prior">Prior Period</option>
+    </select>
+    <span class="filter-bar-label">Entity</span>
+    <select class="filter-select" id="sel-entity" onchange="setFilter('entity',this.value)">
+      <option value="all">All Entities</option>
+    </select>
+    <span class="filter-bar-label">JE Status</span>
+    <select class="filter-select" id="sel-status" onchange="setFilter('status',this.value)">
+      <option value="all">All Statuses</option>
+      <option value="draft">Draft</option>
+      <option value="pending">Pending Approval</option>
+    </select>
+    <div class="filter-spacer"></div>
+    <span id="fbar-applied" style="font-size:11px;color:var(--gray-400);"></span>
+    <button class="btn btn-outline btn-sm" onclick="resetFilters()">Clear Filters</button>
+  </div>
+
+  <div class="ctl-stats" id="stat-row"></div>
+
+  <div class="close-wrap">
+    <div class="close-hdr">
+      <div class="close-title">Period Close Status - <span id="close-period-label">March 2026</span></div>
+      <div class="close-meta" id="close-meta">Target close: 5 business days</div>
+    </div>
+    <div class="v-wizard-steps" id="close-steps"></div>
+  </div>
+
+  <div id="tb-alert-wrap"></div>
+
+  <div class="table-wrap" style="margin-bottom:18px;">
+    <div class="table-head-row">
+      <div class="table-head-title">Unposted / Draft Journal Entries <span id="je-count-badge" class="badge badge-orange" style="margin-left:8px;"></span></div>
+      <div class="table-head-actions">
+        <input type="text" class="filter-input" placeholder="Search JEs…" style="width:180px;" oninput="setSearch(this.value)">
+        <button class="btn btn-outline btn-sm" onclick="window.location.href='journal-entry.html'">Open Journal Entry</button>
+      </div>
+    </div>
+    <table class="data-table">
+      <thead><tr><th>JE #</th><th>Entity</th><th>Date</th><th>Memo</th><th>Amount</th><th>Prepared By</th><th>Status</th><th>Actions</th></tr></thead>
+      <tbody id="je-tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="ctl-2col">
+    <div class="table-wrap">
+      <div class="table-head-row">
+        <div class="table-head-title">Bank Reconciliation Exceptions</div>
+        <div class="table-head-actions"><button class="btn btn-outline btn-sm" onclick="window.location.href='bank-reconciliation.html'">Open Bank Recon</button></div>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Account</th><th>Exception</th><th>Amount</th><th>Age</th></tr></thead>
+        <tbody id="recon-tbody"></tbody>
+      </table>
+    </div>
+    <div class="table-wrap">
+      <div class="table-head-row">
+        <div class="table-head-title">Intercompany Elimination Status</div>
+        <div class="table-head-actions"><button class="btn btn-outline btn-sm" onclick="showToast('Elimination run queued','info')">Run Eliminations</button></div>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Entity Pair</th><th>Elim. Amount</th><th>Status</th></tr></thead>
+        <tbody id="elim-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<script src="js/app.js"></script>
+<script>
+const CFG = getTenantConfig();
+const ACTIVE_ENTITY = getActiveEntity();
+document.getElementById('dash-subtitle').textContent =
+  'Books management overview · ' + ACTIVE_ENTITY.name;
+
+(function(){
+  const sel = document.getElementById('sel-entity');
+  CFG.secondaryEntities.forEach(e => {
+    const opt = document.createElement('option');
+    opt.value = e.id; opt.textContent = e.name;
+    sel.appendChild(opt);
+  });
+})();
+
+/* ═══════════════════ SEED DATA ═══════════════════ */
+const IS_DEMO = true;
+const CLOSE_STEPS = IS_DEMO ? [
+  { label:'Sub-Ledgers Closed', state:'done' },
+  { label:'JEs Posted',         state:'done' },
+  { label:'Reconciliations',    state:'active' },
+  { label:'Intercompany Elim',  state:'pending' },
+  { label:'Trial Balance',      state:'pending' },
+  { label:'Locked / Published', state:'pending' },
+] : [
+  { label:'Sub-Ledgers Closed', state:'pending' },
+  { label:'JEs Posted',         state:'pending' },
+  { label:'Reconciliations',    state:'pending' },
+  { label:'Intercompany Elim',  state:'pending' },
+  { label:'Trial Balance',      state:'pending' },
+  { label:'Locked / Published', state:'pending' },
+];
+
+const ENT_NAMES = CFG.secondaryEntities.map(e=>e.name);
+const JES = IS_DEMO ? [
+  { je:'JE-2026-0301', entity:ENT_NAMES[2]||'Southlake Insurance Co.', date:'2026-08-18', memo:'Accrued commission expense', amount:184250, by:'M. Alvarez', status:'pending' },
+  { je:'JE-2026-0302', entity:ENT_NAMES[4]||'AC Manufacturing Inc.',   date:'2026-08-19', memo:'WIP-to-finished-goods transfer', amount:96400,  by:'D. Kessler', status:'draft' },
+  { je:'JE-2026-0303', entity:ENT_NAMES[5]||'AC Wholesale Distribution', date:'2026-08-19', memo:'Volume rebate accrual - Q3', amount:41200, by:'R. Osei', status:'draft' },
+  { je:'JE-2026-0304', entity:ENT_NAMES[0]||'Links Insurance Agency',  date:'2026-08-17', memo:'Reclass - prepaid E&O premium', amount:12800, by:'J. Fontaine', status:'pending' },
+  { je:'JE-2026-0305', entity:ENT_NAMES[6]||'AC Retail Stores',        date:'2026-08-20', memo:'Sales tax liability true-up', amount:8350, by:'P. Nazari', status:'draft' },
+  { je:'JE-2026-0306', entity:ENT_NAMES[3]||'Starlight Re',            date:'2026-08-16', memo:'Ceded reserve adjustment', amount:275900, by:'M. Alvarez', status:'pending' },
+] : [];
+
+const RECON_EXCEPTIONS = IS_DEMO ? [
+  { acct:'Operating - Chase 4021', exc:'Unmatched deposit', amt:12480, age:'3d' },
+  { acct:'Trust - HDFC 9910',      exc:'Timing difference', amt:3120,  age:'1d' },
+  { acct:'Payroll - Chase 4022',   exc:'Duplicate withdrawal (pending)', amt:5600, age:'6d' },
+] : [];
+
+const ELIM_PAIRS = IS_DEMO ? [
+  { pair:'AC Manufacturing → AC Wholesale Distribution', amt:184300, status:'ok' },
+  { pair:'AC Wholesale Distribution → AC Retail Stores', amt:96750,  status:'ok' },
+  { pair:'Links Insurance Agency → Southlake Insurance Co.', amt:41200, status:'pending' },
+  { pair:'Southlake Insurance Co. → Starlight Re', amt:275900, status:'exception' },
+] : [];
+
+/* ═══════════════════ FILTER STATE ═══════════════════ */
+const F = { period:'current', entity:'all', status:'all', search:'' };
+
+function filteredJEs() {
+  return JES.filter(j => {
+    if (F.entity !== 'all') { const e = CFG.secondaryEntities.find(x=>x.id===F.entity); if (e && j.entity !== e.name) return false; }
+    if (F.status !== 'all' && j.status !== F.status) return false;
+    if (F.search && !(j.je+j.memo+j.entity+j.by).toLowerCase().includes(F.search)) return false;
+    return true;
+  });
+}
+
+function fUSD(v){ return '$' + Number(v).toLocaleString('en-US'); }
+
+/* ═══════════════════ STATS ═══════════════════ */
+function renderStats() {
+  const list = filteredJEs();
+  const total = list.reduce((a,j)=>a+j.amount,0);
+  const excCount = RECON_EXCEPTIONS.length;
+  const tbVariance = IS_DEMO ? 18450 : 0;
+  const stats = [
+    { label:'Unposted / Draft JEs', val:list.length, sub: fUSD(total)+' total value', icon:'📝' },
+    { label:'Bank Recon Exceptions', val:excCount, sub:'Oldest: '+RECON_EXCEPTIONS.reduce((a,r)=>r.age>a?r.age:a,'0d'), icon:'🏦' },
+    { label:'Trial Balance Variance', val:fUSD(tbVariance), sub:'Out of balance - needs review', icon:'⚠️' },
+    { label:'Intercompany Elims Open', val:ELIM_PAIRS.filter(p=>p.status!=='ok').length, sub:ELIM_PAIRS.length+' pairs configured', icon:'🔗' },
+  ];
+  document.getElementById('stat-row').innerHTML = stats.map(s => `
+    <div class="stat-card">
+      <div class="stat-icon si-navy" style="font-size:18px;">${s.icon}</div>
+      <div class="stat-info">
+        <div class="stat-value">${s.val}</div>
+        <div class="stat-label">${s.label}</div>
+        <div class="stat-change" style="color:var(--gray-400);">${s.sub}</div>
+      </div>
+    </div>`).join('');
+}
+
+/* ═══════════════════ CLOSE STEPPER ═══════════════════ */
+function renderCloseSteps() {
+  document.getElementById('close-steps').innerHTML = CLOSE_STEPS.map(s => `
+    <div class="v-wizard-step ${s.state==='done'?'done':s.state==='active'?'active':''}">
+      <div class="v-wizard-dot">${s.state==='done'?'✓':CLOSE_STEPS.indexOf(s)+1}</div>
+      <div class="v-wizard-label">${s.label}</div>
+    </div>`).join('');
+  document.getElementById('close-period-label').textContent = F.period === 'current' ? 'August 2026' : 'July 2026';
+}
+
+/* ═══════════════════ TRIAL BALANCE ALERT ═══════════════════ */
+function renderTBAlert() {
+  document.getElementById('tb-alert-wrap').innerHTML = `
+    <div class="tb-alert">
+      <div class="tb-alert-icon">!</div>
+      <div style="flex:1;">
+        <div class="tb-alert-title">Trial Balance Out of Balance - $18,450.00</div>
+        <div class="tb-alert-desc">Southlake Insurance Co. trial balance does not tie to the GL control account as of ${F.period==='current'?'08/20/2026':'07/31/2026'}. Review suspense entries before close.</div>
+      </div>
+      <button class="btn btn-coral btn-sm" onclick="showToast('Trial balance review opened','warning')">Investigate</button>
+    </div>`;
+}
+
+/* ═══════════════════ JE TABLE ═══════════════════ */
+function renderJEs() {
+  const list = filteredJEs();
+  document.getElementById('je-count-badge').textContent = list.length + ' open';
+  document.getElementById('je-tbody').innerHTML = list.length ? list.map(j => `
+    <tr>
+      <td class="font-semibold">${j.je}</td>
+      <td>${j.entity}</td>
+      <td>${j.date}</td>
+      <td>${j.memo}</td>
+      <td>${fUSD(j.amount)}</td>
+      <td>${j.by}</td>
+      <td><span class="badge ${j.status==='pending'?'badge-orange':'badge-gray'}">${j.status==='pending'?'Pending Approval':'Draft'}</span></td>
+      <td><div style="display:flex;gap:5px;">
+        <button class="btn btn-outline btn-sm" onclick="window.location.href='journal-entry.html'">Review</button>
+        <button class="btn btn-outline btn-sm" onclick="postJE('${j.je}')">Post</button>
+      </div></td>
+    </tr>`).join('') : '<tr><td colspan="8" style="text-align:center;padding:18px;color:var(--gray-400);">No journal entries match current filters</td></tr>';
+}
+
+function postJE(id) {
+  showToast('Journal entry ' + id + ' posted', 'success');
+}
+
+/* ═══════════════════ RECON + ELIM TABLES ═══════════════════ */
+function renderRecon() {
+  document.getElementById('recon-tbody').innerHTML = RECON_EXCEPTIONS.map(r => `
+    <tr><td>${r.acct}</td><td>${r.exc}</td><td>${fUSD(r.amt)}</td><td>${r.age}</td></tr>`).join('');
+}
+function renderElim() {
+  document.getElementById('elim-tbody').innerHTML = ELIM_PAIRS.map(p => `
+    <tr><td>${p.pair}</td><td>${fUSD(p.amt)}</td>
+    <td><span class="badge ${p.status==='ok'?'badge-green':p.status==='pending'?'badge-orange':'badge-red'}">${p.status==='ok'?'Eliminated':p.status==='pending'?'Pending':'Exception'}</span></td></tr>`).join('');
+}
+
+/* ═══════════════════ FILTER CONTROLS ═══════════════════ */
+function setFilter(key, val) { F[key] = val; updateAppliedLabel(); renderAll(); }
+function setSearch(v) { F.search = v.toLowerCase(); renderJEs(); }
+function resetFilters() {
+  F.period='current'; F.entity='all'; F.status='all'; F.search='';
+  document.getElementById('sel-period').value='current';
+  document.getElementById('sel-entity').value='all';
+  document.getElementById('sel-status').value='all';
+  updateAppliedLabel(); renderAll();
+  showToast('Filters cleared','info');
+}
+function updateAppliedLabel() {
+  const chips = [];
+  if (F.entity !== 'all') { const e = CFG.secondaryEntities.find(x=>x.id===F.entity); if (e) chips.push(e.name); }
+  if (F.status !== 'all') chips.push(F.status);
+  document.getElementById('fbar-applied').textContent = chips.length ? 'Filtered: ' + chips.join(', ') : 'Showing all entities';
+}
+
+function refreshDash() {
+  const t = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('dash-subtitle').textContent = 'Books management overview · ' + ACTIVE_ENTITY.name + ' · Updated ' + t;
+  showToast('Dashboard refreshed','success');
+}
+
+function renderAll() {
+  renderStats(); renderCloseSteps(); renderTBAlert(); renderJEs(); renderRecon(); renderElim();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  updateAppliedLabel();
+  renderAll();
+});
+</script>
+<script>
+  initLayout('dashboard');
+</script>
+</body>
+</html>

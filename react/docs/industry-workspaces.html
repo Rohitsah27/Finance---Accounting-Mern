@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Industry Workspaces — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Platform &amp; Dashboards</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Industry Workspaces</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-building" style="color: var(--brand);"></i> Industry Workspaces <span class="file-tag">role-select.html</span></h1>
+      <p>
+        Veridex is built to serve different organizational models in the insurance ecosystem. The Industry Workspace selector lets you switch perspectives between an Insurance Carrier, MGA, Broker Agency, Reinsurer, or General Business enterprise.
+      </p>
+    </div>
+
+    <div class="module-card">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-blue">Multi-Tenant</span>
+            <span class="badge badge-purple">Industry Templates</span>
+          </div>
+          <h2 class="module-title">Workspaces Overview</h2>
+        </div>
+        <a href="../role-select.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Role Select</a>
+      </div>
+
+      <div class="grid-2">
+        <div class="info-card">
+          <h4>1. Risk-Bearing Carrier (`dashboard-carrier.html`)</h4>
+          <p>Unearned premium reserves, treaty cessions, loss ratio triangles, and NAIC statutory reporting blanks.</p>
+        </div>
+        <div class="info-card">
+          <h4>2. Managing General Agent (`dashboard-mga.html`)</h4>
+          <p>Delegated underwriting authority quotas, subledger bordereau ingestion, broker commission splits, and net settlements.</p>
+        </div>
+        <div class="info-card">
+          <h4>3. Retail Broker / Agency (`dashboard-agency.html`)</h4>
+          <p>Customer billing invoices, producer commission tracking, agency trust cash, and client statements.</p>
+        </div>
+        <div class="info-card">
+          <h4>4. Reinsurance Entity (`dashboard-reinsurer.html`)</h4>
+          <p>Treaty tracking, quota share portfolios, catastrophe XOL layers, and reinsurance recoverables.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="my-role-workspace.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">My Role Workspace</span>
+      </a>
+      <a href="entity-hierarchy.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Submodule &rarr;</span>
+        <span class="nav-page-title">Entity Hierarchy</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('industry-workspaces');
+</script>
+</body>
+</html>

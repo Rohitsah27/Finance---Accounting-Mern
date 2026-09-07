@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document Management — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Document Management</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Templates &amp; Attachments</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-paperclip" style="color: var(--teal);"></i> Document Management <span class="file-tag">document-management.html</span></h1>
+      <p>
+        Centralized digital repository for policy certificates (COI), binder PDFs, reinsurance contracts, W-9 tax forms, and audit evidence attachments linked directly to GL journals.
+      </p>
+    </div>
+
+    <div class="module-card">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-teal">Document Vault</span>
+            <span class="badge badge-blue">Audit Evidence</span>
+          </div>
+          <h2 class="module-title">Document Management Capabilities</h2>
+        </div>
+        <a href="../document-management.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Documents</a>
+      </div>
+
+      <div class="grid-2">
+        <div class="info-card">
+          <h4>Direct GL Attachments</h4>
+          <p>Attach vendor invoices, wire receipts, and checks directly to journal entries for one-click audit review.</p>
+        </div>
+        <div class="info-card">
+          <h4>Policy Template Generator</h4>
+          <p>Dynamic template engine creating official policy binders, invoices, and certificates of insurance (COI).</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="api-integration-hub.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">API &amp; Integration Hub</span>
+      </a>
+      <a href="user-management.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Submodule &rarr;</span>
+        <span class="nav-page-title">User Management &amp; RBAC</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('document-management');
+</script>
+</body>
+</html>

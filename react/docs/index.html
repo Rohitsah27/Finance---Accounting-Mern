@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Veridex Finance — Documentation Portal & System Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Getting Started</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">System Overview</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-shield-halved" style="color: var(--brand);"></i> Veridex Finance System Overview</h1>
+      <p>
+        Veridex is a financial operating system built specifically for the insurance supply chain. It connects <strong>Carriers</strong>, <strong>MGAs</strong>, and <strong>Retail Agencies/Brokers</strong> into an interconnected, multi-entity General Ledger with automated policy subledgers, multi-tier commission splits, bank reconciliations, and regulatory compliance.
+      </p>
+    </div>
+
+    <!-- Quick Navigation Matrix -->
+    <div class="module-card">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-blue">Sidebar Series</span>
+            <span class="badge badge-purple">Module Directory</span>
+          </div>
+          <h2 class="module-title">Platform Modules (Organized by UI Sidebar Series)</h2>
+        </div>
+      </div>
+      <p class="section-p">
+        Click any module below to explore its purpose, step-by-step processes, and General Ledger (GL) double-entry accounting hits:
+      </p>
+
+      <div class="grid-2">
+        <a href="insurance-distribution.html" class="info-card" style="text-decoration:none;">
+          <h4><i class="fa-solid fa-diagram-project" style="color:var(--brand);"></i> 1. The 3 Billing Models</h4>
+          <p>Learn how money flows across <strong>DBA</strong> (Agency Bill), <strong>DBM</strong> (Direct to MGA), and <strong>DBC</strong> (Direct to Carrier).</p>
+        </a>
+        <a href="home-dashboard.html" class="info-card" style="text-decoration:none;">
+          <h4><i class="fa-solid fa-table-columns" style="color:var(--teal);"></i> 2. Platform &amp; Dashboards</h4>
+          <p>Explore <a href="home-dashboard.html" style="color:var(--brand); font-weight:600;">Home</a>, <a href="my-role-workspace.html" style="color:var(--brand); font-weight:600;">Role Workspaces</a>, <a href="industry-workspaces.html" style="color:var(--brand); font-weight:600;">Industries</a>, and <a href="entity-hierarchy.html" style="color:var(--brand); font-weight:600;">Hierarchy</a>.</p>
+        </a>
+        <a href="chart-of-accounts.html" class="info-card" style="text-decoration:none;">
+          <h4><i class="fa-solid fa-book-bookmark" style="color:var(--purple);"></i> 3. General Ledger (GL)</h4>
+          <p>Explore <a href="chart-of-accounts.html" style="color:var(--brand); font-weight:600;">COA</a>, <a href="journal-entry.html" style="color:var(--brand); font-weight:600;">Journal Entry</a>, <a href="financial-statements.html" style="color:var(--brand); font-weight:600;">Statements</a>, and <a href="period-close.html" style="color:var(--brand); font-weight:600;">Period Close</a>.</p>
+        </a>
+        <a href="ar-register.html" class="info-card" style="text-decoration:none;">
+          <h4><i class="fa-solid fa-receipt" style="color:var(--green);"></i> 4. Accounts Receivable</h4>
+          <p>Explore <a href="ar-register.html" style="color:var(--brand); font-weight:600;">AR Register</a>, <a href="ar-aging.html" style="color:var(--brand); font-weight:600;">AR Aging</a>, <a href="ar-collections.html" style="color:var(--brand); font-weight:600;">Collections</a>, and <a href="ar-statements.html" style="color:var(--brand); font-weight:600;">Statements</a>.</p>
+        </a>
+        <a href="invoices-billing-plans.html" class="info-card" style="text-decoration:none;">
+          <h4><i class="fa-solid fa-file-invoice-dollar" style="color:var(--brand);"></i> 5. Billing &amp; Invoicing</h4>
+          <p>Policy invoicing schedules, installment plans (Annual, Quarterly, 10-Pay), and PFC integrations.</p>
+        </a>
+        <a href="ap-all-invoices.html" class="info-card" style="text-decoration:none;">
+          <h4><i class="fa-solid fa-wallet" style="color:var(--amber);"></i> 6. Accounts Payable (AP)</h4>
+          <p>Explore <a href="ap-all-invoices.html" style="color:var(--brand); font-weight:600;">All Invoices</a>, <a href="ap-ach-payments.html" style="color:var(--brand); font-weight:600;">ACH Payments</a>, <a href="ap-echecks.html" style="color:var(--brand); font-weight:600;">E-Checks</a>, and <a href="ap-aging.html" style="color:var(--brand); font-weight:600;">AP Aging</a>.</p>
+        </a>
+        <a href="bank-reconciliation.html" class="info-card" style="text-decoration:none;">
+          <h4><i class="fa-solid fa-building-columns" style="color:var(--teal);"></i> 7. Bank &amp; Cash Management</h4>
+          <p>Explore <a href="bank-reconciliation.html" style="color:var(--brand); font-weight:600;">Bank Reconciliation</a> (Account 1001/1020) and <a href="recon-approvals.html" style="color:var(--brand); font-weight:600;">Recon Approvals</a>.</p>
+        </a>
+        <a href="commission-schedules.html" class="info-card" style="text-decoration:none;">
+          <h4><i class="fa-solid fa-percent" style="color:var(--purple);"></i> 8. Commission Engine</h4>
+          <p>Tiered commission matrices (10% Broker / 5% MGA), statement PDFs, and chargebacks.</p>
+        </a>
+        <a href="pas-policy.html" class="info-card" style="text-decoration:none;">
+          <h4><i class="fa-solid fa-file-contract" style="color:var(--green);"></i> 9. Policy Admin (PAS)</h4>
+          <p>Underwriting intake, rating, binding, endorsements, and policy lifecycle management.</p>
+        </a>
+        <a href="subledger-processing.html" class="info-card" style="text-decoration:none;">
+          <h4><i class="fa-solid fa-table-list" style="color:var(--brand);"></i> 10. Subledger &amp; Bordereau</h4>
+          <p>Ingestion of monthly MGA production files (BX reports) and automated GL split postings.</p>
+        </a>
+      </div>
+    </div>
+
+    <!-- Value Chain Architecture -->
+    <div class="module-card">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-teal">Core Flow</span>
+            <span class="badge badge-blue">Multi-Entity</span>
+          </div>
+          <h2 class="module-title">The 4-Tier Insurance Distribution Chain</h2>
+        </div>
+      </div>
+      <p class="section-p">
+        In standard commercial insurance, four distinct business entities participate in selling and backing a policy:
+      </p>
+
+      <div class="flow-steps">
+        <div class="flow-step-item">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <strong>Insured (Policyholder / Customer)</strong>
+            <span>The business or individual purchasing the insurance coverage who pays the gross written premium (e.g. $10,000.00).</span>
+          </div>
+        </div>
+        <div class="flow-step-item">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <strong>Broker / Retail Producer (Insurance Agency)</strong>
+            <span>The licensed agent who interfaces with the insured, advises coverage, and earns a 10% retail commission ($1,000.00).</span>
+          </div>
+        </div>
+        <div class="flow-step-item">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <strong>MGA (Managing General Agent / Program Administrator)</strong>
+            <span>Has delegated underwriting authority from the Carrier to quote, bind, and issue policies, earning a 5% override commission ($500.00).</span>
+          </div>
+        </div>
+        <div class="flow-step-item">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <strong>Carrier (Risk-Bearing Insurance Company)</strong>
+            <span>Holds the insurance license, carries the balance sheet risk reserve ($10,000.00 unearned premium), and receives the net settlement cash ($8,500.00).</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-nav-footer">
+      <div></div>
+      <a href="insurance-distribution.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Module &rarr;</span>
+        <span class="nav-page-title">The 3 Billing Models (DBA · DBM · DBC)</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('index');
+</script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Commission Schedules & Statements — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Commission Engine</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Schedules &amp; Statements</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-file-invoice" style="color: var(--purple);"></i> Commission Schedules &amp; Statements <span class="file-tag">commission-engine.html</span></h1>
+      <p>
+        Configures contractual commission agreements for retail brokers, wholesale agents, and MGA program managers. Generates monthly PDF commission settlement statements and manages return-commission chargebacks on policy cancellations.
+      </p>
+    </div>
+
+    <div class="module-card">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-purple">Commission Rules</span>
+            <span class="badge badge-green">Producer Statements</span>
+          </div>
+          <h2 class="module-title">Commission Setup &amp; Rules</h2>
+        </div>
+        <a href="../commission-engine.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Commission Engine</a>
+      </div>
+
+      <div class="grid-2">
+        <div class="info-card">
+          <h4>Tiered Rate Matrices</h4>
+          <p>Define rates by Line of Business: e.g. Commercial Auto (10% Broker / 5% MGA), General Liability (12.5% Broker / 6% MGA).</p>
+        </div>
+        <div class="info-card">
+          <h4>Chargeback Engine</h4>
+          <p>When a policy is cancelled mid-term, Veridex automatically calculates unearned commission clawbacks from future producer payouts.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="projects-job-costing.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">Projects &amp; WIP</span>
+      </a>
+      <a href="fx-rates-revaluation.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Submodule &rarr;</span>
+        <span class="nav-page-title">FX Rates &amp; Revaluation</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('commission-schedules');
+</script>
+</body>
+</html>

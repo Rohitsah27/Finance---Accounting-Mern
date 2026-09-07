@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Excel Onboarding — Data Migration | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/excel-mapper.js"></script>
+  <script src="js/layout.js"></script>
+</head>
+<body>
+
+<main class="main-content" id="main-content">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Excel / CSV Onboarding</div>
+      <div class="page-subtitle">One reusable AI-assisted mapping pipeline for every bulk import in the platform. A row is never rejected outright, low-confidence matches just get flagged for review.</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 300px;gap:18px;align-items:start;">
+    <div class="form-card" style="padding:22px;">
+      <div class="v-wizard-steps" id="onb-steps"></div>
+      <div id="onb-panel"></div>
+    </div>
+    <div class="form-card" style="padding:18px;">
+      <div class="card-title" style="font-size:13px;">One Engine, Every Import</div>
+      <p style="font-size:11.5px;color:var(--gray-600);line-height:1.6;margin-top:8px;">
+        This exact wizard, drop a file, get an AI-suggested mapping, review and commit, is what powers bulk imports across Chart of Accounts, Vendor and Customer masters, Opening Balances, Policy/Bordereau feeds, Budgets and Commission Schedules. One pipeline, not nine separate importers to maintain.
+      </p>
+      <div class="v-lock-note" style="margin-top:14px;">No business loses a chance to get their data in: unmapped or low-confidence columns land in a review bucket rather than blocking the import.</div>
+    </div>
+  </div>
+</main>
+
+<script src="js/app.js"></script>
+<script>
+initLayout('admin-config');
+
+const ONB_STEPS = ['Select Type','Upload','Map Columns','Review & Commit'];
+let onbStep = 0;
+let selectedUploadType = null;
+let currentMapping = [];
+let saveAsTemplate = true;
+let fileDetected = false;
+
+function renderOnbStepper() {
+  document.getElementById('onb-steps').innerHTML = ONB_STEPS.map((label, i) => {
+    const cls = i < onbStep ? 'done' : (i === onbStep ? 'active' : '');
+    return `<div class="v-wizard-step ${cls}"><div class="v-wizard-dot">${i < onbStep ? '&#10003;' : i + 1}</div><div class="v-wizard-label">${label}</div></div>`;
+  }).join('');
+}
+
+function renderOnb() {
+  renderOnbStepper();
+  const panel = document.getElementById('onb-panel');
+  if (onbStep === 0) panel.innerHTML = renderStepSelectType();
+  else if (onbStep === 1) panel.innerHTML = renderStepUpload();
+  else if (onbStep === 2) panel.innerHTML = renderStepMap();
+  else panel.innerHTML = renderStepReview();
+  if (onbStep === 1) initUploadZone('upload-zone', 'upload-input');
+}
+
+function renderStepSelectType() {
+  return `
+    <div class="card-title mb-12">What are you importing?</div>
+    <div class="v-module-grid">
+      ${UPLOAD_TYPES.map(t => `
+        <div class="v-module-card" style="cursor:pointer;${selectedUploadType===t.id?'border-color:var(--v-teal);box-shadow:0 0 0 1px var(--v-teal) inset;':''}" onclick="selectUploadType('${t.id}')">
+          <div class="v-module-card-title">${t.label}</div>
+          <div class="v-module-card-desc">${t.desc}</div>
+        </div>`).join('')}
+    </div>`;
+}
+function selectUploadType(id) {
+  selectedUploadType = id;
+  fileDetected = false;
+  currentMapping = [];
+  usingSavedTemplate = false;
+  templateExtras = [];
+  templateMissingRequired = [];
+  onbStep = 1;
+  renderOnb();
+}
+
+function renderStepUpload() {
+  const type = getUploadType(selectedUploadType);
+  return `
+    <div class="card-title mb-12">Upload: ${type.label}</div>
+    <div class="v-map-dropzone" id="upload-zone" data-upload-zone="upload-input">
+      <div style="font-size:13px;font-weight:600;color:var(--gray-700);">Drag &amp; drop your file here, or click to browse</div>
+      <div style="font-size:11.5px;color:var(--gray-400);margin-top:4px;">.xlsx, .xls or .csv</div>
+    </div>
+    <input type="file" id="upload-input" style="display:none;">
+    <div id="upload-status" style="margin-top:14px;"></div>
+    <div style="margin-top:16px;">
+      <button class="btn btn-outline" onclick="onbStep=0;renderOnb();">&larr; Back</button>
+      <button class="btn btn-primary" onclick="confirmUpload()">${fileDetected ? 'Continue to Mapping →' : 'Simulate File Detected'}</button>
+    </div>`;
+}
+function confirmUpload() {
+  fileDetected = true;
+  const cols = SIMULATED_SOURCE_COLUMNS[selectedUploadType] || [];
+  document.getElementById('upload-status').innerHTML = `<div class="v-lock-note">Detected ${cols.length} columns: ${cols.join(', ')}</div>`;
+  document.querySelector('#onb-panel button.btn-primary').textContent = 'Continue to Mapping →';
+  document.querySelector('#onb-panel button.btn-primary').setAttribute('onclick', 'goToMapping()');
+}
+let usingSavedTemplate = false;
+let templateExtras = [];
+let templateMissingRequired = [];
+
+function goToMapping() {
+  onbStep = 2;
+  const cols = SIMULATED_SOURCE_COLUMNS[selectedUploadType] || [];
+  const templateResult = applySavedMappingTemplate(selectedUploadType, cols);
+  if (templateResult) {
+    // Already mapped this kind of file before - use that mapping, don't re-guess with AI.
+    usingSavedTemplate = true;
+    currentMapping = templateResult.mapping;
+    templateExtras = templateResult.extras;
+    templateMissingRequired = templateResult.missingRequired;
+  } else {
+    usingSavedTemplate = false;
+    templateExtras = [];
+    templateMissingRequired = [];
+    currentMapping = autoSuggestMapping(selectedUploadType);
+  }
+  renderOnb();
+}
+
+function remapFromScratch() {
+  clearSavedMappingTemplate(selectedUploadType);
+  usingSavedTemplate = false;
+  templateExtras = [];
+  templateMissingRequired = [];
+  currentMapping = autoSuggestMapping(selectedUploadType);
+  showToast('Saved mapping cleared, re-suggesting with AI instead', 'info');
+  rerenderMapTable();
+}
+
+let addFieldForRow = null; // which row index triggered "+ Add a new field...", if any
+
+function mappingBasisOptions() {
+  const cfg = getTenantConfig();
+  return DIMENSION_LIBRARY.filter(d => cfg.enabledDimensions[d.id]);
+}
+
+function renderStepMap() {
+  const type = getUploadType(selectedUploadType);
+  const missing = missingRequiredFields(selectedUploadType, currentMapping);
+  const basisOptions = mappingBasisOptions();
+  const savedTemplate = getSavedMappingTemplate(selectedUploadType);
+  return `
+    <div class="card-title mb-12">${usingSavedTemplate ? 'Mapping (from your saved template)' : 'AI-Suggested Mapping'}: ${type.label} <span class="v-badge-config">fields, basis & calculation are all yours to define</span></div>
+
+    ${usingSavedTemplate ? `
+      <div class="v-lock-note" style="border-left:3px solid var(--v-teal);">
+        This upload type is already mapped in your system (saved ${new Date(savedTemplate.savedAt).toLocaleDateString()}). We matched this file against that mapping instead of guessing again.
+        <button class="btn btn-ghost btn-sm" style="margin-left:8px;" onclick="remapFromScratch()">Discard saved mapping &amp; re-map from scratch</button>
+      </div>` : `
+      <div class="v-lock-note">No saved mapping exists yet for ${type.label} - this is an AI-suggested first pass. Save it at the end and next time this upload type is matched automatically.</div>`}
+
+    ${templateMissingRequired.length ? `
+      <div class="v-lock-note" style="margin-top:10px;border-left:3px solid var(--red);background:var(--red-bg);">
+        <strong>Validation error:</strong> your saved mapping expects a column for <strong>${templateMissingRequired.map(f=>f.label).join(', ')}</strong>, and this file doesn't have it. Map it manually below, add the column to your file, or continue anyway (it will land in the review bucket).
+      </div>` : ''}
+    ${templateExtras.length ? `
+      <div class="v-lock-note" style="margin-top:10px;">
+        <strong>${templateExtras.length} extra column${templateExtras.length>1?'s':''}</strong> in this file weren't in your saved mapping (${templateExtras.map(e=>e.sourceColumn).join(', ')}), ignored by default. Map any of them below if you want them included.
+      </div>` : ''}
+
+    <div style="overflow-x:auto;margin-top:10px;">
+    <table class="v-map-table">
+      <thead><tr><th>Source Column</th><th>Target Field (your DB)</th><th>Confidence</th><th>Basis / Dimension</th><th>Calculation</th><th>Note</th></tr></thead>
+      <tbody>
+        ${currentMapping.map((m, i) => `
+          <tr>
+            <td>${m.sourceColumn}</td>
+            <td>
+              <select class="v-map-select" onchange="overrideMapping(${i}, this.value)">
+                <option value="">(Do not import)</option>
+                ${type.fields.map(f => `<option value="${f.key}" ${m.targetField===f.key?'selected':''}>${f.label}${f.required?' *':''}${f.custom?' (custom)':''}</option>`).join('')}
+                <option value="__addnew__">+ Add a new field to map to...</option>
+              </select>
+            </td>
+            <td>
+              <div class="v-map-confidence">
+                <div class="v-map-confidence-bar"><div class="v-map-confidence-fill ${confidenceClass(m.confidence)}" style="width:${m.confidence}%;"></div></div>
+                <span style="font-size:11px;color:var(--gray-500);">${m.confidence}%</span>
+              </div>
+            </td>
+            <td>
+              <select class="v-map-select" onchange="setMappingBasis(${i}, this.value)">
+                <option value="">(none)</option>
+                ${basisOptions.map(d => `<option value="${d.id}" ${m.basis===d.id?'selected':''}>${d.label}</option>`).join('')}
+              </select>
+            </td>
+            <td>
+              <select class="v-map-select" onchange="setMappingCalculation(${i}, this.value)">
+                ${CALCULATION_OPTIONS.map(c => `<option value="${c.id}" ${(m.calculation||'none')===c.id?'selected':''}>${c.label}</option>`).join('')}
+              </select>
+              ${m.calculation === 'custom' ? `<input type="text" class="v-map-select" style="margin-top:4px;" placeholder="e.g. value * 1.15" value="${m.customFormula||''}" onchange="setCustomFormula(${i}, this.value)">` : ''}
+            </td>
+            <td style="font-size:11px;color:var(--gray-400);">${m.confidence < 60 && m.targetField ? 'Low confidence, review before commit' : (m.targetField ? '' : 'Not mapped, will go to review bucket')}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
+    </div>
+
+    <div id="add-field-form-wrap" style="margin-top:14px;">
+      ${addFieldForRow !== null ? renderAddFieldForm() : `<button class="btn btn-outline btn-sm" onclick="addFieldForRow=-1;rerenderMapTable();">+ Add a custom target field</button>`}
+    </div>
+
+    ${missing.length ? `<div class="v-lock-note" style="margin-top:14px;border-left:3px solid var(--v-amber);">⚠ Still missing required field${missing.length>1?'s':''}: <strong>${missing.map(f=>f.label).join(', ')}</strong>. You can still continue, rows without a required value are routed to a review bucket rather than being rejected.</div>` : ''}
+    <div class="v-lock-note" style="margin-top:10px;">Rows are never rejected outright, unmapped or low-confidence values are imported to a default/review bucket so no data is lost. Every field, basis, and calculation here is something you defined or picked, nothing is fixed by us.</div>
+    <div style="margin-top:16px;">
+      <button class="btn btn-outline" onclick="onbStep=1;renderOnb();">&larr; Back</button>
+      <button class="btn btn-primary" onclick="onbStep=3;renderOnb();">Continue to Review →</button>
+    </div>`;
+}
+
+function renderAddFieldForm() {
+  return `
+    <div class="form-card" style="padding:14px 16px;">
+      <div style="font-size:12px;font-weight:800;color:var(--gray-600);margin-bottom:10px;">New target field${addFieldForRow >= 0 ? ' (for "' + currentMapping[addFieldForRow].sourceColumn + '")' : ''}</div>
+      <div class="form-grid-3">
+        <div>
+          <label class="field-label">Field label *</label>
+          <input class="field-input" type="text" id="new-field-label" placeholder="e.g. Reinsurer Ext Code">
+        </div>
+        <div>
+          <label class="field-label">Data type</label>
+          <select class="field-input" id="new-field-type">
+            <option value="text">Text</option>
+            <option value="number">Number</option>
+            <option value="date">Date</option>
+            <option value="boolean">Yes/No</option>
+          </select>
+        </div>
+        <div>
+          <label class="field-label">Basis / dimension</label>
+          <select class="field-input" id="new-field-basis">
+            <option value="">(none)</option>
+            ${mappingBasisOptions().map(d => `<option value="${d.id}">${d.label}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+      <label style="display:flex;align-items:center;gap:7px;font-size:12px;margin-top:10px;">
+        <input type="checkbox" id="new-field-required" style="width:14px;height:14px;"> Required field
+      </label>
+      <div style="margin-top:12px;display:flex;gap:8px;">
+        <button class="btn btn-primary btn-sm" onclick="submitAddField()">Add field</button>
+        <button class="btn btn-ghost btn-sm" onclick="addFieldForRow=null;rerenderMapTable();">Cancel</button>
+      </div>
+    </div>`;
+}
+
+function submitAddField() {
+  const label = document.getElementById('new-field-label').value.trim();
+  if (!label) { showToast('Give the new field a label', 'warning'); return; }
+  const field = addCustomTargetField(selectedUploadType, {
+    label,
+    type: document.getElementById('new-field-type').value,
+    required: document.getElementById('new-field-required').checked,
+    basis: document.getElementById('new-field-basis').value || null,
+  });
+  if (addFieldForRow >= 0) {
+    currentMapping[addFieldForRow].targetField = field.key;
+    currentMapping[addFieldForRow].targetLabel = field.label;
+    currentMapping[addFieldForRow].confidence = 99;
+    if (field.basis) currentMapping[addFieldForRow].basis = field.basis;
+  }
+  addFieldForRow = null;
+  showToast(`Added "${field.label}" to ${getUploadType(selectedUploadType).label} and mapped it`, 'success');
+  rerenderMapTable();
+}
+
+function rerenderMapTable() {
+  document.getElementById('onb-panel').innerHTML = renderStepMap();
+}
+
+function overrideMapping(i, key) {
+  if (key === '__addnew__') {
+    addFieldForRow = i;
+    rerenderMapTable();
+    return;
+  }
+  const type = getUploadType(selectedUploadType);
+  const field = type.fields.find(f => f.key === key);
+  currentMapping[i].targetField = field ? field.key : null;
+  currentMapping[i].targetLabel = field ? field.label : '(Do not import)';
+  currentMapping[i].confidence = field ? 99 : 0;
+  if (field && field.basis && !currentMapping[i].basis) currentMapping[i].basis = field.basis;
+  showToast(`${currentMapping[i].sourceColumn} manually mapped to ${currentMapping[i].targetLabel}`, 'info');
+}
+
+function setMappingBasis(i, basisId) {
+  currentMapping[i].basis = basisId || null;
+}
+
+function setMappingCalculation(i, calcId) {
+  currentMapping[i].calculation = calcId;
+  if (calcId === 'custom') rerenderMapTable();
+}
+
+function setCustomFormula(i, formula) {
+  currentMapping[i].customFormula = formula;
+}
+
+function mockPreviewRows(type) {
+  const rows = [];
+  for (let r = 1; r <= 10; r++) {
+    const row = {};
+    type.fields.forEach(f => {
+      if (f.type === 'number') row[f.key] = (r * 137.5 + f.key.length * 12).toFixed(2);
+      else if (f.type === 'date') row[f.key] = '01/0' + (r % 9 + 1) + '/2026';
+      else if (f.type === 'boolean') row[f.key] = r % 2 === 0 ? 'Yes' : 'No';
+      else if (f.type === 'picklist') row[f.key] = f.values[r % f.values.length];
+      else row[f.key] = f.label + ' ' + r;
+    });
+    rows.push(row);
+  }
+  return rows;
+}
+
+function renderStepReview() {
+  const type = getUploadType(selectedUploadType);
+  const mappedFields = currentMapping.filter(m => m.targetField).map(m => type.fields.find(f => f.key === m.targetField));
+  const rows = mockPreviewRows(type);
+  const warnings = [
+    { row: 3, msg: 'Missing value in a non-required column, imported with a blank default' },
+    { row: 7, msg: 'Low-confidence date format, flagged for manual review' },
+  ];
+  return `
+    <div class="card-title mb-12">Preview First 10 Rows: ${type.label}</div>
+    <div style="overflow-x:auto;">
+      <table class="data-table">
+        <thead><tr>${mappedFields.map(f => `<th>${f.label}</th>`).join('')}</tr></thead>
+        <tbody>${rows.map(row => `<tr>${mappedFields.map(f => `<td>${row[f.key]}</td>`).join('')}</tr>`).join('')}</tbody>
+      </table>
+    </div>
+    <div class="card-title mb-12" style="margin-top:18px;font-size:13px;">Error Report (non-blocking)</div>
+    ${warnings.map(w => `<div class="v-lock-note" style="margin-bottom:6px;">Row ${w.row}: ${w.msg}</div>`).join('')}
+    <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--gray-700);margin-top:16px;">
+      <input type="checkbox" id="save-template-cb" checked onchange="saveAsTemplate=this.checked">
+      ${usingSavedTemplate ? 'Update the saved mapping template with any changes I made' : 'Save this mapping so the next ' + getUploadType(selectedUploadType).label + ' upload is matched automatically'}
+    </label>
+    <div style="margin-top:16px;">
+      <button class="btn btn-outline" onclick="onbStep=2;renderOnb();">&larr; Back</button>
+      <button class="btn btn-primary" onclick="commitImport()">Commit Import</button>
+    </div>`;
+}
+function commitImport() {
+  const type = getUploadType(selectedUploadType);
+  const mappedFields = currentMapping.filter(m => m.targetField).map(m => type.fields.find(f => f.key === m.targetField)).filter(Boolean);
+  const rows = mockPreviewRows(type);
+  const rowCount = 38 + rows.length;
+
+  stashImportResult(selectedUploadType, {
+    uploadTypeLabel: type.label,
+    columns: mappedFields.map(f => f.label),
+    rows: rows.slice(0, 6).map(r => mappedFields.map(f => r[f.key])),
+    rowCount,
+  });
+
+  if (saveAsTemplate) {
+    saveMappingTemplate(selectedUploadType, currentMapping);
+  }
+
+  const resultsPage = RESULTS_PAGE_FOR_UPLOAD_TYPE[selectedUploadType] || 'reporting-analytics.html';
+  showToast(`${rowCount} rows imported${saveAsTemplate ? ', mapping saved for next time' : ''}. Opening ${type.label} results...`, 'success', 2200);
+
+  if (isSetupGuardActive()) advanceSetupStage('connect');
+
+  setTimeout(() => { window.location.href = resultsPage; }, 1100);
+}
+
+renderOnb();
+</script>
+</body>
+</html>

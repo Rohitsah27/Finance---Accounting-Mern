@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>User Management & RBAC — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Identity &amp; Security</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">User Management</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-users-gear" style="color: var(--purple);"></i> User Management &amp; Role-Based Access (RBAC) <span class="file-tag">user-management.html</span></h1>
+      <p>
+        Enforces enterprise authentication security, multi-tenant entity segregation, Single Sign-On (SSO / SAML), Multi-Factor Authentication (MFA), and granular permission sets across all modules.
+      </p>
+    </div>
+
+    <div class="module-card">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-purple">Security &amp; RBAC</span>
+            <span class="badge badge-green">Enterprise Auth</span>
+          </div>
+          <h2 class="module-title">Role Permissions &amp; Data Scoping</h2>
+        </div>
+        <a href="../user-management.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open User Management</a>
+      </div>
+
+      <div class="grid-2">
+        <div class="info-card">
+          <h4>Granular Permission Matrix</h4>
+          <p>Assign module-level rights: <code>View</code>, <code>Create</code>, <code>Edit</code>, <code>Approve</code>, <code>Post</code>, or <code>Admin</code> across GL, Banking, AR, AP, and Underwriting.</p>
+        </div>
+        <div class="info-card">
+          <h4>Multi-Tenant Entity Isolation</h4>
+          <p>Restricts user visibility so retail producers only access their agency’s policies, while corporate controllers retain global group consolidation access.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="document-management.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">Document Management</span>
+      </a>
+      <a href="index.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Restart &rarr;</span>
+        <span class="nav-page-title">Documentation Home</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('user-management');
+</script>
+</body>
+</html>

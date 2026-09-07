@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Governance & Administration — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Governance &amp; Administration</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Governance &amp; Admin</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-user-shield" style="color: var(--purple);"></i> Governance, Administration &amp; Security</h1>
+      <p>
+        Veridex enforces enterprise security, multi-tenant isolation, Role-Based Access Control (RBAC), immutable audit trail logging, integration APIs, and global configuration engines.
+      </p>
+    </div>
+
+    <!-- Audit Trail -->
+    <div class="module-card" id="audit-trail">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-purple">Immutable Logs</span>
+            <span class="badge badge-green">Compliance</span>
+          </div>
+          <h2 class="module-title">1. Immutable Audit Trail (`audit-trail.html`)</h2>
+        </div>
+        <a href="../audit-trail.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Audit Trail</a>
+      </div>
+
+      <p class="section-p">
+        <strong>What it does:</strong> Records every user action, login, journal post, policy binding, bank recon match, and approval event with cryptographic SHA-256 timestamping for SOC 1 / SOC 2 compliance.
+      </p>
+    </div>
+
+    <!-- User Management & RBAC -->
+    <div class="module-card" id="user-management">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-blue">RBAC</span>
+            <span class="badge badge-teal">Security</span>
+          </div>
+          <h2 class="module-title">2. User Management &amp; Role Access (`user-management.html`)</h2>
+        </div>
+        <a href="../user-management.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open User Management</a>
+      </div>
+
+      <div class="grid-2">
+        <div class="info-card">
+          <h4>Role-Based Access Control (RBAC)</h4>
+          <p>Assigns granular permissions (View, Create, Edit, Approve, Admin) across accounting, underwriting, and treasury modules.</p>
+        </div>
+        <div class="info-card">
+          <h4>Multi-Tenant Entity Segregation</h4>
+          <p>Ensures brokers only see their policies and commissions, MGAs see their programs, and Carriers maintain full group oversight.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Configuration & Onboarding -->
+    <div class="module-card" id="admin-config">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-amber">System Setup</span>
+            <span class="badge badge-blue">Admin</span>
+          </div>
+          <h2 class="module-title">3. Configuration Centre &amp; Onboarding</h2>
+        </div>
+        <a href="../admin-config-center.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Config Centre</a>
+      </div>
+
+      <p class="section-p">
+        Includes the <strong>Configuration Centre</strong> (`admin-config-center.html`), <strong>Setup Wizard</strong> (`setup-wizard.html`), and <strong>Excel Onboarding Tool</strong> (`excel-onboarding.html`) for bulk importing Chart of Accounts, opening GL trial balances, and active policy portfolios.
+      </p>
+    </div>
+
+    <!-- API & Webhook Hub -->
+    <div class="module-card" id="api-hub">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-teal">REST API</span>
+            <span class="badge badge-purple">Webhooks</span>
+          </div>
+          <h2 class="module-title">4. API &amp; Webhook Integration Hub (`api-integration-hub.html`)</h2>
+        </div>
+        <a href="../api-integration-hub.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open API Hub</a>
+      </div>
+
+      <p class="section-p">
+        Connects external Policy Administration Systems (PAS), Agency Management Systems (AMS like Applied Epic / AMS360), and banking core rails via secure JSON REST APIs and event-driven webhooks.
+      </p>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="statutory-compliance.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">Statutory &amp; Compliance</span>
+      </a>
+      <a href="index.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Restart &rarr;</span>
+        <span class="nav-page-title">Documentation Home</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('governance-admin');
+</script>
+</body>
+</html>

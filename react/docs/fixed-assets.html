@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fixed Assets — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Fixed Assets</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Asset Register</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-calculator" style="color: var(--brand);"></i> Fixed Assets &amp; Depreciation <span class="file-tag">fixed-assets.html</span></h1>
+      <p>
+        Maintains the fixed capital asset register, calculates monthly depreciation (Straight Line / Declining Balance), and posts automated accumulated depreciation entries to the General Ledger.
+      </p>
+    </div>
+
+    <div class="module-card">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-blue">Asset Register</span>
+            <span class="badge badge-purple">Depreciation</span>
+          </div>
+          <h2 class="module-title">Fixed Asset Capabilities</h2>
+        </div>
+        <a href="../fixed-assets.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Fixed Assets</a>
+      </div>
+
+      <div class="grid-2">
+        <div class="info-card">
+          <h4>Capital Asset Lifecycle</h4>
+          <p>Acquisition purchase cost (`Account 1700`), useful asset life (e.g. 5 years for IT equipment), salvage value, and asset retirement disposal.</p>
+        </div>
+        <div class="info-card">
+          <h4>Automated Monthly Posting</h4>
+          <p>Posts Dr. 6700 (Depreciation Expense) / Cr. 1800 (Accumulated Depreciation) on a monthly recurring schedule.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="inventory-costing.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">Inventory &amp; Costing</span>
+      </a>
+      <a href="projects-job-costing.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Submodule &rarr;</span>
+        <span class="nav-page-title">Projects &amp; WIP</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('fixed-assets');
+</script>
+</body>
+</html>

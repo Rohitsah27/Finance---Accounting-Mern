@@ -1,0 +1,750 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tax Engine — Tax Compliance | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/layout.js"></script>
+  <script src="js/reports-utils.js"></script>
+  <style>
+    .tax-progress-row { display:flex; align-items:center; gap:10px; }
+    .tax-progress-track { flex:1; height:6px; background:var(--gray-200); border-radius:3px; overflow:hidden; min-width:120px; }
+    .tax-progress-fill { height:100%; border-radius:3px; background:var(--v-teal); }
+    .tax-progress-fill.over { background:var(--coral); }
+    .tax-progress-label { font-size:11px; color:var(--gray-500); white-space:nowrap; min-width:96px; text-align:right; }
+    .tax-lookup-row { display:grid; grid-template-columns:1fr auto; gap:12px; align-items:end; max-width:420px; }
+    .tax-lookup-result { margin-top:14px; padding:12px 14px; border-radius:var(--radius); background:var(--v-teal-bg); border:1px solid rgba(15,110,99,0.25); font-size:12.5px; color:var(--gray-700); display:none; }
+    .tax-lookup-result.show { display:block; }
+    .tax-copy { font-size:12px; color:var(--gray-500); line-height:1.6; margin-bottom:14px; max-width:900px; }
+    .pill-tabbar { display:flex; gap:4px; background:var(--gray-100); border-radius:8px; padding:4px; margin-bottom:20px; width:fit-content; border:1px solid var(--gray-200); }
+    .pill-tab { padding:6px 18px; font-size:12.5px; font-weight:600; border-radius:6px; cursor:pointer; color:var(--gray-500); border:none; background:transparent; transition:all .15s; }
+    .pill-tab:hover { color:var(--navy); }
+    .pill-tab.active { background:#fff; color:var(--navy); box-shadow:0 1px 3px rgba(0,0,0,.08); border: 1px solid var(--gray-200); }
+  </style>
+</head>
+<body>
+<main class="main-content" id="main-content">
+
+  <!-- ═══ PAGE HEADER ═══ -->
+  <div class="page-header">
+    <div>
+      <div class="page-title">Tax Engine</div>
+      <div class="page-subtitle">Insurance premium taxes, state surplus stamping fees, sales &amp; use, 1099 compliance, and consolidated liabilities</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline btn-sm" onclick="exportActiveTaxTable()">Export Workbook</button>
+      <button class="btn btn-primary btn-sm" onclick="addJurisdiction()">+ Register Jurisdiction</button>
+    </div>
+  </div>
+
+  <!-- ═══ DYNAMIC STAT CARDS ═══ -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon si-navy"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="14" height="14" rx="2" stroke="#102a2e" stroke-width="1.8"/><path d="M7 10h6M7 13h4M9 5.5v2" stroke="#102a2e" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+      <div class="stat-info">
+        <div class="stat-value" id="tax-liability-stat">$1,770.00</div>
+        <div class="stat-label">Total Tax Liability (Current Period)</div>
+        <div class="stat-change text-muted">Surplus lines, state &amp; county combined</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon si-coral"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="13" rx="1.6" stroke="#c9791f" stroke-width="1.6"/><path d="M3 8h14M6.5 2.5v3M13.5 2.5v3" stroke="#c9791f" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+      <div class="stat-info">
+        <div class="stat-value" id="tax-filings-stat">2</div>
+        <div class="stat-label">Filings Due This Month</div>
+        <div class="stat-change" style="color:var(--coral);" id="tax-filings-sub">Texas &amp; California Filings</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon si-orange"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2l6 3v4c0 4-2.6 6.8-6 8-3.4-1.2-6-4-6-8V5l6-3z" stroke="#e65100" stroke-width="1.6" stroke-linejoin="round"/><path d="M10 6.5v4" stroke="#e65100" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+      <div class="stat-info">
+        <div class="stat-value" id="tax-certs-stat">3</div>
+        <div class="stat-label">Active Exemption Certificates</div>
+        <div class="stat-change" style="color:var(--green);">All certificates verified</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon si-green"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="9" cy="9" r="5.5" stroke="#2e7d32" stroke-width="1.6"/><path d="M13.2 13.2L17 17" stroke="#2e7d32" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+      <div class="stat-info">
+        <div class="stat-value" id="tax-tins-stat">0</div>
+        <div class="stat-label">TIN Mismatches</div>
+        <div class="stat-change" style="color:var(--green);">100% W-9 Match Rate</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ TABS ═══ -->
+  <div class="page-tabs" id="taxtabs">
+    <button class="page-tab active" data-tab="salesuse" onclick="switchTab('taxtabs','salesuse')">Insurance Premium &amp; Surplus Taxes</button>
+    <button class="page-tab" data-tab="payroll" onclick="switchTab('taxtabs','payroll')">Payroll Tax</button>
+    <button class="page-tab" data-tab="filing1099" onclick="switchTab('taxtabs','filing1099')">1099 &amp; Producer Compliance</button>
+    <button class="page-tab" data-tab="liability" onclick="switchTab('taxtabs','liability')">Tax Liability Summary</button>
+  </div>
+
+  <!-- ── 1. INSURANCE & SURPLUS TAXES ── -->
+  <div class="tab-panel active" data-panel="salesuse">
+    <div class="pill-tabbar">
+      <button class="pill-tab active" onclick="switchSubTab('sales-panel', 'sales-nexus', this)">Nexus & Registrations</button>
+      <button class="pill-tab" onclick="switchSubTab('sales-panel', 'sales-rates', this)">Tax Rates & Lookup</button>
+      <button class="pill-tab" onclick="switchSubTab('sales-panel', 'sales-certs', this)">Exemption Certificates</button>
+    </div>
+
+    <div id="sales-nexus" class="sub-panel sales-panel">
+    <div class="table-wrap" style="margin-bottom:20px;">
+      <div class="table-head-row">
+        <div class="table-head-title">State Nexus &amp; Surplus Stamping Registrations</div>
+        <div class="table-head-actions">
+          <input class="filter-input" id="nexusFilter" oninput="filterNexus(this.value)" placeholder="Filter by state…">
+          <button class="btn btn-outline btn-sm" onclick="addJurisdiction()">+ Register Nexus</button>
+        </div>
+      </div>
+      <table class="data-table" id="nexusTable">
+        <thead>
+          <tr><th>State</th><th>Filing Jurisdiction</th><th>Nexus Status</th><th>Registration Date</th><th>Actions</th></tr>
+        </thead>
+        <tbody id="nexusBody">
+          <!-- Rendered dynamically -->
+        </tbody>
+      </table>
+    </div>
+    </div><!-- End sales-nexus -->
+
+    <div id="sales-rates" class="sub-panel sales-panel" style="display:none;">
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-header">
+        <div class="card-title">Rate Engine Lookup (ZIP+4 / Jurisdiction)</div>
+        <span class="badge badge-navy">State + County + Municipal Stamping</span>
+      </div>
+      <div class="card-body">
+        <div class="tax-lookup-row">
+          <div class="form-field" style="margin-bottom:0;">
+            <label class="field-label">ZIP+4 or City Code</label>
+            <input class="field-input" id="zipLookupInput" placeholder="e.g. 75201-1234 (Texas)" value="75201-1234">
+          </div>
+          <button class="btn btn-primary btn-sm" onclick="lookupRate()">Look Up Rate</button>
+        </div>
+        <div class="tax-lookup-result show" id="zipLookupResult">
+          <strong>Combined Texas Surplus &amp; Local Tax: 5.40%</strong> — State Surplus Lines Tax 4.85% &bull; Denton County Local Surcharge 0.55% <span style="color:var(--gray-500);">(ZIP 75201 · Policy POL-V8NHT)</span>
+          <button class="btn btn-outline btn-sm" style="margin-left:10px;" onclick="prefillRateForm('Texas - Denton County', 5.40)">+ Add to Your Tax Rates</button>
+        </div>
+        <div class="v-lock-note" style="margin-top:10px;">Calculates state surplus lines taxes, county surcharges, and stamping office regulatory fees.</div>
+      </div>
+    </div>
+
+    <div class="table-wrap" style="margin-bottom:20px;">
+      <div class="table-head-row">
+        <div class="table-head-title">Configured Tax Rates &amp; Surplus Surcharges</div>
+        <div class="table-head-actions">
+          <button class="btn btn-outline btn-sm" onclick="toggleAddRateForm()">+ Add Tax Rate</button>
+        </div>
+      </div>
+      <div id="add-rate-form-wrap" style="display:none;padding:16px;background:var(--gray-50);border-bottom:1px solid var(--gray-200);">
+        <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px;">Add Tax Jurisdiction / Fee Schedule</div>
+        <div class="form-grid-3">
+          <div>
+            <label class="field-label">Jurisdiction *</label>
+            <input class="field-input" id="rate-jurisdiction" placeholder="e.g. Texas Surplus Lines">
+          </div>
+          <div>
+            <label class="field-label">Tax Type</label>
+            <select class="field-input" id="rate-type">
+              <option>Surplus Lines Tax</option>
+              <option>Insurance Premium Tax</option>
+              <option>County Surcharge</option>
+              <option>Stamping Office Fee</option>
+              <option>Sales &amp; Use</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Rate (%) *</label>
+            <input class="field-input" type="number" step="0.001" id="rate-percent" placeholder="e.g. 4.85">
+          </div>
+          <div>
+            <label class="field-label">Effective Date</label>
+            <input class="field-input" type="date" id="rate-effective" value="2026-08-20">
+          </div>
+          <div style="grid-column:span 2;">
+            <label class="field-label">Notes &amp; Policy Ref</label>
+            <input class="field-input" id="rate-notes" placeholder="e.g. Applicable to Commercial Trucking (POL-V8NHT)">
+          </div>
+        </div>
+        <div style="margin-top:14px;display:flex;gap:8px;">
+          <button class="btn btn-primary btn-sm" onclick="submitTaxRate()">Save Tax Rate</button>
+          <button class="btn btn-ghost btn-sm" onclick="toggleAddRateForm()">Cancel</button>
+        </div>
+      </div>
+      <table class="data-table" id="myRatesTable">
+        <thead>
+          <tr>
+            <th>Jurisdiction</th>
+            <th>Type</th>
+            <th>Rate</th>
+            <th>Effective Date</th>
+            <th>Notes</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="myRatesBody">
+          <!-- Rendered dynamically -->
+        </tbody>
+      </table>
+    </div>
+    </div><!-- End sales-rates -->
+
+    <div id="sales-certs" class="sub-panel sales-panel" style="display:none;">
+    <div class="table-wrap">
+      <div class="table-head-row">
+        <div class="table-head-title">Exemption Certificates &amp; Reseller Waivers</div>
+        <div class="table-head-actions">
+          <button class="btn btn-outline btn-sm" onclick="addCertificate()">+ Add Certificate</button>
+        </div>
+      </div>
+      <table class="data-table" id="certTable">
+        <thead><tr><th>Customer / Insured</th><th>Certificate #</th><th>State</th><th>Expiration Date</th><th>Status</th><th>Actions</th></tr></thead>
+        <tbody id="certBody">
+          <!-- Rendered dynamically -->
+        </tbody>
+      </table>
+    </div>
+    </div><!-- End sales-certs -->
+  </div>
+
+  <!-- ── 2. PAYROLL TAX ── -->
+  <div class="tab-panel" data-panel="payroll">
+    <div class="pill-tabbar">
+      <button class="pill-tab active" onclick="switchSubTab('pay-panel', 'pay-summary', this)">Tax Summary</button>
+      <button class="pill-tab" onclick="switchSubTab('pay-panel', 'pay-filing', this)">Filing Status</button>
+    </div>
+
+    <div id="pay-summary" class="sub-panel pay-panel">
+    <div class="table-wrap" style="margin-bottom:20px;">
+      <div class="table-head-row">
+        <div class="table-head-title">FICA / FUTA / SUTA Summary</div>
+        <div class="table-head-actions">
+          <button class="btn btn-outline btn-sm" onclick="exportTableCSV('ficaTable','payroll-tax-summary.csv')">Export</button>
+        </div>
+      </div>
+      <table class="data-table" id="ficaTable">
+        <thead><tr><th>Tax Type</th><th>Rate</th><th>Wage Base</th><th>YTD Withheld</th><th>YTD Employer Match</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Social Security (FICA)</strong></td><td>6.20%</td><td>$168,600</td><td>$24,180.00</td><td>$24,180.00</td></tr>
+          <tr><td><strong>Medicare (FICA)</strong></td><td>1.45%</td><td>No cap</td><td>$5,655.00</td><td>$5,655.00</td></tr>
+          <tr><td><strong>Additional Medicare</strong></td><td>0.90%</td><td>Over $200,000</td><td>$1,220.00</td><td> - </td></tr>
+          <tr><td><strong>FUTA</strong></td><td>0.60% (post-credit)</td><td>$7,000</td><td> - </td><td>$1,890.00</td></tr>
+          <tr><td><strong>SUTA (Texas / Multi-state)</strong></td><td>2.70%</td><td>$9,000</td><td> - </td><td>$4,120.00</td></tr>
+        </tbody>
+      </table>
+    </div>
+    </div><!-- End pay-summary -->
+
+    <div id="pay-filing" class="sub-panel pay-panel" style="display:none;">
+    <div class="table-wrap">
+      <div class="table-head-row">
+        <div class="table-head-title">Filing Status — Forms 940 / 941 / 944</div>
+        <div class="table-head-actions">
+          <button class="btn btn-outline btn-sm" onclick="showToast('Opening quarterly payroll filing calendar…','info')">View Calendar</button>
+        </div>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Form</th><th>Period</th><th>Status</th><th>Due Date</th><th>Actions</th></tr></thead>
+        <tbody>
+          <tr><td><strong>Form 941</strong> (Quarterly Employer Return)</td><td>Q2 2026</td><td><span class="badge badge-green">Filed</span></td><td>2026-07-31</td><td><button class="btn btn-ghost btn-sm" onclick="toggleRowDetail(this)">View</button></td></tr>
+          <tr><td><strong>Form 941</strong> (Quarterly Employer Return)</td><td>Q3 2026</td><td><span class="badge badge-orange">Pending Review</span></td><td>2026-10-31</td><td><button class="btn btn-ghost btn-sm" onclick="prepareFiling(this)">Prepare</button></td></tr>
+          <tr><td><strong>Form 940</strong> (Annual FUTA)</td><td>FY 2025</td><td><span class="badge badge-green">Filed</span></td><td>2026-01-31</td><td><button class="btn btn-ghost btn-sm" onclick="toggleRowDetail(this)">View</button></td></tr>
+        </tbody>
+      </table>
+    </div>
+    </div><!-- End pay-filing -->
+  </div>
+
+  <!-- ── 3. 1099 FILING & PRODUCER COMPLIANCE ── -->
+  <div class="tab-panel" data-panel="filing1099">
+    <div class="pill-tabbar">
+      <button class="pill-tab active" onclick="switchSubTab('ten99-panel', 'ten99-thresh', this)">Threshold Monitoring</button>
+      <button class="pill-tab" onclick="switchSubTab('ten99-panel', 'ten99-w9', this)">W-9 Status</button>
+      <button class="pill-tab" onclick="switchSubTab('ten99-panel', 'ten99-efile', this)">e-Filing Queue</button>
+    </div>
+
+    <div id="ten99-thresh" class="sub-panel ten99-panel">
+    <div class="tax-copy">
+      Threshold monitoring covers 1099-NEC broker commissions (including <strong>HIT</strong>) and 1099-MISC service vendors against the $600 annual reporting threshold. Form 1096 summary is prepared automatically for batch e-filing through the IRS FIRE system.
+    </div>
+
+    <div class="table-wrap" style="margin-bottom:20px;">
+      <div class="table-head-row">
+        <div class="table-head-title">Producer &amp; Vendor $600 Threshold Monitoring</div>
+        <div class="table-head-actions">
+          <button class="btn btn-outline btn-sm" onclick="refreshThresholds()">Refresh Totals</button>
+        </div>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Producer / Vendor</th><th>Type</th><th>YTD Commission / Paid</th><th style="width:220px;">Progress to Threshold</th><th>1099 Status</th></tr></thead>
+        <tbody id="thresholdBody">
+          <!-- Rendered dynamically -->
+        </tbody>
+      </table>
+    </div>
+    </div><!-- End ten99-thresh -->
+
+    <div id="ten99-w9" class="sub-panel ten99-panel" style="display:none;">
+    <div class="table-wrap" style="margin-bottom:20px;">
+      <div class="table-head-row">
+        <div class="table-head-title">W-9 Collection &amp; Producer Verification Status</div>
+        <div class="table-head-actions">
+          <button class="btn btn-outline btn-sm" onclick="requestMissingW9s()">Request Missing W-9s</button>
+        </div>
+      </div>
+      <table class="data-table" id="w9Table">
+        <thead><tr><th>Producer / Vendor</th><th>W-9 On File</th><th>Verified Date</th><th>Actions</th></tr></thead>
+        <tbody id="w9Body">
+          <!-- Rendered dynamically -->
+        </tbody>
+      </table>
+    </div>
+
+    <div class="table-wrap" style="margin-bottom:20px;">
+      <div class="table-head-row">
+        <div class="table-head-title">TIN Matching (IRS Bulk TIN Matching System)</div>
+        <div class="table-head-actions">
+          <button class="btn btn-outline btn-sm" onclick="runTinMatch()">Run TIN Match</button>
+        </div>
+      </div>
+      <table class="data-table" id="tinTable">
+        <thead><tr><th>Producer / Vendor</th><th>EIN / TIN</th><th>Match Status</th><th>Verified Date</th></tr></thead>
+        <tbody id="tinBody">
+          <!-- Rendered dynamically -->
+        </tbody>
+      </table>
+    </div>
+    </div><!-- End ten99-w9 -->
+
+    <div id="ten99-efile" class="sub-panel ten99-panel" style="display:none;">
+    <div class="table-wrap">
+      <div class="table-head-row">
+        <div class="table-head-title">e-Filing Queue — IRS FIRE / Texas Surplus Lines (SLTX)</div>
+        <div class="table-head-actions">
+          <button class="btn btn-primary btn-sm" id="submit-batch-btn" onclick="submitNextBatch(this)">Submit Next Batch</button>
+        </div>
+      </div>
+      <table class="data-table" id="fireTable">
+        <thead><tr><th>Batch #</th><th>Agency / Portal</th><th>Form Type</th><th>Records Count</th><th>Status</th><th>Submitted Date</th></tr></thead>
+        <tbody id="fireBody">
+          <!-- Rendered dynamically -->
+        </tbody>
+      </table>
+    </div>
+    </div><!-- End ten99-efile -->
+  </div>
+
+  <!-- ── 4. CONSOLIDATED TAX LIABILITY SUMMARY ── -->
+  <div class="tab-panel" data-panel="liability">
+    <div class="table-wrap">
+      <div class="table-head-row">
+        <div class="table-head-title">Consolidated Tax Liability Ledger (Account 2300)</div>
+        <div class="table-head-actions">
+          <input class="filter-input" id="liabilityFilter" oninput="filterLiability(this.value)" placeholder="Filter by status…">
+          <button class="btn btn-outline btn-sm" onclick="exportTableCSV('liabilityTable','tax-liability-summary.csv')">Export</button>
+        </div>
+      </div>
+      <table class="data-table" id="liabilityTable">
+        <thead>
+          <tr>
+            <th>Tax Type</th>
+            <th>Jurisdiction / State</th>
+            <th>Policy / Invoice Ref</th>
+            <th class="text-right">Taxable Premium</th>
+            <th class="text-right">Amount Due ($)</th>
+            <th>Due Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="liabilityBody">
+          <!-- Rendered dynamically -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<script src="js/app.js"></script>
+<script>
+  initLayout('tax');
+
+  // Storage Keys
+  const STORAGE_KEY_TAX_RATES = 'v_tax_rates';
+  const STORAGE_KEY_NEXUS = 'v_tax_nexus';
+  const STORAGE_KEY_CERTS = 'v_tax_certs';
+  const STORAGE_KEY_1099 = 'v_tax_1099_vendors';
+
+  // Seed Data featuring Texas Surplus Lines ($1,590.00) + Denton County ($180.00) for POL-V8NHT (Ayushi)
+  const INITIAL_NEXUS = [
+    { state: "Texas", jurisdiction: "Texas Department of Insurance / SLTX", status: "Registered", date: "2021-11-02" },
+    { state: "California", jurisdiction: "California Surplus Line Association (SLA)", status: "Registered", date: "2022-04-15" },
+    { state: "Florida", jurisdiction: "Florida Surplus Lines Service Office (FSLSO)", status: "Registered", date: "2023-01-10" },
+    { state: "New York", jurisdiction: "Excess Line Association of New York (ELANY)", status: "Pending Registration", date: "2026-08-01" }
+  ];
+
+  const INITIAL_RATES = [
+    { jurisdiction: "Texas (Statewide)", type: "Surplus Lines Tax", percent: 4.850, effective: "2026-08-20", notes: "Policy POL-V8NHT (Ayushi Commercial Trucking · $1,590.00 tax)", status: "Active" },
+    { jurisdiction: "Texas - Denton County", type: "County Surcharge", percent: 0.550, effective: "2026-08-20", notes: "Denton County local transit surcharge ($180.00)", status: "Active" },
+    { jurisdiction: "Texas (SLTX)", type: "Stamping Office Fee", percent: 0.075, effective: "2026-08-20", notes: "Surplus Lines Stamping Office of Texas fee", status: "Active" },
+    { jurisdiction: "California", type: "Surplus Lines Tax", percent: 3.000, effective: "2026-01-01", notes: "California SLA statutory rate", status: "Active" },
+    { jurisdiction: "Florida", type: "Surplus Lines Tax", percent: 5.000, effective: "2026-01-01", notes: "Florida FSLSO regulatory rate", status: "Active" }
+  ];
+
+  const INITIAL_CERTS = [
+    { customer: "Ayushi", certNo: "EX-TX-84920", state: "Texas", expiry: "2027-08-20", status: "Verified Active" },
+    { customer: "Harborview Medical Group", certNo: "EX-501C3-9912", state: "Texas", expiry: "2028-12-31", status: "Verified Active" },
+    { customer: "Meridian Logistics LLC", certNo: "EX-ICC-44910", state: "Texas", expiry: "2026-11-15", status: "Renewal Pending" }
+  ];
+
+  const INITIAL_1099 = [
+    { name: "HIT (Insurance Agency / Broker)", type: "1099-NEC (Broker Commission)", ytd: 2500.00, w9: "Verified On File", tin: "XX-XXX4910", tinMatch: "Matched", date: "2026-08-20" },
+    { name: "Coastal Risk Advisors", type: "1099-NEC (Agent Commission)", ytd: 2763.00, w9: "Verified On File", tin: "XX-XXX8821", tinMatch: "Matched", date: "2026-08-03" },
+    { name: "Alvarez Inspection Services", type: "1099-MISC (Vendor Loss Control)", ytd: 1450.00, w9: "Verified On File", tin: "XX-XXX2201", tinMatch: "Matched", date: "2026-07-15" },
+    { name: "Apex Independent Adjusters", type: "1099-MISC (Claims Adjustment)", ytd: 3800.00, w9: "Verified On File", tin: "XX-XXX9312", tinMatch: "Matched", date: "2026-06-28" }
+  ];
+
+  const INITIAL_LIABILITIES = [
+    { type: "Texas Surplus Lines Tax (4.85%)", state: "Texas", ref: "POL-V8NHT (Ayushi)", taxable: 32257.00, amount: 1590.00, due: "2026-09-20", status: "Due Soon" },
+    { type: "Denton County Tax (0.55%)", state: "Texas", ref: "POL-V8NHT (Ayushi)", taxable: 32257.00, amount: 180.00, due: "2026-09-20", status: "Due Soon" },
+    { type: "California SLA Premium Tax (3.0%)", state: "California", ref: "POL-2026-0428 (Harborview)", taxable: 18420.00, amount: 552.60, due: "2026-09-20", status: "Ready for Filing" }
+  ];
+
+  // Loaders and Savers
+  function loadRates() {
+    try {
+      let stored = localStorage.getItem(STORAGE_KEY_TAX_RATES);
+      if (!stored) { localStorage.setItem(STORAGE_KEY_TAX_RATES, JSON.stringify(INITIAL_RATES)); return INITIAL_RATES; }
+      return JSON.parse(stored) || INITIAL_RATES;
+    } catch(e) { return INITIAL_RATES; }
+  }
+
+  function saveRates(list) {
+    localStorage.setItem(STORAGE_KEY_TAX_RATES, JSON.stringify(list));
+  }
+
+  function loadNexus() {
+    try {
+      let stored = localStorage.getItem(STORAGE_KEY_NEXUS);
+      if (!stored) { localStorage.setItem(STORAGE_KEY_NEXUS, JSON.stringify(INITIAL_NEXUS)); return INITIAL_NEXUS; }
+      return JSON.parse(stored) || INITIAL_NEXUS;
+    } catch(e) { return INITIAL_NEXUS; }
+  }
+
+  function saveNexus(list) {
+    localStorage.setItem(STORAGE_KEY_NEXUS, JSON.stringify(list));
+  }
+
+  function loadCerts() {
+    try {
+      let stored = localStorage.getItem(STORAGE_KEY_CERTS);
+      if (!stored) { localStorage.setItem(STORAGE_KEY_CERTS, JSON.stringify(INITIAL_CERTS)); return INITIAL_CERTS; }
+      return JSON.parse(stored) || INITIAL_CERTS;
+    } catch(e) { return INITIAL_CERTS; }
+  }
+
+  function saveCerts(list) {
+    localStorage.setItem(STORAGE_KEY_CERTS, JSON.stringify(list));
+  }
+
+  // Render Nexus Table
+  function renderNexusTable() {
+    const nexus = loadNexus();
+    const tbody = document.getElementById('nexusBody');
+    tbody.innerHTML = nexus.map(n => `
+      <tr>
+        <td><strong>${n.state}</strong></td>
+        <td>${n.jurisdiction}</td>
+        <td><span class="badge ${n.status === 'Registered' ? 'badge-green' : 'badge-orange'}">${n.status}</span></td>
+        <td>${n.date}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="toggleRowDetail(this)">View</button></td>
+      </tr>
+    `).join('');
+  }
+
+  // Render Tax Rates Table
+  function renderMyRates() {
+    const rates = loadRates();
+    const tbody = document.getElementById('myRatesBody');
+    tbody.innerHTML = rates.map((r, idx) => `
+      <tr>
+        <td><strong>${r.jurisdiction}</strong></td>
+        <td><span class="badge badge-navy">${r.type}</span></td>
+        <td class="font-semibold">${Number(r.percent).toFixed(3)}%</td>
+        <td>${r.effective}</td>
+        <td class="text-muted" style="font-size:12px;">${r.notes || ' - '}</td>
+        <td><span class="badge badge-green">${r.status || 'Active'}</span></td>
+        <td><button class="btn btn-ghost btn-sm" onclick="removeMyRate(${idx})">Remove</button></td>
+      </tr>
+    `).join('');
+  }
+
+  // Render Exemption Certificates
+  function renderCertificates() {
+    const certs = loadCerts();
+    const tbody = document.getElementById('certBody');
+    tbody.innerHTML = certs.map(c => `
+      <tr>
+        <td><strong>${c.customer}</strong></td>
+        <td class="cell-link">${c.certNo}</td>
+        <td>${c.state}</td>
+        <td>${c.expiry}</td>
+        <td><span class="badge ${c.status.includes('Active') ? 'badge-green' : 'badge-orange'}">${c.status}</span></td>
+        <td><button class="btn btn-ghost btn-sm" onclick="renewCertificate(this)">Verify</button></td>
+      </tr>
+    `).join('');
+
+    document.getElementById('tax-certs-stat').textContent = certs.length;
+  }
+
+  // Render 1099 & Thresholds
+  function render1099Tables() {
+    const tbody = document.getElementById('thresholdBody');
+    tbody.innerHTML = INITIAL_1099.map(v => {
+      const pct = Math.min(100, Math.round((v.ytd / 600) * 100));
+      return `
+        <tr>
+          <td><strong>${v.name}</strong></td>
+          <td><span class="badge badge-navy">${v.type}</span></td>
+          <td class="font-semibold">$${Number(v.ytd).toLocaleString('en-US', {minimumFractionDigits:2})}</td>
+          <td>
+            <div class="tax-progress-row">
+              <div class="tax-progress-track"><div class="tax-progress-fill over" style="width:100%;"></div></div>
+              <span class="tax-progress-label">${pct}% (Over $600)</span>
+            </div>
+          </td>
+          <td><span class="badge badge-orange">1099 Required</span></td>
+        </tr>
+      `;
+    }).join('');
+
+    // W9 Table
+    document.getElementById('w9Body').innerHTML = INITIAL_1099.map(v => `
+      <tr>
+        <td><strong>${v.name}</strong></td>
+        <td><span class="badge badge-green">${v.w9}</span></td>
+        <td>${v.date}</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="showToast('W-9 verified for ${v.name}','success')">Download W-9</button></td>
+      </tr>
+    `).join('');
+
+    // TIN Matching Table
+    document.getElementById('tinBody').innerHTML = INITIAL_1099.map(v => `
+      <tr>
+        <td><strong>${v.name}</strong></td>
+        <td><code>${v.tin}</code></td>
+        <td><span class="badge badge-green">${v.tinMatch}</span></td>
+        <td>${v.date}</td>
+      </tr>
+    `).join('');
+
+    // e-Filing FIRE queue
+    document.getElementById('fireBody').innerHTML = `
+      <tr>
+        <td class="cell-link">BATCH-TX-2026-08</td>
+        <td>Texas Stamping Office (SLTX)</td>
+        <td>Surplus Lines Premium Stamping</td>
+        <td>1 policy ($1,770 tax)</td>
+        <td><span class="badge badge-blue">Ready for Transmission</span></td>
+        <td>2026-08-20</td>
+      </tr>
+      <tr>
+        <td class="cell-link">BATCH-IRS-2026-Q3</td>
+        <td>IRS FIRE Portal</td>
+        <td>Form 1099-NEC Electronic Batch</td>
+        <td>4 producers ($10,513 comm)</td>
+        <td><span class="badge badge-green">Validated</span></td>
+        <td>2026-08-20</td>
+      </tr>
+    `;
+  }
+
+  // Render Consolidated Tax Liability Summary (Account 2300)
+  function renderLiabilityTable() {
+    const tbody = document.getElementById('liabilityBody');
+    let totalDue = 0;
+
+    tbody.innerHTML = INITIAL_LIABILITIES.map(l => {
+      totalDue += l.amount;
+      return `
+        <tr>
+          <td><strong>${l.type}</strong></td>
+          <td>${l.state}</td>
+          <td><span class="cell-link">${l.ref}</span></td>
+          <td class="text-right">$${Number(l.taxable).toLocaleString('en-US', {minimumFractionDigits:2})}</td>
+          <td class="text-right font-semibold" style="color:var(--navy); font-size:13.5px;">$${Number(l.amount).toLocaleString('en-US', {minimumFractionDigits:2})}</td>
+          <td>${l.due}</td>
+          <td><span class="badge ${l.status === 'Due Soon' ? 'badge-orange' : 'badge-green'}">${l.status}</span></td>
+          <td>
+            <button class="btn btn-primary btn-xs" onclick="remitTax('${l.type}', ${l.amount}, this)">Remit Tax</button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+
+    document.getElementById('tax-liability-stat').textContent = '$' + totalDue.toLocaleString('en-US', {minimumFractionDigits: 2});
+  }
+
+  function remitTax(taxType, amount, btn) {
+    btn.disabled = true;
+    btn.textContent = 'Remitted ✓';
+    const row = btn.closest('tr');
+    const badge = row.querySelector('.badge');
+    if (badge) { badge.className = 'badge badge-green'; badge.textContent = 'Paid / Remitted'; }
+    showToast(`Tax remittance of $${amount.toLocaleString()} disbursed for ${taxType}!`, 'success');
+  }
+
+  // Rate Engine Lookup
+  const ZIP_RATE_TABLE = {
+    '75201': { state: 4.85, county: 0.55, city: 0.075 },
+    '90001': { state: 3.00, county: 0.50, city: 0.20 },
+    '33101': { state: 5.00, county: 0.00, city: 0.10 }
+  };
+
+  function lookupRate() {
+    const raw = document.getElementById('zipLookupInput').value.trim();
+    const zip5 = raw.replace(/\D/g, '').slice(0, 5);
+    const result = document.getElementById('zipLookupResult');
+    if (zip5.length !== 5) {
+      showToast('Enter a valid 5-digit ZIP', 'error');
+      return;
+    }
+    const rates = ZIP_RATE_TABLE[zip5] || { state: 4.85, county: 0.55, city: 0.075 };
+    const combined = (rates.state + rates.county + rates.city).toFixed(3);
+    result.innerHTML = `<strong>Combined Surplus Rate: ${combined}%</strong> — State Surplus ${rates.state.toFixed(2)}% · Local County ${rates.county.toFixed(2)}% · Stamping Regulatory ${rates.city.toFixed(3)}% <span style="color:var(--gray-500);">(ZIP ${zip5})</span>
+      <button class="btn btn-outline btn-sm" style="margin-left:10px;" onclick="prefillRateForm('ZIP ${zip5} Surplus', ${combined})">+ Add to Your Tax Rates</button>`;
+    result.classList.add('show');
+    showToast(`Rate lookup complete for ZIP ${zip5}`, 'success');
+  }
+
+  function toggleAddRateForm() {
+    const wrap = document.getElementById('add-rate-form-wrap');
+    wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
+  }
+
+  function prefillRateForm(jurisdictionName, ratePct) {
+    document.getElementById('add-rate-form-wrap').style.display = 'block';
+    document.getElementById('rate-jurisdiction').value = jurisdictionName;
+    document.getElementById('rate-percent').value = ratePct;
+    document.getElementById('rate-notes').value = 'Applicable to Policy POL-V8NHT (Commercial Trucking)';
+    document.getElementById('rate-jurisdiction').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function submitTaxRate() {
+    const jurisdiction = document.getElementById('rate-jurisdiction').value.trim();
+    const percent = parseFloat(document.getElementById('rate-percent').value);
+    const type = document.getElementById('rate-type').value;
+    const effective = document.getElementById('rate-effective').value || '2026-08-20';
+    const notes = document.getElementById('rate-notes').value.trim() || 'Custom rate schedule';
+
+    if (!jurisdiction || isNaN(percent)) {
+      showToast('Please enter a valid Jurisdiction and Rate percentage', 'warning');
+      return;
+    }
+
+    const rates = loadRates();
+    rates.unshift({ jurisdiction, type, percent, effective, notes, status: "Active" });
+    saveRates(rates);
+
+    renderMyRates();
+    toggleAddRateForm();
+    showToast(`Tax rate added for ${jurisdiction} (${percent}%)`, 'success');
+  }
+
+  function removeMyRate(idx) {
+    const rates = loadRates();
+    rates.splice(idx, 1);
+    saveRates(rates);
+    renderMyRates();
+    showToast('Tax rate removed', 'info');
+  }
+
+  function addJurisdiction() {
+    const state = prompt('Enter State or Territory to register for insurance tax nexus (e.g. Nevada, Arizona):');
+    if (!state || !state.trim()) return;
+    const nexus = loadNexus();
+    nexus.push({ state: state.trim(), jurisdiction: state.trim() + " Surplus Lines Authority", status: "Pending Registration", date: new Date().toISOString().slice(0,10) });
+    saveNexus(nexus);
+    renderNexusTable();
+    showToast(`Registered tax nexus tracking for ${state.trim()}`, 'success');
+  }
+
+  function addCertificate() {
+    const cust = prompt('Customer / Insured name for exemption certificate:', 'Ayushi');
+    if (!cust || !cust.trim()) return;
+    const certs = loadCerts();
+    certs.unshift({ customer: cust.trim(), certNo: 'EX-TX-' + Math.floor(10000 + Math.random() * 89999), state: 'Texas', expiry: '2027-08-20', status: 'Verified Active' });
+    saveCerts(certs);
+    renderCertificates();
+    showToast(`Exemption certificate added for ${cust.trim()}`, 'success');
+  }
+
+  function renewCertificate(btn) {
+    showToast('Certificate validity verified with Texas Comptroller database', 'success');
+  }
+
+  function prepareFiling(btn) {
+    btn.disabled = true;
+    btn.textContent = 'Prepared ✓';
+    showToast('Quarterly tax return schedule generated', 'success');
+  }
+
+  function runTinMatch() {
+    showToast('IRS Bulk TIN Matching completed: 4/4 vendor TINs matched successfully!', 'success');
+  }
+
+  function submitNextBatch(btn) {
+    btn.disabled = true;
+    btn.textContent = 'Transmitted ✓';
+    showToast('Surplus lines stamping batch transmitted to SLTX portal', 'success');
+  }
+
+  function filterNexus(query) {
+    const q = query.toLowerCase();
+    document.querySelectorAll('#nexusBody tr').forEach(r => {
+      r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  }
+
+  function filterLiability(query) {
+    const q = query.toLowerCase();
+    document.querySelectorAll('#liabilityBody tr').forEach(r => {
+      r.style.display = r.textContent.toLowerCase().includes(q) ? '' : 'none';
+    });
+  }
+
+  function exportActiveTaxTable() {
+    showToast('Exporting Tax Engine workbook to CSV...', 'info');
+  }
+
+  function toggleRowDetail(btn) {
+    showToast('Showing state jurisdiction tax configuration details', 'info');
+  }
+
+  // Initialize on page load
+  document.addEventListener('DOMContentLoaded', () => {
+    renderNexusTable();
+    renderMyRates();
+    renderCertificates();
+    render1099Tables();
+    renderLiabilityTable();
+  });
+</script>
+
+<script>
+function switchSubTab(panelClass, targetId, btn) {
+  document.querySelectorAll('.' + panelClass).forEach(el => el.style.display = 'none');
+  document.getElementById(targetId).style.display = 'block';
+  btn.closest('.pill-tabbar').querySelectorAll('.pill-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+}
+</script>
+</body>
+</html>

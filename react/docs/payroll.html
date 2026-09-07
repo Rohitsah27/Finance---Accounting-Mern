@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payroll & Employees — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Operations &amp; Payroll</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Payroll</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-users" style="color: var(--brand);"></i> Payroll &amp; Employee Ledgers</h1>
+      <p>
+        The Payroll module manages internal staff salaries, employee benefits, employer payroll tax withholdings (FICA, Medicare, Federal/State income taxes), and automatic GL journal entry postings.
+      </p>
+    </div>
+
+    <div class="module-card" id="payroll-run">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-blue">Compensation</span>
+            <span class="badge badge-green">Tax Withholdings</span>
+          </div>
+          <h2 class="module-title">Payroll Runs &amp; GL Postings (`payroll.html`)</h2>
+        </div>
+        <a href="../payroll.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Payroll</a>
+      </div>
+
+      <p class="section-p">
+        <strong>What it does:</strong> When a semi-monthly payroll batch is approved, Veridex records gross wages, deducts employee taxes, accrues employer taxes, and generates the net direct deposit batch.
+      </p>
+
+      <h3 class="section-h3"><i class="fa-solid fa-calculator"></i> Standard Payroll Journal Entry:</h3>
+      <table class="je-table">
+        <thead>
+          <tr>
+            <th>Line Item</th>
+            <th>Account Code &amp; Name</th>
+            <th style="text-align:right;">Debit ($)</th>
+            <th style="text-align:right;">Credit ($)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Gross Wages &amp; Salaries</td>
+            <td>6000 Salary &amp; Wages Expense</td>
+            <td class="dr-amount">$45,000.00</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>Employer FICA/Medicare Tax</td>
+            <td>6010 Payroll Tax Expense</td>
+            <td class="dr-amount">$3,442.50</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td>Employee Tax Withholdings</td>
+            <td class="indent-cr">2400 Payroll Taxes Payable</td>
+            <td></td>
+            <td class="cr-amount">$11,250.00</td>
+          </tr>
+          <tr>
+            <td>Employer Tax Liability</td>
+            <td class="indent-cr">2400 Payroll Taxes Payable</td>
+            <td></td>
+            <td class="cr-amount">$3,442.50</td>
+          </tr>
+          <tr>
+            <td>Net Direct Deposits to Staff</td>
+            <td class="indent-cr">1001 Cash / Bank Operating</td>
+            <td></td>
+            <td class="cr-amount">$33,750.00</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="bank-reconciliation.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">Bank Reconciliation</span>
+      </a>
+      <a href="inventory-assets.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Module &rarr;</span>
+        <span class="nav-page-title">Inventory, Assets &amp; Projects</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('payroll');
+</script>
+</body>
+</html>

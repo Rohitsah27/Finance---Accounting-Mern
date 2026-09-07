@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Financial Statements — General Ledger | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/gl-engine.js"></script>
+  <script src="js/layout.js"></script>
+  <style>
+    .fs-fbar{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#f8f9fb;border:1.5px solid var(--border);border-radius:8px;padding:10px 14px;margin-bottom:14px;}
+    .fbar-label{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);white-space:nowrap;}
+    .fbar-divider{width:1px;height:18px;background:var(--border);flex-shrink:0;}
+    .fs-kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;}
+    @media(max-width:900px){.fs-kpi-row{grid-template-columns:repeat(2,1fr);}}
+    .fs-kpi{background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:14px;position:relative;overflow:hidden;}
+    .fs-kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+    .fs-kpi.k-asset::before{background:#102a2e;}
+    .fs-kpi.k-liab::before{background:#c9791f;}
+    .fs-kpi.k-equity::before{background:#2e7d32;}
+    .fs-kpi.k-income::before{background:#1565c0;}
+    .fs-kpi-lbl{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);}
+    .fs-kpi-val{font-size:22px;font-weight:800;color:var(--navy);margin:4px 0 2px;line-height:1.1;}
+    .fs-kpi-val.good{color:#2e7d32;}
+    .fs-kpi-sub{font-size:10.5px;color:var(--gray-400);margin-top:2px;}
+    .fs-tabs-wrap{background:#fff;border:1.5px solid var(--border);border-radius:10px;overflow:hidden;}
+    .fs-tabbar{display:flex;border-bottom:1.5px solid var(--border);background:#f8f9fb;}
+    .fs-tab{padding:11px 20px;font-size:12.5px;font-weight:600;color:var(--gray-500);cursor:pointer;border-bottom:2.5px solid transparent;margin-bottom:-1.5px;white-space:nowrap;transition:color .15s;}
+    .fs-tab.active{color:var(--navy);border-bottom-color:var(--navy);background:#fff;}
+    .fs-tab:hover:not(.active){color:var(--gray-700);}
+    .fs-panel{display:none;} .fs-panel.active{display:block;}
+    .fs-table{width:100%;border-collapse:collapse;font-size:12.5px;}
+    .fs-table th{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-500);padding:9px 14px;border-bottom:2px solid var(--border);text-align:left;background:#f8f9fb;}
+    .fs-table th.r{text-align:right;}
+    .fs-table td{padding:8px 14px;border-bottom:1px solid var(--gray-100);color:var(--gray-700);}
+    .fs-table td.r{text-align:right;font-variant-numeric:tabular-nums;}
+    .fs-table td.ind1{padding-left:28px;}
+    .fs-table tr.sec-hdr td{background:#f0f3fa;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--navy);padding:8px 14px;}
+    .fs-table tr.subtot td{background:#f8f9fb;font-weight:600;color:var(--navy);}
+    .fs-table tr.total-row td{background:#eef1f8;font-weight:700;color:var(--navy);font-size:13px;border-top:2px solid var(--border);border-bottom:2px solid var(--border);}
+    .fs-table tr.net-income td{background:rgba(46,125,50,0.06);font-weight:800;color:#1b5e20;font-size:13.5px;}
+    .fs-table tr:hover:not(.sec-hdr):not(.subtot):not(.total-row):not(.net-income){background:var(--gray-50);}
+    .fs-note{font-size:10.5px;color:var(--gray-400);padding:10px 14px;border-top:1px solid var(--border);background:#fafafa;}
+    .period-chip{font-size:11px;color:var(--gray-400);margin-left:auto;}
+  </style>
+</head>
+<body>
+<main class="main-content" id="main-content">
+
+  <div class="page-header" style="margin-bottom:14px;">
+    <div>
+      <div class="page-title">Financial Statements</div>
+      <div class="page-subtitle" id="fs-subtitle">Balance Sheet &middot; P&amp;L &middot; Cash Flow &middot; Trial Balance &middot; 100% Live General Ledger</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline btn-sm" onclick="exportCurrentTab()">Export CSV</button>
+    </div>
+  </div>
+
+  <!-- Live status bar -->
+  <div class="fs-fbar">
+    <span class="fbar-label">Data source</span>
+    <span class="v-badge-config">100% Live General Ledger</span>
+    <div class="fbar-divider"></div>
+    <span class="fbar-label">Entity</span>
+    <strong id="fs-entity-name" style="font-size:12px;color:var(--navy);"></strong>
+    <div class="fbar-divider"></div>
+    <span class="fbar-label">As of</span>
+    <span id="fs-asof" style="font-size:12px;color:var(--gray-600);"></span>
+    <div id="fbar-applied" style="font-size:11px;color:var(--gray-400);margin-left:auto;">All figures computed from posted Journal Entries in the active entity database.</div>
+    <button class="btn btn-outline btn-sm" onclick="renderAll()">Refresh</button>
+  </div>
+
+  <!-- KPI Summary Cards -->
+  <div class="fs-kpi-row" id="fs-kpi-row"></div>
+
+  <!-- Tabs -->
+  <div class="fs-tabs-wrap">
+    <div class="fs-tabbar">
+      <div class="fs-tab active" onclick="showFSTab('bs',this)">Balance Sheet</div>
+      <div class="fs-tab" onclick="showFSTab('pnl',this)">P&amp;L Statement</div>
+      <div class="fs-tab" onclick="showFSTab('cf',this)">Cash Flow</div>
+      <div class="fs-tab" onclick="showFSTab('tb',this)">Trial Balance</div>
+      <div class="period-chip" id="fs-period-chip">Live</div>
+    </div>
+
+    <div class="fs-panel active" id="fs-panel-bs">
+      <table class="fs-table" id="fs-bs-table"><thead id="fs-bs-head"></thead><tbody id="fs-bs-body"></tbody></table>
+      <div class="fs-note" id="fs-bs-note"></div>
+    </div>
+    <div class="fs-panel" id="fs-panel-pnl">
+      <table class="fs-table" id="fs-pnl-table"><thead id="fs-pnl-head"></thead><tbody id="fs-pnl-body"></tbody></table>
+      <div class="fs-note" id="fs-pnl-note"></div>
+    </div>
+    <div class="fs-panel" id="fs-panel-cf">
+      <table class="fs-table" id="fs-cf-table"><thead id="fs-cf-head"></thead><tbody id="fs-cf-body"></tbody></table>
+      <div class="fs-note" id="fs-cf-note"></div>
+    </div>
+    <div class="fs-panel" id="fs-panel-tb">
+      <table class="fs-table" id="fs-tb-table"><thead id="fs-tb-head"></thead><tbody id="fs-tb-body"></tbody><tfoot id="fs-tb-foot"></tfoot></table>
+      <div class="fs-note" id="fs-tb-note"></div>
+    </div>
+  </div>
+
+</main>
+<script src="js/reports-utils.js"></script>
+<script src="js/app.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════════════════════════
+   LIVE financial statements, computed 100% from js/gl-engine.js.
+   No dummy / static dummy rows or numbers. Every number comes directly
+   from posted Journal Entries in the active entity ledger.
+   ═══════════════════════════════════════════════════════════════════════ */
+
+function fmt2(n) {
+  if (n === null || n === undefined || isNaN(n)) return ' - ';
+  const neg = n < 0, abs = Math.abs(Math.round(n));
+  if (abs === 0) return ' - ';
+  return (neg ? '(' : '') + abs.toLocaleString('en-US') + (neg ? ')' : '');
+}
+
+function fCr(v) {
+  if (v === 0 || !v) return '$0';
+  const a = Math.abs(v);
+  const sign = v < 0 ? '-' : '';
+  if (a >= 1000000) return sign + '$' + (a / 1000000).toFixed(2) + 'M';
+  if (a >= 1000) return sign + '$' + (a / 1000).toFixed(1) + 'K';
+  return sign + '$' + a.toLocaleString('en-US');
+}
+
+/* ═══════ Pull every real account, grouped, with live balances ═══════ */
+function liveAccountsByGroup() {
+  const accts = getGLAccounts();
+  const byGroup = { asset: [], liability: [], equity: [], revenue: [], expense: [] };
+  accts.forEach(a => {
+    const bal = getAccountBalance(a.code);
+    (byGroup[a.group] || byGroup.asset).push({ code: a.code, name: a.name, debit: bal.debit, credit: bal.credit, net: bal.net, status: a.status });
+  });
+  return byGroup;
+}
+
+function liveVals() {
+  const g = liveAccountsByGroup();
+  const sum = (rows, normal) => rows.reduce((s, r) => s + (normal === 'debit' ? r.net : -r.net), 0);
+  const liveAssets = sum(g.asset, 'debit');
+  const liveLiab = sum(g.liability, 'credit');
+  const liveRevenue = sum(g.revenue, 'credit');
+  const liveExpense = sum(g.expense, 'debit');
+
+  const totalAssets = liveAssets;
+  const totalLiab = liveLiab;
+  const netIncomeLive = liveRevenue - liveExpense;
+  const totalEquity = totalAssets - totalLiab; // always balances by construction
+
+  return { g, liveAssets, liveLiab, liveRevenue, liveExpense, totalAssets, totalLiab, netIncomeLive, totalEquity };
+}
+
+/* ═══════ KPI CARDS ═══════ */
+function renderKPIs() {
+  const v = liveVals();
+  const active = typeof getActiveEntity === 'function' ? getActiveEntity() : { name: 'Active Entity' };
+  document.getElementById('fs-entity-name').textContent = active.name;
+
+  document.getElementById('fs-kpi-row').innerHTML = [
+    { cls: 'k-asset', lbl: 'Total Assets', val: v.totalAssets },
+    { cls: 'k-liab', lbl: 'Total Liabilities', val: v.totalLiab },
+    { cls: 'k-equity', lbl: 'Total Equity', val: v.totalEquity },
+    { cls: 'k-income', lbl: 'Net Income', val: v.netIncomeLive, good: true },
+  ].map(c => `<div class="fs-kpi ${c.cls}">
+      <div class="fs-kpi-lbl">${c.lbl}</div>
+      <div class="fs-kpi-val${c.good && c.val > 0 ? ' good' : ''}">${fCr(c.val)}</div>
+      <div class="fs-kpi-sub">Live General Ledger</div>
+    </div>`).join('');
+  document.getElementById('fs-asof').textContent = new Date().toLocaleString();
+}
+
+/* ═══════ BALANCE SHEET ═══════ */
+function renderBS() {
+  const v = liveVals();
+  document.getElementById('fs-bs-head').innerHTML = `<tr><th style="width:50%;">Account</th><th style="width:12%;">Code</th><th class="r" style="width:38%;">Amount ($)</th></tr>`;
+  const row = (label, code, amount) => `<tr><td class="ind1">${label}</td><td style="color:var(--gray-400);font-size:11px;">${code}</td><td class="r font-semibold">${fmt2(amount)}</td></tr>`;
+  const secHdr = t => `<tr class="sec-hdr"><td colspan="3">${t}</td></tr>`;
+  const totalRow = (label, amount, cls = '') => `<tr class="total-row ${cls}"><td><strong>${label}</strong></td><td></td><td class="r">${fmt2(amount)}</td></tr>`;
+
+  let html = secHdr('ASSETS (LIVE, FROM THE GENERAL LEDGER)');
+  v.g.asset.forEach(a => { html += row(a.name, a.code, a.net); });
+  html += totalRow('TOTAL ASSETS', v.totalAssets);
+
+  html += secHdr('LIABILITIES (LIVE, FROM THE GENERAL LEDGER)');
+  if (!v.g.liability.length) html += `<tr><td colspan="3" style="color:var(--gray-400);padding:10px 14px;">No liability accounts posted to yet.</td></tr>`;
+  v.g.liability.forEach(a => { html += row(a.name, a.code, -a.net); });
+  html += totalRow('TOTAL LIABILITIES', v.totalLiab);
+
+  html += secHdr("SHAREHOLDERS' EQUITY (LIVE, FROM THE GENERAL LEDGER)");
+  html += row('Current Period Net Income / (Loss)', '3300', v.netIncomeLive);
+  if (v.totalEquity !== v.netIncomeLive) {
+    html += row('Opening Equity &amp; Retained Earnings', '3100', v.totalEquity - v.netIncomeLive);
+  }
+  html += totalRow('TOTAL EQUITY', v.totalEquity, 'net-income');
+  html += totalRow('TOTAL LIABILITIES &amp; EQUITY', v.totalLiab + v.totalEquity);
+
+  document.getElementById('fs-bs-body').innerHTML = html;
+  document.getElementById('fs-bs-note').textContent = 'Live account balances = opening balance + every posted Journal Entry line (js/gl-engine.js). Total Equity is always Total Assets minus Total Liabilities, so this sheet balances strictly by double-entry accounting rules.';
+}
+
+/* ═══════ P&L ═══════ */
+function renderPNL() {
+  const v = liveVals();
+  document.getElementById('fs-pnl-head').innerHTML = `<tr><th style="width:50%;">Line Item</th><th style="width:12%;">Code</th><th class="r" style="width:38%;">Amount ($)</th></tr>`;
+  const row = (label, code, amount) => `<tr><td class="ind1">${label}</td><td style="color:var(--gray-400);font-size:11px;">${code}</td><td class="r font-semibold">${fmt2(amount)}</td></tr>`;
+  const sec = (t, color = 'var(--navy)') => `<tr class="sec-hdr"><td colspan="3" style="color:${color};">${t}</td></tr>`;
+  const totRow = (label, amount, cls = 'total-row') => `<tr class="${cls}"><td><strong>${label}</strong></td><td></td><td class="r">${fmt2(amount)}</td></tr>`;
+
+  let html = sec('REVENUE (LIVE)');
+  if (!v.g.revenue.length) html += `<tr><td colspan="3" style="color:var(--gray-400);padding:10px 14px;">No revenue accounts posted to yet.</td></tr>`;
+  v.g.revenue.forEach(a => { html += row(a.name, a.code, -a.net); });
+  html += totRow('Total Revenue', v.liveRevenue, 'subtot');
+
+  html += sec('EXPENSES (LIVE)', '#c62828');
+  if (!v.g.expense.length) html += `<tr><td colspan="3" style="color:var(--gray-400);padding:10px 14px;">No expenses posted to yet.</td></tr>`;
+  v.g.expense.forEach(a => { html += row(a.name, a.code, a.net); });
+  html += totRow('Total Expenses', v.liveExpense, 'subtot');
+
+  html += `<tr class="net-income"><td><strong>NET INCOME / (LOSS)</strong></td><td></td><td class="r font-semibold">${v.netIncomeLive >= 0 ? '$' : '-$'}${fmt2(Math.abs(Math.round(v.netIncomeLive)))}</td></tr>`;
+
+  document.getElementById('fs-pnl-body').innerHTML = html;
+  document.getElementById('fs-pnl-note').textContent = 'Revenue and expense lines are live, computed directly from every posted Journal Entry against revenue (4xxx) and expense (5xxx / 6xxx) accounts.';
+}
+
+/* ═══════ CASH FLOW (Live from Account 1001) ═══════ */
+function renderCF() {
+  const v = liveVals();
+  document.getElementById('fs-cf-head').innerHTML = `<tr><th style="width:70%;">Activity</th><th class="r" style="width:30%;">Amount ($)</th></tr>`;
+  const cashAcct = v.g.asset.find(a => a.code === '1001');
+  const liveCash = cashAcct ? cashAcct.net : 0;
+  const liveInflows = cashAcct ? cashAcct.debit : 0;
+  const liveOutflows = cashAcct ? cashAcct.credit : 0;
+
+  const row = (label, amount, sub) => `<tr ${sub ? 'class="subtot"' : ''}><td class="${sub ? '' : 'ind1'}">${sub ? '<strong>' + label + '</strong>' : label}</td>
+      <td class="r ${amount < 0 ? 'var-neg' : 'var-pos'} font-semibold">${fmt2(amount)}</td></tr>`;
+  const sec = t => `<tr class="sec-hdr"><td colspan="2">${t}</td></tr>`;
+
+  let html = sec('OPERATING ACTIVITIES (LIVE CASH / BANK MOVEMENT)');
+  html += row('Cash &amp; Premium Receipts / Inflows (Dr Account 1001)', liveInflows);
+  html += row('Cash Disbursements &amp; Remittances / Outflows (Cr Account 1001)', -liveOutflows);
+  html += row('Net Operating Cash Movement', liveCash, true);
+
+  html += `<tr class="net-income"><td><strong>Closing Cash / Bank Balance (Account 1001, Live)</strong></td><td class="r font-semibold">${liveCash >= 0 ? '$' : '-$'}${fmt2(Math.abs(Math.round(liveCash)))}</td></tr>`;
+
+  document.getElementById('fs-cf-body').innerHTML = html;
+  document.getElementById('fs-cf-note').textContent = 'The cash flow statement reflects actual live cash movements debited and credited to Account 1001 (Cash / Bank) across all posted journal entries.';
+}
+
+/* ═══════ TRIAL BALANCE (fully live) ═══════ */
+function renderTB() {
+  const accts = getGLAccounts();
+  document.getElementById('fs-tb-head').innerHTML = `<tr><th>Code</th><th>Account Name</th><th>Type</th><th class="r">Debit ($)</th><th class="r">Credit ($)</th></tr>`;
+  let totDr = 0, totCr = 0;
+  const rows = accts.map(a => {
+    const bal = getAccountBalance(a.code);
+    const dr = bal.net > 0 ? bal.net : 0;
+    const cr = bal.net < 0 ? -bal.net : 0;
+    totDr += dr; totCr += cr;
+    return `<tr>
+      <td style="font-size:11px;color:var(--gray-500);">${a.code}</td>
+      <td class="font-semibold">${a.name}</td>
+      <td><span class="ttag">${a.group.charAt(0).toUpperCase() + a.group.slice(1)}</span></td>
+      <td class="r">${dr > 0 ? fmt2(dr) : ' - '}</td>
+      <td class="r">${cr > 0 ? fmt2(cr) : ' - '}</td>
+    </tr>`;
+  });
+  document.getElementById('fs-tb-body').innerHTML = rows.join('') || '<tr><td colspan="5" style="text-align:center;color:var(--gray-400);padding:20px;">No accounts yet.</td></tr>';
+
+  const diff = Math.abs(totDr - totCr);
+  const balanced = diff < 0.01;
+  document.getElementById('fs-tb-foot').innerHTML = `<tr class="total-row">
+    <td colspan="3" class="r"><strong>TOTALS</strong></td>
+    <td class="r"><strong>${fmt2(Math.round(totDr))}</strong></td>
+    <td class="r"><strong>${fmt2(Math.round(totCr))}</strong></td>
+  </tr>
+  <tr><td colspan="5">${balanced ? '<span class="badge badge-green">Balanced, debits = credits</span>' : '<span class="badge badge-red">Out of balance by $' + fmt2(diff) + '</span>'}</td></tr>`;
+  document.getElementById('fs-tb-note').textContent = 'Every account in the real Chart of Accounts, with its live balance (opening balance + every posted Journal Entry). This is the same balance shown on Chart of Accounts and used everywhere else on this page.';
+}
+
+/* ═══════ RENDER ALL ═══════ */
+function renderAll() {
+  renderKPIs(); renderBS(); renderPNL(); renderCF(); renderTB();
+}
+
+/* ═══════ TAB SWITCHING ═══════ */
+function showFSTab(id, btn) {
+  document.querySelectorAll('.fs-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.fs-tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('fs-panel-' + id).classList.add('active');
+  btn.classList.add('active');
+  window.__fsActiveTab = id;
+}
+
+/* ═══════ EXPORT ═══════ */
+function exportCurrentTab() {
+  const tableId = { bs: 'fs-bs-table', pnl: 'fs-pnl-table', cf: 'fs-cf-table', tb: 'fs-tb-table' }[window.__fsActiveTab || 'bs'];
+  exportTableCSV(tableId, 'financial-statement-' + (window.__fsActiveTab || 'bs') + '.csv');
+}
+
+/* ═══════ INIT ═══════ */
+document.addEventListener('DOMContentLoaded', renderAll);
+</script>
+<script>initLayout('financial-statements');</script>
+</body>
+</html>

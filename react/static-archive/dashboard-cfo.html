@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CFO Workspace — Dashboard | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/layout.js"></script>
+  <style>
+    .cfo-kpi-row{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:18px;}
+    @media(max-width:1300px){.cfo-kpi-row{grid-template-columns:repeat(3,1fr);}}
+    @media(max-width:700px){.cfo-kpi-row{grid-template-columns:repeat(2,1fr);}}
+    .cfo-kpi{background:#fff;border:1.5px solid var(--gray-200);border-radius:10px;padding:13px 14px 11px;position:relative;overflow:hidden;}
+    .cfo-kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:var(--navy);}
+    .cfo-kpi.k-cash::before{background:#1565c0;}
+    .cfo-kpi.k-wc::before{background:#00838f;}
+    .cfo-kpi.k-rev::before{background:#2e7d32;}
+    .cfo-kpi.k-ni::before{background:#6a1b9a;}
+    .cfo-kpi.k-ar::before{background:#e65100;}
+    .cfo-kpi.k-ap::before{background:#c62828;}
+    .cfo-kpi-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);}
+    .cfo-kpi-val{font-size:20px;font-weight:800;color:var(--gray-900);line-height:1.15;margin:3px 0 1px;}
+    .cfo-kpi-delta{font-size:11px;font-weight:600;}
+    .cfo-kpi-delta.up{color:var(--green);}
+    .cfo-kpi-delta.down{color:var(--red);}
+    .cfo-kpi-sub{font-size:9.5px;color:var(--gray-400);margin-top:2px;}
+
+    .cfo-charts-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;}
+    @media(max-width:1000px){.cfo-charts-row{grid-template-columns:1fr;}}
+    .chart-card{background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:14px;box-shadow:var(--shadow-sm);}
+    .chart-card-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:8px;}
+    .chart-title{font-size:12.5px;font-weight:700;color:var(--gray-900);}
+    .chart-sub{font-size:10.5px;color:var(--gray-400);margin-top:2px;}
+    .chart-legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;}
+    .legend-item{display:flex;align-items:center;gap:4px;font-size:10.5px;color:var(--gray-600);}
+    .legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+
+    .aging-2col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;}
+    @media(max-width:900px){.aging-2col{grid-template-columns:1fr;}}
+
+    .risk-list{background:#fff;border:1px solid var(--gray-200);border-radius:10px;box-shadow:var(--shadow-sm);margin-bottom:18px;}
+    .risk-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--gray-100);}
+    .risk-row:last-child{border-bottom:none;}
+    .risk-rank{width:24px;height:24px;border-radius:50%;background:var(--gray-100);color:var(--gray-600);font-size:11px;font-weight:800;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .risk-body{flex:1;min-width:0;}
+    .risk-title{font-size:12.5px;font-weight:700;color:var(--gray-900);}
+    .risk-desc{font-size:11px;color:var(--gray-500);margin-top:1px;}
+
+    .consol-wrap{background:#fff;border:1px solid var(--gray-200);border-radius:10px;box-shadow:var(--shadow-sm);overflow:hidden;}
+  </style>
+</head>
+<body>
+<main class="main-content" id="main-content">
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">CFO Dashboard</div>
+      <div class="page-subtitle" id="dash-subtitle">Executive financial overview</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline btn-sm" onclick="refreshDash()">Refresh</button>
+      <button class="btn btn-primary btn-sm" onclick="showToast('Board pack export queued','success')">Export Board Pack</button>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <span class="filter-bar-label">Period</span>
+    <select class="filter-select" id="sel-period" onchange="setFilter('period',this.value)">
+      <option value="mtd">MTD</option>
+      <option value="qtd">QTD</option>
+      <option value="ytd" selected>YTD</option>
+    </select>
+    <span class="filter-bar-label">Entity</span>
+    <select class="filter-select" id="sel-entity" onchange="setFilter('entity',this.value)">
+      <option value="all">All Entities (Consolidated)</option>
+    </select>
+    <span class="filter-bar-label">Basis</span>
+    <select class="filter-select" id="sel-basis" onchange="setFilter('basis',this.value)">
+      <option value="gross">Gross</option>
+      <option value="net">Net of Elims</option>
+    </select>
+    <div class="filter-spacer"></div>
+    <span id="fbar-applied" style="font-size:11px;color:var(--gray-400);"></span>
+    <button class="btn btn-outline btn-sm" onclick="resetFilters()">Clear Filters</button>
+  </div>
+
+  <div class="cfo-kpi-row" id="kpi-row"></div>
+
+  <div class="cfo-charts-row">
+    <div class="chart-card">
+      <div class="chart-card-hdr">
+        <div><div class="chart-title">Cash Position Projection</div><div class="chart-sub">7-day / 30-day / 90-day forward cash</div></div>
+      </div>
+      <div id="cash-chart-wrap"></div>
+      <div class="chart-legend"><div class="legend-item"><div class="legend-dot" style="background:#1565c0;"></div>Projected Cash Balance ($K)</div></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-card-hdr">
+        <div><div class="chart-title">P&amp;L: Budget vs Actual</div><div class="chart-sub" id="pl-sub">Revenue · COGS · Opex · Net Income</div></div>
+      </div>
+      <div id="pl-chart-wrap"></div>
+      <div class="chart-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--gray-300);"></div>Budget</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--navy);"></div>Actual</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="aging-2col">
+    <div class="table-wrap">
+      <div class="table-head-row">
+        <div class="table-head-title">Accounts Receivable Aging</div>
+        <div class="table-head-actions"><button class="btn btn-outline btn-sm" onclick="window.location.href='accounts-receivable.html'">Open AR</button></div>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Bucket</th><th>Amount</th><th>% of Total</th></tr></thead>
+        <tbody id="ar-aging-tbody"></tbody>
+      </table>
+    </div>
+    <div class="table-wrap">
+      <div class="table-head-row">
+        <div class="table-head-title">Accounts Payable Aging</div>
+        <div class="table-head-actions"><button class="btn btn-outline btn-sm" onclick="window.location.href='accounts-payable.html'">Open AP</button></div>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Bucket</th><th>Amount</th><th>% of Total</th></tr></thead>
+        <tbody id="ap-aging-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="section-title" style="font-size:13.5px;">Top Financial Risks &amp; Alerts</div>
+  <div class="risk-list" id="risk-list"></div>
+
+  <div class="section-title" style="font-size:13.5px;">Multi-Entity Consolidation <span style="font-weight:400;color:var(--gray-400);font-size:11px;">(rendered from tenant configuration)</span></div>
+  <div class="consol-wrap">
+    <table class="data-table">
+      <thead><tr><th>Entity</th><th>Business Type</th><th>Revenue</th><th>Expense</th><th>Net Income</th><th>Margin</th></tr></thead>
+      <tbody id="consol-tbody"></tbody>
+      <tfoot><tr id="consol-total"></tr></tfoot>
+    </table>
+  </div>
+
+</main>
+
+<script src="js/app.js"></script>
+<script>
+/* ═══════════════════ CONFIG-DRIVEN CONTEXT ═══════════════════ */
+const CFG = getTenantConfig();
+const ACTIVE_ENTITY = getActiveEntity();
+document.getElementById('dash-subtitle').textContent =
+  'Executive financial overview · ' + ACTIVE_ENTITY.name + ' (' + getBusinessType(ACTIVE_ENTITY.businessType).label + ')';
+
+/* Seed base MTD financials per configured entity (deterministic mock) */
+const ENTITY_BASE = {};
+CFG.secondaryEntities.forEach((e, i) => {
+  if (e.id === 'ENT-MINE') {
+    ENTITY_BASE[e.id] = { revenue: 0, expense: 0 };
+  } else {
+    const seed = (i + 1) * 137.0;
+    ENTITY_BASE[e.id] = {
+      revenue: +(280 + seed * 3.1).toFixed(1),
+      expense: +(210 + seed * 2.4).toFixed(1)
+    };
+  }
+});
+const PERIOD_MULT = { mtd: 1, qtd: 3.05, ytd: 11.4 };
+
+/* Populate entity filter select from config */
+(function(){
+  const sel = document.getElementById('sel-entity');
+  CFG.secondaryEntities.forEach(e => {
+    const opt = document.createElement('option');
+    opt.value = e.id; opt.textContent = e.name;
+    sel.appendChild(opt);
+  });
+})();
+
+/* ═══════════════════ FILTER STATE ═══════════════════ */
+const F = { period:'ytd', entity:'all', basis:'gross' };
+
+function entityRows() {
+  return CFG.secondaryEntities.filter(e => F.entity === 'all' || e.id === F.entity);
+}
+
+function computeConsol() {
+  const m = PERIOD_MULT[F.period];
+  const nb = F.basis === 'net' ? 0.965 : 1.0;
+  return entityRows().map(e => {
+    const base = ENTITY_BASE[e.id];
+    const revenue = +(base.revenue * m * nb).toFixed(1);
+    const expense = +(base.expense * m * nb).toFixed(1);
+    const ni = +(revenue - expense).toFixed(1);
+    return { entity: e, revenue, expense, ni, margin: revenue > 0 ? (ni / revenue * 100) : 0 };
+  });
+}
+
+/* ═══════════════════ FORMAT ═══════════════════ */
+function fK(v){ return '$' + v.toFixed(1) + 'K'; }
+function fM(v){ return v >= 1000 ? '$' + (v/1000).toFixed(2) + 'M' : '$' + Math.round(v) + 'K'; }
+function fPct(v){ return v.toFixed(1) + '%'; }
+
+/* ═══════════════════ KPI RENDER ═══════════════════ */
+function renderKPIs() {
+  const rows = computeConsol();
+  const rev = rows.reduce((a,r)=>a+r.revenue,0);
+  const exp = rows.reduce((a,r)=>a+r.expense,0);
+  const ni = rev - exp;
+  const cash = 4200 * (F.period==='mtd'?1:F.period==='qtd'?1.08:1.22) * (F.entity==='all'?1:0.32);
+  const ar = rev * 0.42, ap = exp * 0.31;
+  const wc = (cash + ar) - ap;
+
+  const defs = [
+    { cls:'k-cash', label:'Cash Position',   val:fM(cash), delta:'+4.2%', up:true,  sub:'Consolidated bank balances' },
+    { cls:'k-wc',   label:'Working Capital', val:fM(wc),   delta:'+2.1%', up:true,  sub:'Cash + AR − AP' },
+    { cls:'k-rev',  label:'Revenue ('+F.period.toUpperCase()+')', val:fM(rev), delta:'+6.8%', up:true, sub:'vs prior period' },
+    { cls:'k-ni',   label:'Net Income ('+F.period.toUpperCase()+')', val:fM(ni), delta: ni>=0?'+3.4%':'-1.9%', up: ni>=0, sub:'Margin '+fPct(rev>0?ni/rev*100:0) },
+    { cls:'k-ar',   label:'AR Outstanding',  val:fM(ar),   delta:'-1.5%', up:false, sub:'42% of revenue' },
+    { cls:'k-ap',   label:'AP Outstanding',  val:fM(ap),   delta:'+0.8%', up:true,  sub:'31% of expense' },
+  ];
+  document.getElementById('kpi-row').innerHTML = defs.map(d => `
+    <div class="cfo-kpi ${d.cls}">
+      <div class="cfo-kpi-label">${d.label}</div>
+      <div class="cfo-kpi-val">${d.val}</div>
+      <div class="cfo-kpi-delta ${d.up?'up':'down'}">${d.up?'↑':'↓'} ${d.delta}</div>
+      <div class="cfo-kpi-sub">${d.sub}</div>
+    </div>`).join('');
+}
+
+/* ═══════════════════ CASH PROJECTION CHART ═══════════════════ */
+function renderCashChart() {
+  const base = 4200 * (F.entity==='all'?1:0.32);
+  const data = [ +(base*0.98).toFixed(0), +(base*1.06).toFixed(0), +(base*1.19).toFixed(0) ];
+  document.getElementById('cash-chart-wrap').innerHTML = svgBar(data, ['7-Day','30-Day','90-Day'], { color:'#1565c0', accent:'#0d47a1', h:150 });
+}
+
+/* ═══════════════════ P&L BUDGET VS ACTUAL CHART ═══════════════════ */
+function renderPLChart() {
+  const rows = computeConsol();
+  const rev = rows.reduce((a,r)=>a+r.revenue,0);
+  const exp = rows.reduce((a,r)=>a+r.expense,0);
+  const cogs = exp * 0.58, opex = exp * 0.42, ni = rev - exp;
+  const actual = [rev, cogs, opex, ni];
+  const budget = [rev*0.94, cogs*1.04, opex*0.98, ni*0.86];
+  document.getElementById('pl-sub').textContent = 'Revenue · COGS · Opex · Net Income · ' + F.period.toUpperCase();
+  document.getElementById('pl-chart-wrap').innerHTML = svgGroupedBar([
+    { label:'Budget', values: budget.map(v=>+v.toFixed(1)), color:'#c8ccd6' },
+    { label:'Actual', values: actual.map(v=>+v.toFixed(1)), color:'#0d1b4b' }
+  ], ['Revenue','COGS','Opex','Net Income']);
+}
+
+/* ═══════════════════ AGING TABLES ═══════════════════ */
+const AR_AGING = [ ['Current', 0.52], ['1-30 Days', 0.24], ['31-60 Days', 0.13], ['61-90 Days', 0.07], ['90+ Days', 0.04] ];
+const AP_AGING = [ ['Current', 0.61], ['1-30 Days', 0.21], ['31-60 Days', 0.10], ['61-90 Days', 0.05], ['90+ Days', 0.03] ];
+
+function renderAging() {
+  const rows = computeConsol();
+  const ar = rows.reduce((a,r)=>a+r.revenue,0) * 0.42;
+  const ap = rows.reduce((a,r)=>a+r.expense,0) * 0.31;
+  document.getElementById('ar-aging-tbody').innerHTML = AR_AGING.map(([b,p]) => `
+    <tr><td>${b}</td><td>${fM(ar*p)}</td><td>${fPct(p*100)}</td></tr>`).join('');
+  document.getElementById('ap-aging-tbody').innerHTML = AP_AGING.map(([b,p]) => `
+    <tr><td>${b}</td><td>${fM(ap*p)}</td><td>${fPct(p*100)}</td></tr>`).join('');
+}
+
+/* ═══════════════════ TOP RISKS ═══════════════════ */
+const RISKS = [
+  { title:'Trust Account Variance', desc:'Client trust ledger shows a $12.4K unreconciled variance for 3 consecutive days.', level:'badge-red' },
+  { title:'Covenant Ratio Approaching Threshold', desc:'Debt-service coverage ratio at 1.18x vs 1.15x covenant floor - 2.5% headroom remaining.', level:'badge-orange' },
+  { title:'Working Capital Concentration', desc:'62% of AR is concentrated in top 3 customers across AC Wholesale Distribution.', level:'badge-orange' },
+  { title:'FX Exposure - Starlight Re', desc:'Unhedged ceded premium exposure in EUR increased 8% month-over-month.', level:'badge-blue' },
+  { title:'Deferred Revenue Recognition Lag', desc:'Unearned premium roll-forward is 4 days behind close calendar for 2 entities.', level:'badge-gray' },
+];
+function renderRisks() {
+  document.getElementById('risk-list').innerHTML = RISKS.map((r,i) => `
+    <div class="risk-row">
+      <div class="risk-rank">${i+1}</div>
+      <div class="risk-body"><div class="risk-title">${r.title}</div><div class="risk-desc">${r.desc}</div></div>
+      <span class="badge ${r.level}">${r.level==='badge-red'?'Critical':r.level==='badge-orange'?'Watch':'Monitor'}</span>
+      <button class="btn btn-outline btn-sm" onclick="showToast('Risk item acknowledged','info')">Acknowledge</button>
+    </div>`).join('');
+}
+
+/* ═══════════════════ CONSOLIDATION TABLE (config-driven) ═══════════════════ */
+function renderConsol() {
+  const rows = computeConsol();
+  document.getElementById('consol-tbody').innerHTML = rows.map(r => `
+    <tr>
+      <td class="font-semibold">${r.entity.name}</td>
+      <td><span class="badge badge-navy">${getBusinessType(r.entity.businessType).label}</span></td>
+      <td>${fM(r.revenue)}</td>
+      <td>${fM(r.expense)}</td>
+      <td style="color:${r.ni>=0?'var(--green)':'var(--red)'};font-weight:700;">${fM(r.ni)}</td>
+      <td>${fPct(r.margin)}</td>
+    </tr>`).join('');
+  const totRev = rows.reduce((a,r)=>a+r.revenue,0);
+  const totExp = rows.reduce((a,r)=>a+r.expense,0);
+  const totNi = totRev - totExp;
+  document.getElementById('consol-total').innerHTML = `
+    <td>Consolidated Total</td><td>${rows.length} ${rows.length===1?'entity':'entities'}</td>
+    <td>${fM(totRev)}</td><td>${fM(totExp)}</td>
+    <td style="color:${totNi>=0?'var(--green)':'var(--red)'};">${fM(totNi)}</td>
+    <td>${fPct(totRev>0?totNi/totRev*100:0)}</td>`;
+}
+
+/* ═══════════════════ FILTER CONTROLS ═══════════════════ */
+function setFilter(key, val) {
+  F[key] = val;
+  updateAppliedLabel();
+  renderAll();
+}
+function resetFilters() {
+  F.period='ytd'; F.entity='all'; F.basis='gross';
+  document.getElementById('sel-period').value='ytd';
+  document.getElementById('sel-entity').value='all';
+  document.getElementById('sel-basis').value='gross';
+  updateAppliedLabel(); renderAll();
+  showToast('Filters cleared','info');
+}
+function updateAppliedLabel() {
+  const chips = [];
+  if (F.entity !== 'all') { const e = CFG.secondaryEntities.find(x=>x.id===F.entity); if (e) chips.push(e.name); }
+  if (F.basis !== 'gross') chips.push('Net of Elims');
+  document.getElementById('fbar-applied').textContent = chips.length ? 'Filtered: ' + chips.join(', ') : 'Showing all entities';
+}
+
+function refreshDash() {
+  const t = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('dash-subtitle').textContent =
+    'Executive financial overview · ' + ACTIVE_ENTITY.name + ' · Updated ' + t;
+  showToast('Dashboard refreshed','success');
+}
+
+function renderAll() {
+  renderKPIs(); renderCashChart(); renderPLChart(); renderAging(); renderConsol();
+}
+
+/* ═══════════════════ SVG CHARTS ═══════════════════ */
+function svgBar(data,labels,opts={}){
+  const h=opts.h||150,w=480,px=28,gap=10;
+  const mx=Math.max(...data)*1.18||1;
+  const n=data.length, bw=(w-px*2-gap*(n-1))/n;
+  const toY=v=>px+(h-px*2)*(1-v/mx);
+  let out='';
+  data.forEach((v,i)=>{
+    const x=px+i*(bw+gap), y=toY(v), bh=h-px-y;
+    const last=i===n-1;
+    out+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(bh,1).toFixed(1)}" rx="3" fill="${last?opts.accent||opts.color:opts.color}" opacity="${last?1:0.72}"/>`;
+    out+=`<text x="${(x+bw/2).toFixed(1)}" y="${(h-7).toFixed(1)}" text-anchor="middle" font-size="10" fill="#9aa">${labels[i]}</text>`;
+    out+=`<text x="${(x+bw/2).toFixed(1)}" y="${(y-5).toFixed(1)}" text-anchor="middle" font-size="10" fill="${last?opts.accent||opts.color:'#666'}" font-weight="600">$${v}K</text>`;
+  });
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" style="display:block;">${out}</svg>`;
+}
+
+function svgGroupedBar(datasets,groups){
+  const h=170,w=480,px=32,py=20;
+  const allV=datasets.flatMap(d=>d.values); const mx=Math.max(...allV)*1.25||1;
+  const n=groups.length,m=datasets.length,gW=(w-px*2)/n;
+  const bw=(gW*0.72)/m, bgap=(gW*0.28)/(m+1);
+  const toY=v=>py+(h-py*2)*(1-v/mx);
+  let out='';
+  datasets.forEach((ds,di)=>{ groups.forEach((g,gi)=>{
+    const v=ds.values[gi], x=px+gi*gW+bgap*(di+1)+bw*di, y=toY(v), bh=h-py-y;
+    out+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(bh,1).toFixed(1)}" rx="2" fill="${ds.color}" opacity="0.9"/>`;
+    out+=`<text x="${(x+bw/2).toFixed(1)}" y="${(y-3).toFixed(1)}" text-anchor="middle" font-size="8" fill="#666">${v}</text>`;
+  });});
+  groups.forEach((g,gi)=>{ out+=`<text x="${(px+gi*gW+gW/2).toFixed(1)}" y="${(h-5).toFixed(1)}" text-anchor="middle" font-size="9.5" fill="#9aa">${g}</text>`; });
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" style="display:block;">${out}</svg>`;
+}
+
+/* ═══════════════════ INIT ═══════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  updateAppliedLabel();
+  renderAll();
+  renderRisks();
+});
+</script>
+<script>
+  initLayout('dashboard');
+</script>
+</body>
+</html>

@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Platform & Dashboards — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Platform &amp; Dashboards</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Dashboards &amp; Role Workspaces</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-gauge-high" style="color: var(--teal);"></i> Platform &amp; Role-Based Dashboards</h1>
+      <p>
+        Veridex provides tailored executive dashboards for every stakeholder across the insurance and finance hierarchy. Each dashboard automatically isolates data, charts, and action buttons relevant to the user's role.
+      </p>
+    </div>
+
+    <!-- Home Dashboard -->
+    <div class="module-card" id="home-dashboard">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-blue">Executive Overview</span>
+            <span class="badge badge-teal">Platform Home</span>
+          </div>
+          <h2 class="module-title">Home Dashboard (`home.html`)</h2>
+        </div>
+        <a href="../home.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Home Dashboard</a>
+      </div>
+
+      <p class="section-p">
+        <strong>Purpose:</strong> The central executive hub providing real-time financial health, cash liquidity, gross written premium (GWP), open approval counts, and direct module shortcuts.
+      </p>
+      
+      <div class="grid-2">
+        <div class="info-card">
+          <h4>Key Financial Metrics Displayed</h4>
+          <ul style="font-size:12.5px; margin-left:16px; margin-top:4px; color:var(--text-secondary);">
+            <li><strong>Gross Written Premium (GWP):</strong> Total premium bound year-to-date.</li>
+            <li><strong>Operating Cash Balance:</strong> Cleared cash across Account 1001.</li>
+            <li><strong>Premium Trust Cash:</strong> Restricted fiduciary cash (Account 1020).</li>
+            <li><strong>Pending Workflow Approvals:</strong> Transactions awaiting sign-off.</li>
+          </ul>
+        </div>
+        <div class="info-card">
+          <h4>Quick Action Triggers</h4>
+          <ul style="font-size:12.5px; margin-left:16px; margin-top:4px; color:var(--text-secondary);">
+            <li><strong>Bind New Policy:</strong> Fast-track quote-to-bind creation.</li>
+            <li><strong>Post Manual Journal Entry:</strong> Quick GL debit/credit creator.</li>
+            <li><strong>Upload Bordereau (BX):</strong> Drag &amp; drop monthly MGA files.</li>
+            <li><strong>Switch Tenant Entity:</strong> Toggle Carrier, MGA, or Agency view.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <!-- Role-Based Workspaces -->
+    <div class="module-card" id="role-workspaces">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-purple">Multi-Entity</span>
+            <span class="badge badge-amber">Role Views</span>
+          </div>
+          <h2 class="module-title">Industry Role Workspaces (`role-select.html`)</h2>
+        </div>
+        <a href="../role-select.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Role Selector</a>
+      </div>
+
+      <p class="section-p">
+        Veridex dynamically shifts navigation and reports depending on which business role you select:
+      </p>
+
+      <div class="flow-steps">
+        <div class="flow-step-item">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <strong>Carrier Executive (`dashboard-carrier.html`)</strong>
+            <span>Focused on Loss Ratios, Combined Ratios, Reinsurance Cessions, Unearned Premium Reserves, and NAIC Statutory Blank Schedules.</span>
+          </div>
+        </div>
+        <div class="flow-step-item">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <strong>MGA Operations Manager (`dashboard-mga.html`)</strong>
+            <span>Tracks binding authority limits, program underwriting production, broker commission split payables, and carrier net settlements.</span>
+          </div>
+        </div>
+        <div class="flow-step-item">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <strong>Agency Principal / Retail Broker (`dashboard-agency.html`)</strong>
+            <span>Monitors customer premium invoices, agency commission receivables, producer monthly earnings, and policy expiration dates.</span>
+          </div>
+        </div>
+        <div class="flow-step-item">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <strong>Chief Financial Officer (`dashboard-cfo.html`)</strong>
+            <span>Executive liquidity cash forecasting, EBITDA margins, working capital trends, and large wire approval queues ($50k+).</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="insurance-distribution.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">The 3 Billing Models</span>
+      </a>
+      <a href="general-ledger.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Module &rarr;</span>
+        <span class="nav-page-title">General Ledger (GL)</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('dashboards');
+</script>
+</body>
+</html>

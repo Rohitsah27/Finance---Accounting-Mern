@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventory & Costing — Operations | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/layout.js"></script>
+</head>
+<body>
+  <main class="main-content" id="main-content">
+
+    <div class="page-header">
+      <div>
+        <div class="page-title">Inventory &amp; Costing</div>
+        <div class="page-subtitle">AC Manufacturing Inc. - raw material, WIP, and finished-goods costing across the AC Manufacturing Group</div>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-outline" onclick="showToast('Exporting inventory valuation...','info')">Export</button>
+        <button class="btn btn-primary" onclick="showToast('New production order created','success')">+ New Production Order</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card" style="flex-direction:column;align-items:stretch;">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;">
+          <div class="stat-label">Total Inventory Value</div>
+          <div class="stat-value" style="font-size:18px;">$4,286,400</div>
+        </div>
+        <div style="display:flex;height:10px;border-radius:4px;overflow:hidden;margin-top:8px;">
+          <div style="width:34%;background:#102a2e;" title="Raw Material $1.46M"></div>
+          <div style="width:22%;background:#c9791f;" title="WIP $0.94M"></div>
+          <div style="width:44%;background:#0f6e63;" title="Finished Goods $1.89M"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:10.5px;color:var(--gray-500);margin-top:6px;">
+          <span>RM $1.46M</span><span>WIP $0.94M</span><span>FG $1.89M</span>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-navy"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 6l7-3 7 3-7 3-7-3z" stroke="#102a2e" stroke-width="1.4" stroke-linejoin="round"/><path d="M3 6v7l7 3 7-3V6" stroke="#102a2e" stroke-width="1.4" stroke-linejoin="round"/></svg></div>
+        <div class="stat-info"><div class="stat-value">1,840</div><div class="stat-label">Units in Production</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-orange"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 4v7M10 14v1" stroke="#e65100" stroke-width="2" stroke-linecap="round"/><circle cx="10" cy="10" r="7.5" stroke="#e65100" stroke-width="1.4"/></svg></div>
+        <div class="stat-info"><div class="stat-value">6</div><div class="stat-label">Reorder Alerts</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-green"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 10h12M13 6l3 4-3 4" stroke="#2e7d32" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="stat-info"><div class="stat-value">7.4x</div><div class="stat-label">Inventory Turnover Ratio</div></div>
+      </div>
+    </div>
+
+    <!-- Bill of Materials -->
+    <div class="form-card" style="margin-bottom:24px;padding:18px 20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <div style="font-size:14px;font-weight:700;color:var(--gray-900);">Bill of Materials - Model AC-2000 Split Unit</div>
+        <div style="display:flex;gap:16px;align-items:center;">
+          <span style="font-size:11.5px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.4px;">Costing Method:</span>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12.5px;"><input type="radio" name="costmethod" value="FIFO" checked onchange="setCostingMethod(this.value)"> FIFO</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12.5px;"><input type="radio" name="costmethod" value="Weighted Average" onchange="setCostingMethod(this.value)"> Weighted Average</label>
+          <label style="display:flex;align-items:center;gap:4px;font-size:12.5px;"><input type="radio" name="costmethod" value="Standard Cost" onchange="setCostingMethod(this.value)"> Standard Cost</label>
+        </div>
+      </div>
+      <div class="v-tree" id="bom-tree"></div>
+    </div>
+
+    <!-- Production Orders -->
+    <div class="table-wrap" style="margin-bottom:24px;">
+      <div class="table-head-row">
+        <div class="table-head-title">Production Orders</div>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Order #</th><th>SKU</th><th class="text-right">Quantity</th><th>Status</th><th class="text-right">Standard Cost</th><th class="text-right">Actual Cost</th><th>Variance</th></tr></thead>
+        <tbody>
+          <tr><td class="font-semibold">PO-8841</td><td>AC-2000 Split Unit</td><td class="text-right">400</td><td><span class="badge badge-blue">In Progress</span></td><td class="text-right">$164,000</td><td class="text-right">$168,900</td><td><span class="badge badge-red">+3.0% Unfav</span></td></tr>
+          <tr><td class="font-semibold">PO-8836</td><td>AC-1500 Window Unit</td><td class="text-right">620</td><td><span class="badge badge-green">Complete</span></td><td class="text-right">$142,600</td><td class="text-right">$139,280</td><td><span class="badge badge-green">-2.3% Fav</span></td></tr>
+          <tr><td class="font-semibold">PO-8829</td><td>AC-2000 Split Unit</td><td class="text-right">350</td><td><span class="badge badge-green">Complete</span></td><td class="text-right">$143,500</td><td class="text-right">$144,020</td><td><span class="badge badge-orange">+0.4% Unfav</span></td></tr>
+          <tr><td class="font-semibold">PO-8850</td><td>AC-3000 Commercial Rooftop</td><td class="text-right">120</td><td><span class="badge badge-gray">Planned</span></td><td class="text-right">$96,000</td><td class="text-right"> - </td><td> - </td></tr>
+          <tr><td class="font-semibold">PO-8842</td><td>AC-1500 Window Unit</td><td class="text-right">500</td><td><span class="badge badge-blue">In Progress</span></td><td class="text-right">$115,000</td><td class="text-right">$112,400</td><td><span class="badge badge-green">-2.3% Fav</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Multi-Location Stock -->
+    <div class="table-wrap">
+      <div class="table-head-row"><div class="table-head-title">Multi-Location Stock - Manufacturing Group</div></div>
+      <table class="data-table">
+        <thead><tr><th>SKU</th><th>AC Manufacturing Inc. (Plant)</th><th>AC Wholesale Distribution (DC)</th><th>AC Retail Stores</th><th class="text-right">Total On Hand</th><th>Reorder Point</th></tr></thead>
+        <tbody>
+          <tr><td class="font-semibold">AC-2000 Split Unit</td><td class="text-right">180</td><td class="text-right">420</td><td class="text-right">96</td><td class="text-right font-semibold">696</td><td><span class="badge badge-green">Above 250</span></td></tr>
+          <tr><td class="font-semibold">AC-1500 Window Unit</td><td class="text-right">64</td><td class="text-right">210</td><td class="text-right">58</td><td class="text-right font-semibold">332</td><td><span class="badge badge-orange">Near 300</span></td></tr>
+          <tr><td class="font-semibold">AC-3000 Commercial Rooftop</td><td class="text-right">22</td><td class="text-right">48</td><td class="text-right">6</td><td class="text-right font-semibold">76</td><td><span class="badge badge-red">Below 100 - Reorder</span></td></tr>
+          <tr><td class="font-semibold">AC-Compressor-04 (RM)</td><td class="text-right">640</td><td class="text-right"> - </td><td class="text-right"> - </td><td class="text-right font-semibold">640</td><td><span class="badge badge-green">Above 400</span></td></tr>
+          <tr><td class="font-semibold">AC-Refrigerant-R32 (RM)</td><td class="text-right">2,150 kg</td><td class="text-right"> - </td><td class="text-right"> - </td><td class="text-right font-semibold">2,150 kg</td><td><span class="badge badge-red">Below 2,500 kg - Reorder</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </main>
+
+  <script src="js/app.js"></script>
+  <script>
+    initLayout('inventory');
+
+    const BOM_DATA = [
+      { name: 'Model AC-2000 Split Unit (Finished Good)', badge: 'FG', qty: '1 EA', unitCost: 410.00, ext: 410.00, children: [
+        { name: 'Compressor Assembly (AC-Compressor-04)', badge: 'RM', qty: '1 EA', unitCost: 148.00, ext: 148.00, children: [] },
+        { name: 'Condenser Coil - Copper', badge: 'RM', qty: '1 EA', unitCost: 62.50, ext: 62.50, children: [] },
+        { name: 'Refrigerant R-32 Charge', badge: 'RM', qty: '2.4 kg', unitCost: 9.75, ext: 23.40, children: [] },
+        { name: 'Sheet Metal Cabinet &amp; Housing', badge: 'RM', qty: '1 EA', unitCost: 54.00, ext: 54.00, children: [] },
+        { name: 'PCB Control Board', badge: 'RM', qty: '1 EA', unitCost: 38.20, ext: 38.20, children: [] },
+        { name: 'Fan Motor Assembly', badge: 'WIP', qty: '2 EA', unitCost: 41.95, ext: 83.90, children: [] },
+      ]},
+    ];
+
+    const COST_MULTIPLIER = { 'FIFO': 1.00, 'Weighted Average': 1.015, 'Standard Cost': 0.97 };
+
+    function renderBom(nodes, method) {
+      const mult = COST_MULTIPLIER[method];
+      return nodes.map(n => `
+        <div class="v-tree-node" onclick="toggleTree(this, event)">
+          <div class="v-tree-row">
+            <span class="v-tree-toggle">${n.children && n.children.length ? '▶' : '•'}</span>
+            <strong>${n.name}</strong>
+            <span class="v-tree-badge">${n.badge}</span>
+            <span style="font-size:11px;color:var(--gray-500);">Qty: ${n.qty}</span>
+            <span class="v-tree-amount">${(n.unitCost * mult).toFixed(2)} / unit - Ext: $${(n.ext * mult).toFixed(2)}</span>
+          </div>
+          <div class="v-tree-children">
+            ${n.children && n.children.length ? renderBom(n.children, method) : ''}
+          </div>
+        </div>`).join('');
+    }
+
+    function drawBom(method) {
+      document.getElementById('bom-tree').innerHTML = renderBom(BOM_DATA, method);
+      document.querySelectorAll('#bom-tree > .v-tree-node').forEach(n => n.classList.add('open'));
+    }
+
+    function setCostingMethod(method) {
+      drawBom(method);
+      showToast('Valuation recalculated under ' + method, 'info');
+    }
+
+    drawBom('FIFO');
+  </script>
+</body>
+</html>

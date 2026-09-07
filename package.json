@@ -1,0 +1,25 @@
+{
+  "name": "veridex-finance-system",
+  "version": "1.7.0",
+  "private": true,
+  "description": "Veridex Insurance & Finance Management System - Full Stack MERN Prototype",
+  "scripts": {
+    "server": "npm --prefix server start",
+    "server:dev": "npm --prefix server run dev",
+    "client": "npm --prefix react run dev",
+    "build:client": "npm --prefix react run build",
+    "test:db": "npm --prefix server run test-db",
+    "seed": "npm --prefix server run seed"
+  },
+  "keywords": [
+    "veridex",
+    "finance",
+    "insurance",
+    "general-ledger",
+    "react",
+    "express",
+    "mongodb"
+  ],
+  "author": "Veridex Finance Systems",
+  "license": "UNLICENSED"
+}

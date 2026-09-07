@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tax Engine & Surplus Lines — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Tax &amp; Analytics</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Tax Engine</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-scale-balanced" style="color: var(--teal);"></i> Tax Engine &amp; Surplus Lines Compliance (SLTX)</h1>
+      <p>
+        The Tax Engine automates state-by-state Surplus Lines tax calculations, stamping office filing fees, municipal surcharges, state economic nexus tracking, and 1099-NEC/MISC compliance reporting.
+      </p>
+    </div>
+
+    <div class="module-card" id="tax-calculations">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-teal">Surplus Lines</span>
+            <span class="badge badge-blue">State Nexus</span>
+          </div>
+          <h2 class="module-title">Surplus Lines Tax Calculation (`tax-engine.html`)</h2>
+        </div>
+        <a href="../tax-engine.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Tax Engine</a>
+      </div>
+
+      <p class="section-p">
+        Surplus lines policies are taxed based on the Home State of the insured. For example, in Texas (TX):
+      </p>
+
+      <div class="grid-2">
+        <div class="info-card">
+          <h4>Texas SLTX Premium Tax (4.85%)</h4>
+          <p>On a $35,000 policy, SLTX tax is <strong>$1,590.00</strong> remitted to the Texas Comptroller.</p>
+        </div>
+        <div class="info-card">
+          <h4>Texas Stamping Office Fee (0.04%) + Surcharges</h4>
+          <p>Denton County 0.55% surcharge adds <strong>$180.00</strong>, totaling <strong>$1,770.00</strong> in statutory taxes.</p>
+        </div>
+      </div>
+
+      <h3 class="section-h3"><i class="fa-solid fa-calculator"></i> Tax GL Journal Entries:</h3>
+      <table class="je-table">
+        <thead>
+          <tr>
+            <th>Event</th>
+            <th>Account Code &amp; Name</th>
+            <th style="text-align:right;">Debit ($)</th>
+            <th style="text-align:right;">Credit ($)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td rowspan="2"><strong>Tax Invoiced to Policyholder</strong></td>
+            <td>1100 Premium Receivable — Insured</td>
+            <td class="dr-amount">$1,770.00</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td class="indent-cr">2300 Premium Taxes Payable — SLTX</td>
+            <td></td>
+            <td class="cr-amount">$1,770.00</td>
+          </tr>
+          <tr>
+            <td rowspan="2"><strong>Tax Remitted to State Comptroller</strong></td>
+            <td>2300 Premium Taxes Payable — SLTX</td>
+            <td class="dr-amount">$1,770.00</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td class="indent-cr">1001 Cash / Bank Operating</td>
+            <td></td>
+            <td class="cr-amount">$1,770.00</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="multi-currency-fx.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">Multi-Currency &amp; FX</span>
+      </a>
+      <a href="reporting-analytics.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Module &rarr;</span>
+        <span class="nav-page-title">Reporting &amp; Analytics</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('tax-engine');
+</script>
+</body>
+</html>

@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accounts Payable (AP) — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Accounts Payable &amp; Disbursements</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Accounts Payable (AP)</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-money-bill-transfer" style="color: var(--amber);"></i> Accounts Payable (AP) &amp; Disbursements</h1>
+      <p>
+        Accounts Payable controls all outgoing cash disbursements. It manages vendor bills, carrier net settlement wires, broker commission remittances, ACH payment batches, E-Checks, and 1099 tax tracking.
+      </p>
+    </div>
+
+    <!-- All Invoices -->
+    <div class="module-card" id="ap-invoices">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-amber">Disbursements</span>
+            <span class="badge badge-blue">AP Ledger</span>
+          </div>
+          <h2 class="module-title">1. AP Invoice Register (`accounts-payable.html`)</h2>
+        </div>
+        <a href="../accounts-payable.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open AP Invoices</a>
+      </div>
+
+      <p class="section-p">
+        <strong>What it does:</strong> Maintains the central ledger of all outstanding payables: Carrier settlements (`SOUTHLAKE Insurance Co.` $32,257.00), Broker commission remittances (`HIT Agency` $2,500.00), and operating vendor expenses.
+      </p>
+
+      <h3 class="section-h3"><i class="fa-solid fa-calculator"></i> Standard AP Journal Entries:</h3>
+      <table class="je-table">
+        <thead>
+          <tr>
+            <th>Event</th>
+            <th>Account Code &amp; Name</th>
+            <th style="text-align:right;">Debit ($)</th>
+            <th style="text-align:right;">Credit ($)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td rowspan="2"><strong>Bill Incurred (Carrier Settlement)</strong></td>
+            <td>1001 Cash / Bank (Received from Broker)</td>
+            <td class="dr-amount">$34,757.00</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td class="indent-cr">2200 Premium Payable — Carrier</td>
+            <td></td>
+            <td class="cr-amount">$32,257.00</td>
+          </tr>
+          <tr>
+            <td rowspan="2"><strong>Disbursement Wire Sent</strong></td>
+            <td>2200 Premium Payable — Carrier</td>
+            <td class="dr-amount">$32,257.00</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td class="indent-cr">1001 Cash / Bank Operating</td>
+            <td></td>
+            <td class="cr-amount">$32,257.00</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Payment Rails -->
+    <div class="module-card" id="ap-rails">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-green">Payment Rails</span>
+            <span class="badge badge-purple">Banking</span>
+          </div>
+          <h2 class="module-title">2. Payment Methods: ACH, E-Checks &amp; Wires</h2>
+        </div>
+        <a href="../accounts-payable.html#ap-ach" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open ACH Payments</a>
+      </div>
+
+      <div class="grid-2">
+        <div class="info-card">
+          <h4>ACH Direct Deposit (`#ap-ach`)</h4>
+          <p>Automated NACHA batch file generation for batch producer commission payouts and vendor remittances.</p>
+        </div>
+        <div class="info-card">
+          <h4>Digital E-Checks (`#ap-echecks`)</h4>
+          <p>Instant digital check issuance with secure MICR encoding, check number serialization, and PDF check stubs.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- AP Aging -->
+    <div class="module-card" id="ap-aging">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-red">Cash Management</span>
+            <span class="badge badge-amber">Due Dates</span>
+          </div>
+          <h2 class="module-title">3. AP Aging Schedule (`accounts-payable.html#ap-aging`)</h2>
+        </div>
+        <a href="../accounts-payable.html#ap-aging" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open AP Aging</a>
+      </div>
+
+      <p class="section-p">
+        <strong>What it does:</strong> Organizes vendor and carrier liabilities by due dates to optimize working capital cash flow and ensure on-time carrier treaty settlements.
+      </p>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="billing-invoicing.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">Billing &amp; Invoicing</span>
+      </a>
+      <a href="bank-reconciliation.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Module &rarr;</span>
+        <span class="nav-page-title">Bank Reconciliation</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('accounts-payable');
+</script>
+</body>
+</html>

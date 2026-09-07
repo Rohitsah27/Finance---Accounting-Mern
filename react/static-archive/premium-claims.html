@@ -1,0 +1,1567 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Premium & Claims — Subledger | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/gl-engine.js"></script>
+  <script src="js/insurance-ops.js"></script>
+  <script src="js/layout.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    .period-toggle {
+      display: flex;
+      border: 1px solid var(--gray-300);
+      border-radius: 7px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+    .period-btn {
+      padding: 7px 16px;
+      font-size: 12px;
+      font-weight: 700;
+      border: none;
+      background: var(--white);
+      color: var(--gray-600);
+      cursor: pointer;
+      transition: all 0.15s;
+      letter-spacing: 0.3px;
+    }
+    .period-btn.active { background: var(--navy); color: white; }
+    .period-btn:not(.active):hover { background: var(--gray-100); }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-bottom: 16px;
+    }
+    .chart-card {
+      background: white;
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid rgba(0,0,0,0.04);
+      padding: 18px 20px;
+    }
+    .chart-card-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--gray-900);
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .chart-period-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--gray-400);
+      background: var(--gray-100);
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+    .chart-canvas-wrap { position: relative; height: 200px; }
+
+    .stats-row-6 {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .stat-card-sm {
+      background: white;
+      border-radius: var(--radius);
+      padding: 14px 16px;
+      box-shadow: var(--shadow-sm);
+      border: 1px solid rgba(0,0,0,0.04);
+      border-top: 3px solid var(--gray-300);
+    }
+    .stat-card-sm.accent-navy  { border-top-color: var(--navy); }
+    .stat-card-sm.accent-green { border-top-color: var(--green); }
+    .stat-card-sm.accent-coral { border-top-color: var(--coral); }
+    .stat-card-sm.accent-orange{ border-top-color: var(--orange); }
+
+    .pc-inline-filter {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .tab-filter-bar {
+      background: white;
+      border-radius: 0;
+      border-top: 1px solid var(--gray-200);
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+  </style>
+</head>
+<body>
+  <main class="main-content" id="main-content">
+
+    <div class="page-header">
+      <div>
+        <div class="page-title">Premium &amp; Claims Accounting</div>
+        <div class="page-subtitle">Auto-post premium and claims events · Gross / Ceded / Net toggle</div>
+      </div>
+      <div class="page-actions">
+        <!-- Period Toggle -->
+        <div class="period-toggle" id="period-toggle">
+          <button class="period-btn" onclick="setPeriod('itd')">ITD</button>
+          <button class="period-btn active" onclick="setPeriod('ytd')">YTD</button>
+          <button class="period-btn" onclick="setPeriod('mtd')">MTD</button>
+        </div>
+        <select class="filter-select" style="padding:8px 28px 8px 12px;" id="gross-net-toggle" onchange="toggleView(this.value)">
+          <option value="gross">Gross</option>
+          <option value="ceded">Ceded</option>
+          <option value="net">Net</option>
+        </select>
+        <button class="btn btn-outline" onclick="toggleFilterPanel('pc-filter-panel')">Filters</button>
+        <button class="btn btn-outline" onclick="exportTableCSV('pc-premiums-table','premium-claims.csv')">Export CSV</button>
+      </div>
+    </div>
+
+    <!-- 5 KPI Cards -->
+    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:18px;">
+      <div class="stat-card-sm accent-navy" style="padding:14px 16px;">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);" id="stat-written-label">Written Premium YTD</div>
+        <div style="font-size:22px;font-weight:800;color:var(--navy);margin:4px 0 2px;" id="stat-written">$1.24Cr</div>
+        <div style="font-size:11px;color:#2e7d32;font-weight:600;" id="stat-written-change">↑ 8.1% vs prior yr</div>
+      </div>
+      <div class="stat-card-sm accent-green" style="padding:14px 16px;">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);" id="stat-earned-label">Earned Premium YTD</div>
+        <div style="font-size:22px;font-weight:800;color:var(--navy);margin:4px 0 2px;" id="stat-earned">$1.18Cr</div>
+        <div style="font-size:11px;color:#2e7d32;font-weight:600;" id="stat-earned-change">↑ 7.4%</div>
+      </div>
+      <div class="stat-card-sm accent-coral" style="padding:14px 16px;">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);" id="stat-claims-label">Claims Incurred YTD</div>
+        <div style="font-size:22px;font-weight:800;color:var(--navy);margin:4px 0 2px;" id="stat-claims">$73.8L</div>
+        <div style="font-size:11px;color:var(--red);font-weight:600;" id="stat-claims-change">↑ 3.2%</div>
+      </div>
+      <div class="stat-card-sm accent-orange" style="padding:14px 16px;">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);">Combined Loss Ratio</div>
+        <div style="font-size:22px;font-weight:800;color:var(--navy);margin:4px 0 2px;" id="stat-ratio">62.4%</div>
+        <div style="font-size:11px;color:#2e7d32;font-weight:600;" id="stat-ratio-change">↓ 1.2% vs prior yr</div>
+      </div>
+      <div class="stat-card-sm" style="padding:14px 16px;border-top-color:#1565c0;">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);">Open Claims</div>
+        <div style="font-size:22px;font-weight:800;color:var(--navy);margin:4px 0 2px;" id="stat-open">142</div>
+        <div style="font-size:11px;color:var(--gray-400);" id="stat-open-change">↑ 8 vs prior month</div>
+      </div>
+    </div>
+
+    <!-- Global Filter Panel -->
+    <div class="report-filter-panel" id="pc-filter-panel">
+      <div class="report-filter-grid">
+        <label>State
+          <select class="filter-select" id="gf-state" onchange="applyAllFilters()">
+            <option value="">All States</option>
+            <option value="TX">TX</option>
+            <option value="CA">CA</option>
+            <option value="FL">FL</option>
+            <option value="NY">NY</option>
+            <option value="GA">GA</option>
+          </select>
+        </label>
+        <label>MGA
+          <select class="filter-select" id="gf-mga" onchange="applyAllFilters()">
+            <option value="">All MGA</option>
+            <option value="Futuristic">Futuristic</option>
+            <option value="NTA">NTA</option>
+            <option value="ACCL">ACCL</option>
+          </select>
+        </label>
+        <label>LOB
+          <select class="filter-select" id="gf-lob" onchange="applyAllFilters()">
+            <option value="">All LOB</option>
+            <option value="Auto">Auto</option>
+            <option value="Property">Property</option>
+            <option value="Liability">Liability</option>
+          </select>
+        </label>
+      </div>
+      <button type="button" class="btn btn-primary btn-sm" onclick="applyAllFilters();showToast('Filters applied','success')">Apply Filters</button>
+      <button type="button" class="btn btn-ghost btn-sm" onclick="resetFilters()">Clear Filters</button>
+    </div>
+
+    <!-- Tab Navigation -->
+    <div id="pc-tabs">
+      <div class="page-tabs" style="border-radius:8px 8px 0 0;">
+        <div class="page-tab active" data-tab="premiums" onclick="switchTab('pc-tabs','premiums')">Premiums</div>
+        <div class="page-tab" data-tab="bindpolicy" onclick="switchTab('pc-tabs','bindpolicy')">Bind Policy <span class="v-badge-config" style="margin-left:4px;">real, per MGA</span></div>
+        <div class="page-tab" data-tab="claims" onclick="switchTab('pc-tabs','claims')">Claims &amp; Losses</div>
+        <div class="page-tab" data-tab="reserves" onclick="switchTab('pc-tabs','reserves')">Reserves</div>
+        <div class="page-tab" data-tab="ratios" onclick="switchTab('pc-tabs','ratios')">Ratios &amp; Analytics</div>
+      </div>
+
+      <!-- Premiums Tab -->
+      <div class="tab-panel active" data-panel="premiums">
+        <!-- Inline filter bar -->
+        <div class="tab-filter-bar">
+          <span class="filter-bar-label">Filters:</span>
+          <select class="filter-select" id="pm-mga" onchange="applyAllFilters()">
+            <option value="">All MGA</option>
+            <option value="Futuristic">Futuristic</option>
+            <option value="NTA">NTA</option>
+            <option value="ACCL">ACCL</option>
+          </select>
+          <select class="filter-select" id="pm-state" onchange="applyAllFilters()">
+            <option value="">All States</option>
+            <option value="TX">TX</option>
+            <option value="CA">CA</option>
+            <option value="FL">FL</option>
+            <option value="NY">NY</option>
+            <option value="GA">GA</option>
+          </select>
+          <select class="filter-select" id="pm-lob" onchange="applyAllFilters()">
+            <option value="">All LOB</option>
+            <option value="Auto">Auto</option>
+            <option value="Property">Property</option>
+            <option value="Liability">Liability</option>
+          </select>
+          <select class="filter-select" id="pm-status" onchange="applyAllFilters()">
+            <option value="">All Status</option>
+            <option value="Active">Active</option>
+            <option value="Cancelled">Cancelled</option>
+            <option value="Expired">Expired</option>
+          </select>
+          <span id="pm-period-label" style="margin-left:auto;font-size:11px;font-weight:600;color:var(--gray-500);background:var(--gray-100);padding:4px 10px;border-radius:4px;">YTD 2026</span>
+        </div>
+
+        <!-- Charts -->
+        <div class="charts-grid" style="padding:16px 0 0 0;">
+          <div class="chart-card">
+            <div class="chart-card-title">
+              Written vs Earned Premium
+              <span class="chart-period-label" id="prem-chart-label">YTD 2026</span>
+            </div>
+            <div class="chart-canvas-wrap">
+              <canvas id="premTrendChart"></canvas>
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-title">
+              Premium by Line of Business
+              <span class="chart-period-label" id="lob-chart-label">YTD 2026</span>
+            </div>
+            <div class="chart-canvas-wrap">
+              <canvas id="premLobChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <!-- Table -->
+        <div class="form-card" style="border-radius:0 0 8px 8px;padding:0;">
+          <div style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--gray-100);">
+            <span style="font-size:12px;font-weight:600;color:var(--gray-600);" id="pm-row-count"> - rows</span>
+            <button class="btn btn-outline btn-sm" onclick="exportTableCSV('pc-premiums-table','premiums.csv')">Export CSV</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="data-table" id="pc-premiums-table">
+              <thead>
+                <tr>
+                  <th>Policy No.</th>
+                  <th>MGA</th>
+                  <th>State</th>
+                  <th>LOB</th>
+                  <th>Effective Date</th>
+                  <th class="text-right">Written Premium ($)</th>
+                  <th class="text-right">Earned Premium ($)</th>
+                  <th class="text-right">Unearned ($)</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="pm-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Claims Tab -->
+      <div class="tab-panel" data-panel="claims">
+        <div class="tab-filter-bar">
+          <span class="filter-bar-label">Filters:</span>
+          <select class="filter-select" id="cl-state" onchange="applyClaimsFilter()">
+            <option value="">All States</option>
+            <option value="TX">TX</option>
+            <option value="CA">CA</option>
+            <option value="FL">FL</option>
+            <option value="NY">NY</option>
+            <option value="GA">GA</option>
+            <option value="IL">IL</option>
+            <option value="OH">OH</option>
+            <option value="PA">PA</option>
+          </select>
+          <select class="filter-select" id="cl-lob" onchange="applyClaimsFilter()">
+            <option value="">All LOB</option>
+            <option value="Auto">Auto</option>
+            <option value="Property">Property</option>
+            <option value="Liability">Liability</option>
+            <option value="Marine">Marine</option>
+          </select>
+          <select class="filter-select" id="cl-status" onchange="applyClaimsFilter()">
+            <option value="">All Status</option>
+            <option value="Reserved">Reserved</option>
+            <option value="Paid">Paid</option>
+            <option value="Closed">Closed</option>
+          </select>
+          <select class="filter-select" id="cl-year-from" onchange="applyClaimsFilter()">
+            <option value="">From Year</option>
+            <option value="2016">2016</option><option value="2017">2017</option><option value="2018">2018</option>
+            <option value="2019">2019</option><option value="2020">2020</option><option value="2021">2021</option>
+            <option value="2022">2022</option><option value="2023">2023</option><option value="2024">2024</option>
+            <option value="2025">2025</option><option value="2026" selected>2026</option>
+          </select>
+          <select class="filter-select" id="cl-year-to" onchange="applyClaimsFilter()">
+            <option value="">To Year</option>
+            <option value="2016">2016</option><option value="2017">2017</option><option value="2018">2018</option>
+            <option value="2019">2019</option><option value="2020">2020</option><option value="2021">2021</option>
+            <option value="2022">2022</option><option value="2023">2023</option><option value="2024">2024</option>
+            <option value="2025">2025</option><option value="2026" selected>2026</option>
+          </select>
+          <button class="btn btn-outline btn-sm" onclick="exportAllHistory()">⬇ Export Full History</button>
+          <span id="cl-period-label" style="margin-left:auto;font-size:11px;font-weight:600;color:var(--gray-500);background:var(--gray-100);padding:4px 10px;border-radius:4px;">YTD 2026</span>
+        </div>
+
+        <!-- Loss Metrics Cards -->
+        <!-- <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;padding:14px 0 0 0;" id="lossMetricsRow">
+          <div class="stat-card-sm accent-navy">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);">Avg Severity</div>
+            <div style="font-size:20px;font-weight:800;color:var(--navy);margin:4px 0 2px;" id="lm-severity">$42,800</div>
+            <div style="font-size:11px;color:var(--gray-400);" id="lm-severity-chg">↑ 3.2% vs prior yr</div>
+          </div>
+          <div class="stat-card-sm accent-coral">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);">Claim Frequency</div>
+            <div style="font-size:20px;font-weight:800;color:var(--navy);margin:4px 0 2px;" id="lm-freq">4.82%</div>
+            <div style="font-size:11px;color:var(--gray-400);" id="lm-freq-chg">↓ 0.4% vs prior yr</div>
+          </div>
+          <div class="stat-card-sm accent-orange">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);">Pure Premium</div>
+            <div style="font-size:20px;font-weight:800;color:var(--navy);margin:4px 0 2px;" id="lm-pure">$2,064</div>
+            <div style="font-size:11px;color:var(--gray-400);">Loss cost per exposure</div>
+          </div>
+          <div class="stat-card-sm accent-green">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);">IBNR Estimate</div>
+            <div style="font-size:20px;font-weight:800;color:var(--navy);margin:4px 0 2px;" id="lm-ibnr">$39.2L</div>
+            <div style="font-size:11px;color:var(--gray-400);">Actuarial projection</div>
+          </div>
+          <div class="stat-card-sm">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);">Open Claims</div>
+            <div style="font-size:20px;font-weight:800;color:var(--navy);margin:4px 0 2px;" id="lm-open">142</div>
+            <div style="font-size:11px;color:var(--gray-400);" id="lm-open-chg">↑ 8 vs prior mo</div>
+          </div>
+        </div> -->
+
+        <!-- 10-Year Historical Trend -->
+        <div class="chart-card" style="margin-top:14px;">
+          <div class="chart-card-title">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <span>10-Year Loss History Trend</span>
+              <span style="font-size:10px;font-weight:600;background:#e3f2fd;color:#1565c0;padding:2px 8px;border-radius:4px;">2016 – 2026</span>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <select class="filter-select" id="hist-state" onchange="renderHistChart()" style="font-size:11.5px;padding:5px 24px 5px 8px;">
+                <option value="">All States</option>
+                <option value="TX">TX</option><option value="CA">CA</option><option value="FL">FL</option>
+                <option value="NY">NY</option><option value="GA">GA</option><option value="IL">IL</option>
+              </select>
+              <select class="filter-select" id="hist-lob" onchange="renderHistChart()" style="font-size:11.5px;padding:5px 24px 5px 8px;">
+                <option value="">All LOB</option>
+                <option value="Auto">Auto</option><option value="Property">Property</option><option value="Liability">Liability</option>
+              </select>
+              <select class="filter-select" id="hist-metric" onchange="renderHistChart()" style="font-size:11.5px;padding:5px 24px 5px 8px;">
+                <option value="incurred">Total Incurred</option>
+                <option value="paid">Claims Paid</option>
+                <option value="reserved">Reserved</option>
+                <option value="lossRatio">Loss Ratio %</option>
+                <option value="frequency">Frequency %</option>
+                <option value="severity">Avg Severity</option>
+              </select>
+              <button class="btn btn-outline btn-sm" onclick="exportHistChart()">⬇ CSV</button>
+            </div>
+          </div>
+          <div style="position:relative;height:240px;">
+            <canvas id="histTrendChart"></canvas>
+          </div>
+        </div>
+
+        <!-- State Breakdown + Loss Development in grid -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;">
+
+          <!-- State Claims Breakdown -->
+          <div class="form-card" style="padding:0;overflow:hidden;">
+            <div style="padding:12px 16px;background:#f8f9fb;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:13px;font-weight:700;color:var(--navy);">Claims by State <span style="font-size:11px;color:var(--gray-400);font-weight:400;" id="state-tbl-period">(YTD 2026)</span></span>
+              <button class="btn btn-outline btn-sm" onclick="exportStateTable()">⬇ CSV</button>
+            </div>
+            <table class="data-table" id="state-claims-table">
+              <thead><tr><th>State</th><th class="text-right">Claims</th><th class="text-right">Incurred ($)</th><th class="text-right">Loss Ratio</th><th class="text-right">Severity</th></tr></thead>
+              <tbody id="state-claims-tbody"></tbody>
+            </table>
+          </div>
+
+          <!-- Loss Development Triangle -->
+          <div class="form-card" style="padding:0;overflow:hidden;">
+            <div style="padding:12px 16px;background:#f8f9fb;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;justify-content:space-between;">
+              <span style="font-size:13px;font-weight:700;color:var(--navy);">Loss Development Triangle</span>
+              <button class="btn btn-outline btn-sm" onclick="exportLDT()">⬇ CSV</button>
+            </div>
+            <div style="overflow-x:auto;">
+              <table class="data-table" id="ldt-table">
+                <thead>
+                  <tr>
+                    <th>Accident Yr</th>
+                    <th class="text-right">12 Mo</th>
+                    <th class="text-right">24 Mo</th>
+                    <th class="text-right">36 Mo</th>
+                    <th class="text-right">48 Mo</th>
+                    <th class="text-right">60 Mo</th>
+                    <th class="text-right">Ultimate</th>
+                  </tr>
+                </thead>
+                <tbody id="ldt-tbody"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- YOY Comparison Table -->
+        <div class="form-card" style="padding:0;overflow:hidden;margin-top:14px;">
+          <div style="padding:12px 16px;background:#f8f9fb;border-bottom:1px solid var(--gray-100);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+            <span style="font-size:13px;font-weight:700;color:var(--navy);">Year-Over-Year Loss History (2016–2026)</span>
+            <div style="display:flex;gap:8px;">
+              <select class="filter-select" id="yoy-lob" onchange="renderYOY()" style="font-size:11.5px;">
+                <option value="">All LOB</option>
+                <option value="Auto">Auto</option><option value="Property">Property</option><option value="Liability">Liability</option>
+              </select>
+              <select class="filter-select" id="yoy-state" onchange="renderYOY()" style="font-size:11.5px;">
+                <option value="">All States</option>
+                <option value="TX">TX</option><option value="CA">CA</option><option value="FL">FL</option><option value="NY">NY</option>
+              </select>
+              <button class="btn btn-outline btn-sm" onclick="exportYOY()">⬇ Export CSV</button>
+            </div>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="data-table" id="yoy-table">
+              <thead>
+                <tr>
+                  <th>Year</th>
+                  <th class="text-right">Written Premium</th>
+                  <th class="text-right">Claims Incurred</th>
+                  <th class="text-right">Claims Paid</th>
+                  <th class="text-right">IBNR Reserve</th>
+                  <th class="text-right">Loss Ratio</th>
+                  <th class="text-right">Claim Count</th>
+                  <th class="text-right">Avg Severity</th>
+                  <th class="text-right">Frequency</th>
+                  <th class="text-right">YOY Chg</th>
+                </tr>
+              </thead>
+              <tbody id="yoy-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Current Period: Charts -->
+        <div class="charts-grid" style="padding:14px 0 0 0;">
+          <div class="chart-card">
+            <div class="chart-card-title">
+              Claims Paid vs Reserved by LOB
+              <span class="chart-period-label" id="claims-chart-label">YTD 2026</span>
+            </div>
+            <div class="chart-canvas-wrap">
+              <canvas id="claimsLobChart"></canvas>
+            </div>
+          </div>
+          <div class="chart-card">
+            <div class="chart-card-title">
+              Claims Trend
+              <span class="chart-period-label" id="claims-trend-label">YTD 2026</span>
+            </div>
+            <div class="chart-canvas-wrap">
+              <canvas id="claimsTrendChart"></canvas>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-card" style="border-radius:0 0 8px 8px;padding:0;">
+          <div style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--gray-100);">
+            <span style="font-size:12px;font-weight:600;color:var(--gray-600);" id="cl-row-count"> - rows</span>
+            <button class="btn btn-outline btn-sm" onclick="exportTableCSV('pc-claims-table','claims.csv')">Export CSV</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="data-table" id="pc-claims-table">
+              <thead>
+                <tr>
+                  <th>Claim No.</th>
+                  <th>Policy No.</th>
+                  <th>State</th>
+                  <th>Loss Date</th>
+                  <th>LOB</th>
+                  <th class="text-right">Paid ($)</th>
+                  <th class="text-right">Reserved ($)</th>
+                  <th class="text-right">Total Incurred ($)</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="cl-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reserves Tab -->
+      <div class="tab-panel" data-panel="reserves">
+        <div class="tab-filter-bar">
+          <span class="filter-bar-label">Filters:</span>
+          <select class="filter-select" id="res-lob" onchange="renderReserves()">
+            <option value="">All LOB</option>
+            <option value="Auto">Auto</option>
+            <option value="Property">Property</option>
+            <option value="Liability">Liability</option>
+          </select>
+          <span id="res-period-label" style="margin-left:auto;font-size:11px;font-weight:600;color:var(--gray-500);background:var(--gray-100);padding:4px 10px;border-radius:4px;">YTD 2026</span>
+        </div>
+        <div class="grid-2" style="padding-top:4px;">
+          <div class="form-card" style="padding:20px;">
+            <div class="card-title mb-16">Reserve Summary by LOB</div>
+            <table class="data-table" id="reserves-table">
+              <thead><tr><th>LOB</th><th class="text-right">Case Reserve ($)</th><th class="text-right">IBNR ($)</th><th class="text-right">Total ($)</th></tr></thead>
+              <tbody id="reserves-tbody">
+                <tr><td>Auto</td><td class="text-right">48,24,200</td><td class="text-right">12,48,600</td><td class="text-right font-semibold">60,72,800</td></tr>
+                <tr><td>Property</td><td class="text-right">62,48,400</td><td class="text-right">18,24,200</td><td class="text-right font-semibold">80,72,600</td></tr>
+                <tr><td>Liability</td><td class="text-right">24,18,600</td><td class="text-right">8,48,400</td><td class="text-right font-semibold">32,67,000</td></tr>
+              </tbody>
+              <tfoot><tr><td class="font-bold">Total</td><td class="text-right font-bold">1,34,91,200</td><td class="text-right font-bold">39,21,200</td><td class="text-right font-bold">1,74,12,400</td></tr></tfoot>
+            </table>
+          </div>
+          <div class="form-card" style="padding:20px;">
+            <div class="card-title mb-16" id="reserves-movement-title">Reserve Movement - May 2026</div>
+            <div class="recon-status-row"><span class="recon-status-label">Opening Reserve</span><span class="recon-status-value" id="res-opening">$1,68,24,200</span></div>
+            <div class="recon-status-row"><span class="recon-status-label">New Claims Reported</span><span class="recon-status-value text-coral" id="res-new-claims">+$18,42,800</span></div>
+            <div class="recon-status-row"><span class="recon-status-label">Reserve Strengthening</span><span class="recon-status-value text-coral" id="res-strengthen">+$4,82,400</span></div>
+            <div class="recon-status-row"><span class="recon-status-label">Claims Paid</span><span class="recon-status-value text-green" id="res-paid">−$12,48,600</span></div>
+            <div class="recon-status-row"><span class="recon-status-label">Reserve Releases</span><span class="recon-status-value text-green" id="res-releases">−$4,88,400</span></div>
+            <div class="divider"></div>
+            <div class="recon-status-row"><span class="recon-status-label font-bold">Closing Reserve</span><span class="recon-status-value font-bold" style="color:var(--navy);" id="res-closing">$1,74,12,400</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Ratios Tab -->
+      <div class="tab-panel" data-panel="ratios">
+        <div class="tab-filter-bar">
+          <span class="filter-bar-label">Filters:</span>
+          <select class="filter-select" id="rat-lob" onchange="renderRatios()">
+            <option value="">All LOB</option>
+            <option value="Auto">Auto</option>
+            <option value="Property">Property</option>
+            <option value="Liability">Liability</option>
+          </select>
+          <span id="rat-period-label" style="margin-left:auto;font-size:11px;font-weight:600;color:var(--gray-500);background:var(--gray-100);padding:4px 10px;border-radius:4px;">YTD 2026</span>
+        </div>
+        <div class="grid-2" style="padding-top:4px;">
+          <div class="form-card" style="padding:20px;">
+            <div class="card-title mb-16" id="ratios-title">Key Ratios - YTD 2026</div>
+            <div style="display:flex;flex-direction:column;gap:16px;" id="ratios-bars">
+              <!-- dynamically rendered -->
+            </div>
+          </div>
+          <div class="form-card" style="padding:20px;">
+            <div class="card-title mb-16">LOB Performance</div>
+            <table class="data-table" id="lob-perf-table">
+              <thead><tr><th>LOB</th><th class="text-right">Loss Ratio</th><th class="text-right">Exp Ratio</th><th class="text-right">Combined</th></tr></thead>
+              <tbody id="lob-perf-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- BIND POLICY: real policy binding against a real MGA, no scripted data -->
+      <div class="tab-panel" data-panel="bindpolicy">
+        <div class="v-lock-note" style="margin:0 0 16px;">
+          Bind a policy for an insured against one of your MGAs. Add MGAs on the <a href="mga-operations.html#partners" style="color:var(--v-teal);font-weight:700;">Trading Partners</a> tab first. Once bound, invoice the MGA on <a href="billing-invoicing.html" style="color:var(--v-teal);font-weight:700;">Billing &amp; Invoicing</a>.
+        </div>
+        <div class="form-card" style="margin-bottom:16px;">
+          <div class="card-title">Bind New Policy</div>
+          <div class="form-grid-3" style="margin-top:12px;">
+            <div>
+              <label class="field-label">Insured *</label>
+              <input class="field-input" id="bp-insured" placeholder="e.g. Harbor Logistics LLC">
+            </div>
+            <div>
+              <label class="field-label">MGA *</label>
+              <select class="field-input" id="bp-mga"></select>
+            </div>
+            <div>
+              <label class="field-label">Premium *</label>
+              <input class="field-input" type="number" step="0.01" id="bp-premium" placeholder="e.g. 3000">
+            </div>
+            <div>
+              <label class="field-label">Line of Business</label>
+              <select class="field-input" id="bp-lob">
+                <option>General Liability</option>
+                <option>Property</option>
+                <option>Auto</option>
+                <option>Workers Compensation</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-label">State</label>
+              <select class="field-input" id="bp-state">
+                <option>TX</option><option>CA</option><option>FL</option><option>NY</option><option>GA</option>
+              </select>
+            </div>
+            <div>
+              <label class="field-label">Effective date</label>
+              <input class="field-input" type="date" id="bp-effective">
+            </div>
+          </div>
+          <div style="margin-top:12px;">
+            <button class="btn btn-primary btn-sm" onclick="onBindPolicy()">Bind Policy</button>
+          </div>
+        </div>
+
+        <div class="tbl-wrap">
+          <div class="tbl-hdr"><span class="tbl-hdr-title">Bound Policies</span></div>
+          <table class="data-table" id="bp-policy-table">
+            <thead><tr><th>Policy #</th><th>Insured</th><th>MGA</th><th>LOB / State</th><th>Premium</th><th>Status</th><th></th></tr></thead>
+            <tbody id="bp-policy-tbody"></tbody>
+          </table>
+        </div>
+
+        <div id="bp-pdf-wrap" style="display:none;margin-top:18px;"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Policy PDF: printing.printing-pdf on <body> hides EVERYTHING in main-content except
+       the PDF itself, so nothing else on the page (stats, tabs, forms) can leak into print,
+       regardless of what gets added to this page later. -->
+  <style>
+    @media print {
+      body.printing-pdf .sidebar,
+      body.printing-pdf .app-header,
+      body.printing-pdf .main-content > *:not(#bp-pdf-wrap) { display: none !important; }
+      body.printing-pdf .main-content { margin: 0 !important; padding: 0 !important; }
+      body.printing-pdf #bp-pdf-wrap { display: block !important; }
+      .no-print { display: none !important; }
+    }
+    .pc-pdf-doc { max-width: 720px; margin: 0 auto; border: 1px solid var(--gray-200); border-radius: var(--radius-lg); padding: 32px; background: #fff; font-family: Georgia, 'Times New Roman', serif; }
+    .pc-pdf-brand { display: flex; align-items: center; gap: 10px; }
+    .pc-pdf-brand-mark { width: 34px; height: 34px; border-radius: 8px; background: var(--v-teal); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-family: -apple-system, sans-serif; }
+    .pc-pdf-head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px double var(--v-ink); padding-bottom: 14px; margin-bottom: 4px; }
+    .pc-pdf-doctitle { font-size: 13px; letter-spacing: 2px; text-transform: uppercase; color: var(--gray-500); text-align: right; }
+    .pc-pdf-doc table.data-table { font-family: -apple-system, sans-serif; }
+    .pc-pdf-doc h2 { font-size: 20px; margin: 18px 0 4px; }
+    .pc-pdf-section-label { font-size: 10.5px; text-transform: uppercase; letter-spacing: 1px; color: var(--gray-400); margin: 18px 0 6px; font-family: -apple-system, sans-serif; }
+    .pc-pdf-footer { margin-top: 24px; padding-top: 14px; border-top: 1px solid var(--gray-200); font-size: 10.5px; color: var(--gray-400); font-family: -apple-system, sans-serif; }
+  </style>
+
+  <script src="js/app.js"></script>
+  <script src="js/reports-utils.js"></script>
+  <script>
+    initLayout('premium-claims');
+    (function(){
+      var h = location.hash.replace('#','');
+      var tabs = ['premiums','claims','reserves','ratios','bindpolicy'];
+      if (tabs.indexOf(h) !== -1) switchTab('pc-tabs', h);
+    })();
+
+    /* ---------- Bind Policy: real, per-MGA, feeds Billing & Invoicing and Bank Reconciliation ---------- */
+    function renderBindMgaSelect() {
+      const sel = document.getElementById('bp-mga');
+      const mgas = getMGAs();
+      sel.innerHTML = mgas.length
+        ? mgas.map(m => `<option value="${m.id}">${m.name}</option>`).join('')
+        : '<option value="">No MGAs yet, add one on MGA Operations</option>';
+    }
+
+    function onBindPolicy() {
+      try {
+        const policy = bindPolicy({
+          insured: document.getElementById('bp-insured').value,
+          mgaId: document.getElementById('bp-mga').value,
+          premium: document.getElementById('bp-premium').value,
+          lob: document.getElementById('bp-lob').value,
+          state: document.getElementById('bp-state').value,
+          effectiveDate: document.getElementById('bp-effective').value,
+        });
+        document.getElementById('bp-insured').value = '';
+        document.getElementById('bp-premium').value = '';
+        renderBoundPolicies();
+        showToast(policy.policyNumber + ' bound for ' + policy.insured, 'success');
+      } catch (e) { showToast(e.message, 'error'); }
+    }
+
+    const BP_STATUS_BADGE = { bound: 'badge-gray', invoiced: 'badge-orange', partially_paid: 'badge-blue', paid: 'badge-green' };
+    const BP_STATUS_LABEL = { bound: 'Bound, unbilled', invoiced: 'Invoiced', partially_paid: 'Partially Paid', paid: 'Paid' };
+
+    function renderBoundPolicies() {
+      const policies = getPolicies();
+      document.getElementById('bp-policy-tbody').innerHTML = policies.map(p => `
+        <tr>
+          <td class="cell-link">${p.policyNumber}</td>
+          <td>${p.insured}</td>
+          <td>${p.mgaName}</td>
+          <td>${p.lob} / ${p.state}</td>
+          <td>${fmtCurrency(p.premium)}</td>
+          <td><span class="badge ${BP_STATUS_BADGE[p.status] || 'badge-gray'}">${BP_STATUS_LABEL[p.status] || p.status}</span></td>
+          <td><button class="btn btn-ghost btn-sm" onclick="viewPolicyPdf('${p.id}')">View Policy PDF</button></td>
+        </tr>`).join('') || '<tr><td colspan="7" style="text-align:center;color:var(--gray-400);padding:20px;">No policies bound yet.</td></tr>';
+    }
+
+    function printPdfWrap(wrapId) {
+      document.body.classList.add('printing-pdf');
+      window.print();
+      setTimeout(() => document.body.classList.remove('printing-pdf'), 300);
+    }
+    window.addEventListener('afterprint', () => document.body.classList.remove('printing-pdf'));
+
+    function viewPolicyPdf(policyId) {
+      const p = getPolicies().find(p => p.id === policyId);
+      if (!p) return;
+      document.getElementById('bp-pdf-wrap').style.display = '';
+      document.getElementById('bp-pdf-wrap').innerHTML = `
+        <div class="pc-pdf-doc">
+          <div class="pc-pdf-head">
+            <div class="pc-pdf-brand">
+              <div class="pc-pdf-brand-mark">SL</div>
+              <div><strong style="font-size:15px;">Southlake Insurance Co.</strong><br><span style="color:var(--gray-500);font-size:11px;">500 Market Street, Dallas, TX 75201</span></div>
+            </div>
+            <div class="pc-pdf-doctitle">Policy<br>Declarations</div>
+          </div>
+          <h2>${p.policyNumber}</h2>
+          <div style="font-size:12px;color:var(--gray-500);">Effective ${p.effectiveDate}</div>
+
+          <div class="pc-pdf-section-label">Named Insured &amp; Coverage</div>
+          <table class="data-table">
+            <tbody>
+              <tr><td style="font-weight:700;width:35%;">Named Insured</td><td>${p.insured}</td></tr>
+              <tr><td style="font-weight:700;">Managing General Agent</td><td>${p.mgaName}</td></tr>
+              <tr><td style="font-weight:700;">Line of Business</td><td>${p.lob}</td></tr>
+              <tr><td style="font-weight:700;">State / Jurisdiction</td><td>${p.state}</td></tr>
+            </tbody>
+          </table>
+
+          <div class="pc-pdf-section-label">Premium &amp; Status</div>
+          <table class="data-table">
+            <tbody>
+              <tr><td style="font-weight:700;width:35%;">Written Premium</td><td style="font-weight:700;">${fmtCurrency(p.premium)}</td></tr>
+              <tr><td style="font-weight:700;">Paid to Date</td><td>${fmtCurrency(p.paidToDate || 0)}</td></tr>
+              <tr><td style="font-weight:700;">Status</td><td>${BP_STATUS_LABEL[p.status] || p.status}</td></tr>
+            </tbody>
+          </table>
+
+          <div class="pc-pdf-footer">This declarations page is a summary of coverage bound under the above policy number. Terms, conditions, and exclusions are governed by the full policy form on file with Southlake Insurance Co. Generated ${new Date().toLocaleString()}.</div>
+          <div style="margin-top:16px;" class="no-print"><button class="btn btn-outline btn-sm" onclick="printPdfWrap('bp-pdf-wrap')">Print / Save as PDF</button></div>
+        </div>`;
+      document.getElementById('bp-pdf-wrap').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    renderBindMgaSelect();
+    renderBoundPolicies();
+
+    window.addEventListener('hashchange', () => {
+      var h = location.hash.replace('#','');
+      var tabs = ['premiums','claims','reserves','ratios'];
+      if (tabs.indexOf(h) !== -1) switchTab('pc-tabs', h);
+    });
+
+    /* ─── Period Data ─── */
+    const PERIOD_DATA = {
+      itd: {
+        label: 'ITD (All Time)',
+        shortLabel: 'ITD',
+        statLabels: { written: 'Written Premium ITD', earned: 'Earned Premium ITD', claims: 'Claims Incurred ITD', ratio: 'Combined Loss Ratio' },
+        stats: { written: '$3.82Cr', earned: '$3.71Cr', claims: '$2.26Cr', ratio: '60.9%', writtenChange: '↑ 12.3% CAGR', earnedChange: '↑ 11.8% CAGR', claimsChange: '↑ 5.4%', ratioChange: '↓ 2.1% vs inception' },
+        premChart: { labels: ['FY 2022', 'FY 2023', 'FY 2024', 'FY 2025', 'FY 2026'], written: [52, 68, 89, 105, 68], earned: [49.8, 65.5, 86.0, 101.8, 68.0] },
+        lobChart: { written: [142, 168, 72], earned: [135, 162, 74] },
+        claimsChart: { labels: ['Auto', 'Property', 'Liability'], paid: [78, 91, 47], reserved: [42, 58, 24] },
+        claimsTrend: { labels: ['FY 2022', 'FY 2023', 'FY 2024', 'FY 2025', 'FY 2026'], incurred: [41, 52, 68, 81, 42] },
+        ratios: { lossRatio: 58.2, lossIncurred: 60.9, expenseRatio: 27.1, combinedRatio: 88.0 },
+        lobPerf: [
+          { lob: 'Auto', lossRatio: '60.1%', expRatio: '29.8%', combined: '89.9%', color: 'text-green' },
+          { lob: 'Property', lossRatio: '54.8%', expRatio: '30.6%', combined: '85.4%', color: 'text-green' },
+          { lob: 'Liability', lossRatio: '48.2%', expRatio: '31.4%', combined: '79.6%', color: 'text-green' },
+        ],
+        reserveMovement: { title: 'Reserve Movement - ITD', opening: '$82,40,000', newClaims: '+$2,26,18,400', strengthen: '+$48,24,200', paid: '-$1,74,12,400', releases: '-$24,80,200', closing: '$1,58,90,000' }
+      },
+      ytd: {
+        label: 'Year to Date (2026)',
+        shortLabel: 'YTD 2026',
+        statLabels: { written: 'Written Premium YTD', earned: 'Earned Premium YTD', claims: 'Claims Incurred YTD', ratio: 'Combined Loss Ratio' },
+        stats: { written: '$1.24Cr', earned: '$1.18Cr', claims: '$73.8L', ratio: '62.4%', writtenChange: '↑ 8.1% vs prior yr', earnedChange: '↑ 7.4%', claimsChange: '↑ 3.2%', ratioChange: '↓ 1.2% vs prior yr' },
+        premChart: { labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'], written: [220, 245, 280, 265, 230], earned: [210, 230, 265, 252, 223] },
+        lobChart: { written: [48.2, 124.8, 82.4], earned: [38.4, 48.7, 30.9] },
+        claimsChart: { labels: ['Auto', 'Property', 'Liability'], paid: [18.5, 31.0, 8.2], reserved: [12.4, 24.8, 8.6] },
+        claimsTrend: { labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May'], incurred: [8.2, 24.8, 8.3, 73.1, 18.4] },
+        ratios: { lossRatio: 58.3, lossIncurred: 62.1, expenseRatio: 28.4, combinedRatio: 90.5 },
+        lobPerf: [
+          { lob: 'Auto', lossRatio: '62.4%', expRatio: '31.8%', combined: '94.2%', color: '' },
+          { lob: 'Property', lossRatio: '55.2%', expRatio: '32.6%', combined: '87.8%', color: 'text-green' },
+          { lob: 'Liability', lossRatio: '48.8%', expRatio: '33.6%', combined: '82.4%', color: 'text-green' },
+        ],
+        reserveMovement: { title: 'Reserve Movement - May 2026', opening: '$1,68,24,200', newClaims: '+$18,42,800', strengthen: '+$4,82,400', paid: '−$12,48,600', releases: '−$4,88,400', closing: '$1,74,12,400' }
+      },
+      mtd: {
+        label: 'Month to Date (May 2026)',
+        shortLabel: 'MTD May-26',
+        statLabels: { written: 'Written Premium MTD', earned: 'Earned Premium MTD', claims: 'Claims Incurred MTD', ratio: 'Combined Loss Ratio' },
+        stats: { written: '$18.4L', earned: '$16.2L', claims: '$8.4L', ratio: '59.1%', writtenChange: '↑ 4.2% vs prior mo', earnedChange: '↑ 3.8%', claimsChange: '↑ 2.1%', ratioChange: '↓ 0.8% vs prior mo' },
+        premChart: { labels: ['Week 1', 'Week 2', 'Week 3', 'Week 4'], written: [38, 52, 47, 47], earned: [35, 47, 43, 37] },
+        lobChart: { written: [8.4, 6.2, 3.8], earned: [7.2, 5.8, 3.2] },
+        claimsChart: { labels: ['Auto', 'Property', 'Liability'], paid: [1.82, 4.82, 0.82], reserved: [12.4, 0.96, 0.0] },
+        claimsTrend: { labels: ['Wk 1', 'Wk 2', 'Wk 3', 'Wk 4'], incurred: [1.2, 3.8, 2.4, 1.0] },
+        ratios: { lossRatio: 55.8, lossIncurred: 59.1, expenseRatio: 26.4, combinedRatio: 85.5 },
+        lobPerf: [
+          { lob: 'Auto', lossRatio: '58.4%', expRatio: '28.8%', combined: '87.2%', color: 'text-green' },
+          { lob: 'Property', lossRatio: '52.1%', expRatio: '30.2%', combined: '82.3%', color: 'text-green' },
+          { lob: 'Liability', lossRatio: '44.6%', expRatio: '31.8%', combined: '76.4%', color: 'text-green' },
+        ],
+        reserveMovement: { title: 'Reserve Movement - May 2026', opening: '$1,68,24,200', newClaims: '+$4,82,400', strengthen: '+$1,24,800', paid: '−$1,82,000', releases: '−$36,800', closing: '$1,72,12,600' }
+      }
+    };
+
+    /* ─── Premiums Data ─── */
+    const PREMIUMS_ALL = [
+      { id:'POL-TX-2026-9102', mga:'Futuristic', state:'TX', lob:'Property', effectiveDate:'05/05/2026', written:58400,  earned:9733,  unearned:48667,  status:'Active',    dateYM:'2026-05' },
+      { id:'POL-NY-2026-9105', mga:'ACCL',       state:'NY', lob:'Liability',effectiveDate:'12/05/2026', written:42800,  earned:4280,  unearned:38520,  status:'Active',    dateYM:'2026-05' },
+      { id:'POL-TX-2024-8421', mga:'Futuristic', state:'TX', lob:'Auto',     effectiveDate:'01/01/2026', written:48200,  earned:24100, unearned:24100,  status:'Active',    dateYM:'2026-01' },
+      { id:'POL-TX-2024-8418', mga:'NTA',        state:'TX', lob:'Property', effectiveDate:'15/03/2026', written:124800, earned:28050, unearned:96750,  status:'Active',    dateYM:'2026-03' },
+      { id:'POL-CA-2024-7284', mga:'ACCL',       state:'CA', lob:'Liability',effectiveDate:'01/02/2026', written:82400,  earned:34333, unearned:48067,  status:'Active',    dateYM:'2026-02' },
+      { id:'POL-FL-2025-6192', mga:'Futuristic', state:'FL', lob:'Property', effectiveDate:'01/04/2026', written:248200, earned:20683, unearned:227517, status:'Active',    dateYM:'2026-04' },
+      { id:'POL-TX-2025-5847', mga:'NTA',        state:'TX', lob:'Auto',     effectiveDate:'31/03/2026', written:36400,  earned:3033,  unearned:33367,  status:'Cancelled', dateYM:'2026-03' },
+      { id:'POL-TX-2023-5001', mga:'Futuristic', state:'TX', lob:'Auto',     effectiveDate:'01/01/2024', written:38200,  earned:38200, unearned:0,      status:'Expired',   dateYM:'2024-01' },
+      { id:'POL-CA-2023-4812', mga:'NTA',        state:'CA', lob:'Property', effectiveDate:'15/06/2024', written:92400,  earned:92400, unearned:0,      status:'Expired',   dateYM:'2024-06' },
+      { id:'POL-GA-2023-4401', mga:'ACCL',       state:'GA', lob:'Liability',effectiveDate:'01/09/2024', written:68200,  earned:68200, unearned:0,      status:'Expired',   dateYM:'2024-09' },
+    ];
+
+    /* ─── Claims Data ─── */
+    const CLAIMS_ALL = [
+      { claimNo:'CLM-2026-2001', policyNo:'POL-TX-2026-9102', state:'TX', lossDate:'15/05/2026', lob:'Property',  paid:48200,   reserved:96400,   total:144600,   status:'Reserved', dateYM:'2026-05' },
+      { claimNo:'CLM-2024-1847', policyNo:'POL-TX-2024-8421', state:'TX', lossDate:'12/05/2026', lob:'Auto',      paid:18200,   reserved:1240000, total:1258200,  status:'Reserved', dateYM:'2026-05' },
+      { claimNo:'CLM-2024-1843', policyNo:'POL-FL-2025-6192', state:'FL', lossDate:'08/04/2026', lob:'Property',  paid:482400,  reserved:248200,  total:730600,   status:'Paid',     dateYM:'2026-04' },
+      { claimNo:'CLM-2024-1836', policyNo:'POL-CA-2024-7284', state:'CA', lossDate:'22/03/2026', lob:'Liability', paid:82600,   reserved:0,       total:82600,    status:'Closed',   dateYM:'2026-03' },
+      { claimNo:'CLM-2024-1824', policyNo:'POL-TX-2024-8418', state:'TX', lossDate:'15/02/2026', lob:'Property',  paid:2482000, reserved:824400,  total:3306400,  status:'Paid',     dateYM:'2026-02' },
+      { claimNo:'CLM-2024-1700', policyNo:'POL-TX-2023-5001', state:'TX', lossDate:'10/08/2024', lob:'Auto',      paid:124800,  reserved:0,       total:124800,   status:'Closed',   dateYM:'2024-08' },
+      { claimNo:'CLM-2023-1450', policyNo:'POL-CA-2023-4812', state:'CA', lossDate:'20/12/2023', lob:'Property',  paid:284000,  reserved:0,       total:284000,   status:'Closed',   dateYM:'2023-12' },
+      { claimNo:'CLM-2023-1210', policyNo:'POL-GA-2023-4401', state:'GA', lossDate:'05/11/2023', lob:'Liability', paid:48200,   reserved:0,       total:48200,    status:'Closed',   dateYM:'2023-11' },
+    ];
+
+    /* ─── State ─── */
+    let currentPeriod = 'ytd';
+
+    function fmtN(n) { return Number(n).toLocaleString('en-IN'); }
+
+    function periodFilter(row) {
+      if (currentPeriod === 'mtd') return row.dateYM === '2026-05';
+      if (currentPeriod === 'ytd') return row.dateYM && row.dateYM.startsWith('2026');
+      return true; // itd = all
+    }
+
+    function getFilters() {
+      return {
+        state: document.getElementById('gf-state')?.value || '',
+        mga:   document.getElementById('gf-mga')?.value   || '',
+        lob:   document.getElementById('gf-lob')?.value   || '',
+      };
+    }
+
+    /* ─── Stat Cards ─── */
+    const OPEN_CLAIMS = { itd: '624', ytd: '142', mtd: '38' };
+    const OPEN_CLAIMS_CHG = { itd: '↑ 12 vs prior yr', ytd: '↑ 8 vs prior month', mtd: '↓ 2 vs prior week' };
+
+    function setText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
+
+    function updateStats() {
+      const d = PERIOD_DATA[currentPeriod];
+      setText('stat-written',        d.stats.written);
+      setText('stat-written-label',  d.statLabels.written);
+      setText('stat-written-change', d.stats.writtenChange);
+      setText('stat-earned',         d.stats.earned);
+      setText('stat-earned-label',   d.statLabels.earned);
+      setText('stat-earned-change',  d.stats.earnedChange);
+      setText('stat-claims',         d.stats.claims);
+      setText('stat-claims-label',   d.statLabels.claims);
+      setText('stat-claims-change',  d.stats.claimsChange);
+      setText('stat-ratio',          d.stats.ratio);
+      setText('stat-ratio-change',   d.stats.ratioChange);
+      setText('stat-open',           OPEN_CLAIMS[currentPeriod]);
+      setText('stat-open-change',    OPEN_CLAIMS_CHG[currentPeriod]);
+    }
+
+    /* ─── Period label badges ─── */
+    function updatePeriodLabels() {
+      const lbl = PERIOD_DATA[currentPeriod].shortLabel;
+      ['pm-period-label','cl-period-label','res-period-label','rat-period-label',
+       'prem-chart-label','lob-chart-label','claims-chart-label','claims-trend-label'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = lbl;
+      });
+    }
+
+    /* ─── Premiums Table ─── */
+    function renderPremiums() {
+      const gf = getFilters();
+      const pmMga   = document.getElementById('pm-mga')?.value   || '';
+      const pmState = document.getElementById('pm-state')?.value || '';
+      const pmLob   = document.getElementById('pm-lob')?.value   || '';
+      const pmStatus= document.getElementById('pm-status')?.value|| '';
+
+      const rows = PREMIUMS_ALL.filter(r => {
+        if (!periodFilter(r)) return false;
+        if ((gf.state || pmState) && r.state !== (gf.state || pmState)) return false;
+        if ((gf.mga   || pmMga)   && r.mga   !== (gf.mga   || pmMga))   return false;
+        if ((gf.lob   || pmLob)   && r.lob   !== (gf.lob   || pmLob))   return false;
+        if (pmStatus && r.status !== pmStatus) return false;
+        return true;
+      });
+
+      const tbody = document.getElementById('pm-tbody');
+      const statBadge = { Active:'badge-green', Cancelled:'badge-orange', Expired:'badge-gray' };
+      tbody.innerHTML = rows.length ? rows.map(r => `
+        <tr>
+          <td class="cell-link">${r.id}</td>
+          <td>${r.mga}</td>
+          <td>${r.state}</td>
+          <td>${r.lob}</td>
+          <td>${r.effectiveDate}</td>
+          <td class="text-right">${fmtN(r.written)}</td>
+          <td class="text-right">${fmtN(r.earned)}</td>
+          <td class="text-right text-muted">${fmtN(r.unearned)}</td>
+          <td><span class="badge ${statBadge[r.status]||'badge-gray'}">${r.status}</span></td>
+        </tr>`).join('') :
+        `<tr><td colspan="9" style="text-align:center;padding:28px;color:var(--gray-400);">No records for selected filters &amp; period.</td></tr>`;
+      document.getElementById('pm-row-count').textContent = rows.length + ' row' + (rows.length !== 1 ? 's' : '');
+    }
+
+    /* ─── Claims Table ─── */
+    /* applyClaimsFilter defined below with full history renders */
+
+    function renderClaims() {
+      const gf = getFilters();
+      const clState  = document.getElementById('cl-state')?.value  || '';
+      const clLob    = document.getElementById('cl-lob')?.value    || '';
+      const clStatus = document.getElementById('cl-status')?.value || '';
+
+      const rows = CLAIMS_ALL.filter(r => {
+        if (!periodFilter(r)) return false;
+        if ((gf.state || clState) && r.state !== (gf.state || clState)) return false;
+        if ((gf.lob   || clLob)   && r.lob   !== (gf.lob   || clLob))   return false;
+        if (clStatus && r.status !== clStatus) return false;
+        return true;
+      });
+
+      const tbody = document.getElementById('cl-tbody');
+      const statBadge = { Reserved:'badge-orange', Paid:'badge-blue', Closed:'badge-green' };
+      tbody.innerHTML = rows.length ? rows.map(r => `
+        <tr>
+          <td class="cell-link">${r.claimNo}</td>
+          <td class="cell-link">${r.policyNo}</td>
+          <td>${r.state}</td>
+          <td>${r.lossDate}</td>
+          <td>${r.lob}</td>
+          <td class="text-right font-semibold">${fmtN(r.paid)}</td>
+          <td class="text-right">${fmtN(r.reserved)}</td>
+          <td class="text-right text-coral font-semibold">${fmtN(r.total)}</td>
+          <td><span class="badge ${statBadge[r.status]||'badge-gray'}">${r.status}</span></td>
+        </tr>`).join('') :
+        `<tr><td colspan="9" style="text-align:center;padding:28px;color:var(--gray-400);">No claims for selected filters &amp; period.</td></tr>`;
+      document.getElementById('cl-row-count').textContent = rows.length + ' row' + (rows.length !== 1 ? 's' : '');
+    }
+
+    /* ─── Reserves ─── */
+    function renderReserves() {
+      const res = PERIOD_DATA[currentPeriod].reserveMovement;
+      document.getElementById('reserves-movement-title').textContent = res.title;
+      document.getElementById('res-opening').textContent   = res.opening;
+      document.getElementById('res-new-claims').textContent = res.newClaims;
+      document.getElementById('res-strengthen').textContent = res.strengthen;
+      document.getElementById('res-paid').textContent      = res.paid;
+      document.getElementById('res-releases').textContent  = res.releases;
+      document.getElementById('res-closing').textContent   = res.closing;
+    }
+
+    /* ─── Ratios ─── */
+    function renderRatios() {
+      const d = PERIOD_DATA[currentPeriod];
+      document.getElementById('ratios-title').textContent = 'Key Ratios - ' + d.shortLabel;
+      const ratioBars = [
+        { label: 'Loss Ratio (Paid)',     value: d.ratios.lossRatio,      color: 'pf-green' },
+        { label: 'Loss Ratio (Incurred)', value: d.ratios.lossIncurred,   color: 'pf-orange' },
+        { label: 'Expense Ratio',         value: d.ratios.expenseRatio,   color: 'pf-coral' },
+        { label: 'Combined Ratio',        value: d.ratios.combinedRatio,  color: 'pf-navy' },
+      ];
+      document.getElementById('ratios-bars').innerHTML = ratioBars.map(r => `
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;">
+            <span>${r.label}</span>
+            <span class="font-bold" style="color:${r.value < 65 ? 'var(--green)' : 'var(--orange)'};">${r.value}%</span>
+          </div>
+          <div class="progress-bar" style="height:8px;"><div class="progress-fill ${r.color}" style="width:${Math.min(r.value,100)}%"></div></div>
+        </div>`).join('');
+
+      const selectedLob = document.getElementById('rat-lob')?.value || '';
+      const lobRows = selectedLob ? d.lobPerf.filter(r => r.lob === selectedLob) : d.lobPerf;
+      document.getElementById('lob-perf-tbody').innerHTML = lobRows.map(r => `
+        <tr>
+          <td>${r.lob}</td>
+          <td class="text-right">${r.lossRatio}</td>
+          <td class="text-right">${r.expRatio}</td>
+          <td class="text-right font-semibold ${r.color}">${r.combined}</td>
+        </tr>`).join('');
+    }
+
+    /* ─── Charts ─── */
+    let chartPremTrend, chartPremLob, chartClaimsLob, chartClaimsTrend;
+    const CHART_COLORS = {
+      navy:       '#0d1b4b',
+      navyLight:  'rgba(13,27,75,0.55)',
+      coral:      '#e05470',
+      green:      '#2e7d32',
+      greenLight: 'rgba(46,125,50,0.55)',
+      orange:     '#e65100',
+    };
+
+    function buildPremTrendChart() {
+      const d = PERIOD_DATA[currentPeriod];
+      const ctx = document.getElementById('premTrendChart').getContext('2d');
+      if (chartPremTrend) chartPremTrend.destroy();
+      chartPremTrend = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: d.premChart.labels,
+          datasets: [
+            { label: 'Written Premium', data: d.premChart.written, backgroundColor: CHART_COLORS.navy, borderRadius: 4 },
+            { label: 'Earned Premium',  data: d.premChart.earned,  backgroundColor: CHART_COLORS.navyLight, borderRadius: 4 },
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12 } } },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+            y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 11 } } }
+          }
+        }
+      });
+    }
+
+    function buildPremLobChart() {
+      const d = PERIOD_DATA[currentPeriod];
+      const ctx = document.getElementById('premLobChart').getContext('2d');
+      if (chartPremLob) chartPremLob.destroy();
+      chartPremLob = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: ['Auto', 'Property', 'Liability'],
+          datasets: [
+            { label: 'Written', data: d.lobChart.written, backgroundColor: CHART_COLORS.navy, borderRadius: 4 },
+            { label: 'Earned',  data: d.lobChart.earned,  backgroundColor: CHART_COLORS.navyLight, borderRadius: 4 },
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12 } } },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+            y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 11 } } }
+          }
+        }
+      });
+    }
+
+    function buildClaimsLobChart() {
+      const d = PERIOD_DATA[currentPeriod];
+      const ctx = document.getElementById('claimsLobChart').getContext('2d');
+      if (chartClaimsLob) chartClaimsLob.destroy();
+      chartClaimsLob = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: d.claimsChart.labels,
+          datasets: [
+            { label: 'Claims Paid',    data: d.claimsChart.paid,     backgroundColor: CHART_COLORS.green, borderRadius: 4 },
+            { label: 'Claims Reserved',data: d.claimsChart.reserved, backgroundColor: CHART_COLORS.orange, borderRadius: 4 },
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12 } } },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+            y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 11 } } }
+          }
+        }
+      });
+    }
+
+    function buildClaimsTrendChart() {
+      const d = PERIOD_DATA[currentPeriod];
+      const ctx = document.getElementById('claimsTrendChart').getContext('2d');
+      if (chartClaimsTrend) chartClaimsTrend.destroy();
+      chartClaimsTrend = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: d.claimsTrend.labels,
+          datasets: [
+            { label: 'Claims Incurred', data: d.claimsTrend.incurred,
+              borderColor: CHART_COLORS.coral, backgroundColor: 'rgba(224,84,112,0.1)',
+              fill: true, tension: 0.4, pointRadius: 4, pointBackgroundColor: CHART_COLORS.coral }
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: { legend: { position: 'bottom', labels: { font: { size: 11 }, boxWidth: 12 } } },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+            y: { grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 11 } } }
+          }
+        }
+      });
+    }
+
+    function rebuildCharts() {
+      buildPremTrendChart();
+      buildPremLobChart();
+      buildClaimsLobChart();
+      buildClaimsTrendChart();
+      renderHistChart();
+      renderYOY();
+      renderStateClaimsTable();
+      renderLDT();
+      renderLossMetrics();
+    }
+
+    /* ─── Set Period ─── */
+    function setPeriod(p) {
+      currentPeriod = p;
+      document.querySelectorAll('.period-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.textContent.trim().toLowerCase() === p);
+      });
+      updateStats();
+      updatePeriodLabels();
+      renderPremiums();
+      renderClaims();
+      renderReserves();
+      renderRatios();
+      rebuildCharts();
+    }
+
+    /* ─── Claims filter ─── */
+    function applyClaimsFilter() {
+      renderClaims();
+      renderHistChart();
+      renderYOY();
+      renderStateClaimsTable();
+      renderLossMetrics();
+    }
+
+    /* ─── Combined filter apply ─── */
+    function applyAllFilters() {
+      renderPremiums();
+      renderClaims();
+      renderHistChart();
+      renderYOY();
+      renderStateClaimsTable();
+      renderLossMetrics();
+    }
+
+    function resetFilters() {
+      ['gf-state','gf-mga','gf-lob','pm-mga','pm-state','pm-lob','pm-status',
+       'cl-state','cl-lob','cl-status','cl-year-from','cl-year-to',
+       'hist-state','hist-lob','hist-metric','yoy-lob','yoy-state'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.selectedIndex = 0;
+      });
+      applyAllFilters();
+      showToast('Filters cleared', 'info');
+    }
+
+    function toggleView(val) {
+      showToast(`Switched to ${val.charAt(0).toUpperCase() + val.slice(1)} view`, 'info');
+    }
+
+    /* ══════════════════════════════════════════════════════════
+       10-YEAR HISTORICAL DATA
+    ══════════════════════════════════════════════════════════ */
+    const HIST_YEARS = [2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026];
+
+    // Full historical dataset per year, state, LOB
+    const HIST_DATA = [
+      // TX Auto
+      { year:2016, state:'TX', lob:'Auto',     written:2840000, incurred:1650000, paid:1420000, reserved:230000,  ibnr:180000, count:68,  severity:24264, freq:2.39 },
+      { year:2017, state:'TX', lob:'Auto',     written:3120000, incurred:1890000, paid:1640000, reserved:250000,  ibnr:195000, count:74,  severity:25540, freq:2.37 },
+      { year:2018, state:'TX', lob:'Auto',     written:3480000, incurred:2080000, paid:1820000, reserved:260000,  ibnr:210000, count:81,  severity:25679, freq:2.33 },
+      { year:2019, state:'TX', lob:'Auto',     written:3820000, incurred:2240000, paid:1960000, reserved:280000,  ibnr:220000, count:88,  severity:25454, freq:2.30 },
+      { year:2020, state:'TX', lob:'Auto',     written:3580000, incurred:1840000, paid:1580000, reserved:260000,  ibnr:180000, count:72,  severity:25555, freq:2.01 },
+      { year:2021, state:'TX', lob:'Auto',     written:4240000, incurred:2480000, paid:2180000, reserved:300000,  ibnr:245000, count:92,  severity:26956, freq:2.17 },
+      { year:2022, state:'TX', lob:'Auto',     written:4820000, incurred:2940000, paid:2580000, reserved:360000,  ibnr:290000, count:104, severity:28269, freq:2.16 },
+      { year:2023, state:'TX', lob:'Auto',     written:5240000, incurred:3180000, paid:2780000, reserved:400000,  ibnr:315000, count:112, severity:28392, freq:2.14 },
+      { year:2024, state:'TX', lob:'Auto',     written:5680000, incurred:3420000, paid:2980000, reserved:440000,  ibnr:340000, count:118, severity:28983, freq:2.08 },
+      { year:2025, state:'TX', lob:'Auto',     written:6120000, incurred:3640000, paid:3180000, reserved:460000,  ibnr:360000, count:124, severity:29354, freq:2.03 },
+      { year:2026, state:'TX', lob:'Auto',     written:2340000, incurred:1380000, paid:1120000, reserved:260000,  ibnr:185000, count:48,  severity:28750, freq:2.05 },
+      // TX Property
+      { year:2016, state:'TX', lob:'Property', written:3240000, incurred:1680000, paid:1480000, reserved:200000,  ibnr:160000, count:42,  severity:40000, freq:1.30 },
+      { year:2017, state:'TX', lob:'Property', written:3620000, incurred:1940000, paid:1720000, reserved:220000,  ibnr:180000, count:46,  severity:42173, freq:1.27 },
+      { year:2018, state:'TX', lob:'Property', written:4080000, incurred:3480000, paid:3120000, reserved:360000,  ibnr:310000, count:78,  severity:44615, freq:1.91 },
+      { year:2019, state:'TX', lob:'Property', written:4420000, incurred:2240000, paid:1980000, reserved:260000,  ibnr:220000, count:52,  severity:43076, freq:1.18 },
+      { year:2020, state:'TX', lob:'Property', written:4180000, incurred:2080000, paid:1820000, reserved:260000,  ibnr:200000, count:48,  severity:43333, freq:1.15 },
+      { year:2021, state:'TX', lob:'Property', written:4840000, incurred:2480000, paid:2180000, reserved:300000,  ibnr:240000, count:54,  severity:45925, freq:1.12 },
+      { year:2022, state:'TX', lob:'Property', written:5480000, incurred:2940000, paid:2580000, reserved:360000,  ibnr:290000, count:62,  severity:47419, freq:1.13 },
+      { year:2023, state:'TX', lob:'Property', written:6020000, incurred:3280000, paid:2880000, reserved:400000,  ibnr:320000, count:68,  severity:48235, freq:1.13 },
+      { year:2024, state:'TX', lob:'Property', written:6480000, incurred:3540000, paid:3100000, reserved:440000,  ibnr:348000, count:74,  severity:47837, freq:1.14 },
+      { year:2025, state:'TX', lob:'Property', written:6980000, incurred:3820000, paid:3340000, reserved:480000,  ibnr:375000, count:78,  severity:48974, freq:1.12 },
+      { year:2026, state:'TX', lob:'Property', written:2680000, incurred:1480000, paid:1240000, reserved:240000,  ibnr:192000, count:30,  severity:49333, freq:1.12 },
+      // FL Auto
+      { year:2016, state:'FL', lob:'Auto',     written:2240000, incurred:1380000, paid:1180000, reserved:200000,  ibnr:155000, count:58,  severity:23793, freq:2.59 },
+      { year:2017, state:'FL', lob:'Auto',     written:2480000, incurred:1540000, paid:1320000, reserved:220000,  ibnr:170000, count:64,  severity:24062, freq:2.58 },
+      { year:2018, state:'FL', lob:'Auto',     written:2840000, incurred:1780000, paid:1540000, reserved:240000,  ibnr:190000, count:72,  severity:24722, freq:2.54 },
+      { year:2019, state:'FL', lob:'Auto',     written:3120000, incurred:1940000, paid:1680000, reserved:260000,  ibnr:205000, count:78,  severity:24871, freq:2.50 },
+      { year:2020, state:'FL', lob:'Auto',     written:2940000, incurred:1520000, paid:1280000, reserved:240000,  ibnr:160000, count:62,  severity:24516, freq:2.11 },
+      { year:2021, state:'FL', lob:'Auto',     written:3480000, incurred:2080000, paid:1820000, reserved:260000,  ibnr:215000, count:82,  severity:25365, freq:2.36 },
+      { year:2022, state:'FL', lob:'Auto',     written:3920000, incurred:2440000, paid:2140000, reserved:300000,  ibnr:258000, count:92,  severity:26521, freq:2.35 },
+      { year:2023, state:'FL', lob:'Auto',     written:4280000, incurred:2680000, paid:2340000, reserved:340000,  ibnr:280000, count:98,  severity:27346, freq:2.29 },
+      { year:2024, state:'FL', lob:'Auto',     written:4620000, incurred:2880000, paid:2520000, reserved:360000,  ibnr:300000, count:104, severity:27692, freq:2.25 },
+      { year:2025, state:'FL', lob:'Auto',     written:4980000, incurred:3080000, paid:2680000, reserved:400000,  ibnr:320000, count:110, severity:28000, freq:2.21 },
+      { year:2026, state:'FL', lob:'Auto',     written:1920000, incurred:1180000, paid:980000,  reserved:200000,  ibnr:160000, count:42,  severity:28095, freq:2.19 },
+      // CA Property
+      { year:2016, state:'CA', lob:'Property', written:3840000, incurred:2080000, paid:1820000, reserved:260000,  ibnr:210000, count:48,  severity:43333, freq:1.25 },
+      { year:2017, state:'CA', lob:'Property', written:4240000, incurred:2380000, paid:2080000, reserved:300000,  ibnr:240000, count:54,  severity:44074, freq:1.27 },
+      { year:2018, state:'CA', lob:'Property', written:4680000, incurred:2680000, paid:2340000, reserved:340000,  ibnr:270000, count:60,  severity:44666, freq:1.28 },
+      { year:2019, state:'CA', lob:'Property', written:5120000, incurred:2940000, paid:2580000, reserved:360000,  ibnr:295000, count:66,  severity:44545, freq:1.29 },
+      { year:2020, state:'CA', lob:'Property', written:4840000, incurred:4280000, paid:3840000, reserved:440000,  ibnr:398000, count:88,  severity:48636, freq:1.82 },
+      { year:2021, state:'CA', lob:'Property', written:5480000, incurred:3240000, paid:2840000, reserved:400000,  ibnr:322000, count:72,  severity:45000, freq:1.31 },
+      { year:2022, state:'CA', lob:'Property', written:6020000, incurred:3480000, paid:3040000, reserved:440000,  ibnr:348000, count:78,  severity:44615, freq:1.30 },
+      { year:2023, state:'CA', lob:'Property', written:6480000, incurred:3740000, paid:3280000, reserved:460000,  ibnr:372000, count:84,  severity:44523, freq:1.30 },
+      { year:2024, state:'CA', lob:'Property', written:6940000, incurred:3980000, paid:3480000, reserved:500000,  ibnr:396000, count:90,  severity:44222, freq:1.30 },
+      { year:2025, state:'CA', lob:'Property', written:7420000, incurred:4240000, paid:3700000, reserved:540000,  ibnr:422000, count:96,  severity:44166, freq:1.29 },
+      { year:2026, state:'CA', lob:'Property', written:2840000, incurred:1620000, paid:1380000, reserved:240000,  ibnr:168000, count:36,  severity:45000, freq:1.27 },
+      // NY Liability
+      { year:2016, state:'NY', lob:'Liability',written:2480000, incurred:1120000, paid:920000,  reserved:200000,  ibnr:148000, count:38,  severity:29473, freq:1.53 },
+      { year:2017, state:'NY', lob:'Liability',written:2740000, incurred:1280000, paid:1060000, reserved:220000,  ibnr:165000, count:42,  severity:30476, freq:1.53 },
+      { year:2018, state:'NY', lob:'Liability',written:3080000, incurred:1480000, paid:1220000, reserved:260000,  ibnr:185000, count:48,  severity:30833, freq:1.56 },
+      { year:2019, state:'NY', lob:'Liability',written:3380000, incurred:1680000, paid:1380000, reserved:300000,  ibnr:208000, count:52,  severity:32307, freq:1.54 },
+      { year:2020, state:'NY', lob:'Liability',written:3180000, incurred:1340000, paid:1080000, reserved:260000,  ibnr:162000, count:44,  severity:30454, freq:1.38 },
+      { year:2021, state:'NY', lob:'Liability',written:3640000, incurred:1740000, paid:1440000, reserved:300000,  ibnr:218000, count:54,  severity:32222, freq:1.48 },
+      { year:2022, state:'NY', lob:'Liability',written:4080000, incurred:2040000, paid:1680000, reserved:360000,  ibnr:254000, count:62,  severity:32903, freq:1.52 },
+      { year:2023, state:'NY', lob:'Liability',written:4480000, incurred:2280000, paid:1880000, reserved:400000,  ibnr:282000, count:68,  severity:33529, freq:1.52 },
+      { year:2024, state:'NY', lob:'Liability',written:4840000, incurred:2480000, paid:2040000, reserved:440000,  ibnr:304000, count:74,  severity:33513, freq:1.53 },
+      { year:2025, state:'NY', lob:'Liability',written:5240000, incurred:2680000, paid:2200000, reserved:480000,  ibnr:328000, count:80,  severity:33500, freq:1.53 },
+      { year:2026, state:'NY', lob:'Liability',written:2040000, incurred:1040000, paid:840000,  reserved:200000,  ibnr:132000, count:32,  severity:32500, freq:1.57 },
+    ];
+
+    // Loss Development Triangle data (accident year × development months)
+    const LDT_DATA = [
+      { yr:2016, d12:1840000, d24:2240000, d36:2480000, d48:2560000, d60:2580000, ult:2610000 },
+      { yr:2017, d12:2080000, d24:2540000, d36:2780000, d48:2860000, d60:2880000, ult:2920000 },
+      { yr:2018, d12:3180000, d24:3840000, d36:4120000, d48:4200000, d60:4230000, ult:4270000 },
+      { yr:2019, d12:2480000, d24:3020000, d36:3280000, d48:3360000, d60:null,    ult:3420000 },
+      { yr:2020, d12:2140000, d24:2640000, d36:2860000, d48:null,    d60:null,    ult:2940000 },
+      { yr:2021, d12:2840000, d24:3480000, d36:null,    d48:null,    d60:null,    ult:3840000 },
+      { yr:2022, d12:3380000, d24:null,    d36:null,    d48:null,    d60:null,    ult:4180000 },
+      { yr:2023, d12:3640000, d24:null,    d36:null,    d48:null,    d60:null,    ult:4480000 },
+      { yr:2024, d12:3820000, d24:null,    d36:null,    d48:null,    d60:null,    ult:4720000 },
+      { yr:2025, d12:null,    d24:null,    d36:null,    d48:null,    d60:null,    ult:4980000 },
+    ];
+
+    let histChart = null;
+
+    /* ── Filter historical data ── */
+    function filteredHist() {
+      const stateF = document.getElementById('hist-state')?.value || '';
+      const lobF   = document.getElementById('hist-lob')?.value   || '';
+      const yrFrom = parseInt(document.getElementById('cl-year-from')?.value) || 2016;
+      const yrTo   = parseInt(document.getElementById('cl-year-to')?.value)   || 2026;
+      return HIST_DATA.filter(r =>
+        (!stateF || r.state === stateF) &&
+        (!lobF   || r.lob   === lobF)   &&
+        r.year >= yrFrom && r.year <= yrTo
+      );
+    }
+
+    /* ── Aggregate by year ── */
+    function aggregateByYear(rows) {
+      const byYear = {};
+      rows.forEach(r => {
+        if (!byYear[r.year]) byYear[r.year] = { year:r.year, written:0, incurred:0, paid:0, reserved:0, ibnr:0, count:0 };
+        byYear[r.year].written   += r.written;
+        byYear[r.year].incurred  += r.incurred;
+        byYear[r.year].paid      += r.paid;
+        byYear[r.year].reserved  += r.reserved;
+        byYear[r.year].ibnr      += r.ibnr;
+        byYear[r.year].count     += r.count;
+      });
+      return Object.values(byYear).sort((a, b) => a.year - b.year);
+    }
+
+    /* ── Loss Metrics Cards ── */
+    function renderLossMetrics() {
+      const rows = filteredHist().filter(r => r.year === 2026);
+      const totalIncurred = rows.reduce((s, r) => s + r.incurred, 0);
+      const totalCount    = rows.reduce((s, r) => s + r.count, 0);
+      const totalWritten  = rows.reduce((s, r) => s + r.written, 0);
+      const totalIBNR     = rows.reduce((s, r) => s + r.ibnr, 0);
+      const severity      = totalCount > 0 ? totalIncurred / totalCount : 0;
+      const freq          = totalWritten > 0 ? (totalCount / (totalWritten / 10000)) : 0;
+      const purePrem      = totalWritten > 0 ? totalIncurred / totalWritten * 1000 : 0;
+
+      // Compare to prior year
+      const rows25 = HIST_DATA.filter(r => r.year === 2025);
+      const inc25 = rows25.reduce((s,r) => s+r.incurred, 0);
+      const cnt25 = rows25.reduce((s,r) => s+r.count, 0);
+      const sev25 = cnt25 > 0 ? inc25/cnt25 : 0;
+      const sevChg = sev25 > 0 ? ((severity-sev25)/sev25*100).toFixed(1) : ' - ';
+
+      setText('lm-severity',  '$' + Math.round(severity).toLocaleString());
+      setText('lm-severity-chg', (sevChg > 0 ? '↑' : '↓') + ' ' + Math.abs(sevChg) + '% vs prior yr');
+      setText('lm-freq',  freq.toFixed(2) + '%');
+      setText('lm-pure',  '$' + Math.round(purePrem).toLocaleString());
+      setText('lm-ibnr',  '$' + fmtL(totalIBNR));
+      setText('lm-open',  totalCount.toString());
+    }
+
+    /* ── 10-Year Historical Chart ── */
+    function renderHistChart() {
+      const metric  = document.getElementById('hist-metric')?.value || 'incurred';
+      const stateF  = document.getElementById('hist-state')?.value  || '';
+      const lobF    = document.getElementById('hist-lob')?.value    || '';
+
+      const allRows = HIST_DATA.filter(r =>
+        (!stateF || r.state === stateF) && (!lobF || r.lob === lobF)
+      );
+      const byYear = aggregateByYear(allRows);
+      const labels = byYear.map(r => r.year.toString());
+
+      const metricLabels = {
+        incurred:'Total Incurred ($K)', paid:'Claims Paid ($K)', reserved:'Reserved ($K)',
+        lossRatio:'Loss Ratio (%)', frequency:'Claim Frequency (%)', severity:'Avg Severity ($)'
+      };
+      const getData = r => {
+        if (metric === 'lossRatio')  return r.written > 0 ? +(r.incurred/r.written*100).toFixed(1) : 0;
+        if (metric === 'frequency')  return r.written > 0 ? +(r.count/(r.written/10000)).toFixed(2) : 0;
+        if (metric === 'severity')   return r.count > 0 ? Math.round(r.incurred/r.count) : 0;
+        const div = (metric === 'severity') ? 1 : 1000;
+        if (metric === 'incurred') return +(r.incurred/1000).toFixed(1);
+        if (metric === 'paid')     return +(r.paid/1000).toFixed(1);
+        if (metric === 'reserved') return +(r.reserved/1000).toFixed(1);
+        return 0;
+      };
+      const data = byYear.map(getData);
+
+      const ctx = document.getElementById('histTrendChart');
+      if (!ctx) return;
+      if (histChart) histChart.destroy();
+      histChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: metricLabels[metric] || metric,
+            data,
+            borderColor: '#0d1b4b',
+            backgroundColor: 'rgba(13,27,75,0.08)',
+            fill: true, tension: 0.4,
+            pointRadius: 5, pointBackgroundColor: '#0d1b4b',
+            pointHoverRadius: 7,
+          }]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                label: ctx => {
+                  const v = ctx.parsed.y;
+                  if (metric === 'lossRatio' || metric === 'frequency') return ' ' + v.toFixed(2) + '%';
+                  if (metric === 'severity') return ' $' + v.toLocaleString();
+                  return ' $' + v.toFixed(1) + 'K';
+                }
+              }
+            }
+          },
+          scales: {
+            x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+            y: {
+              grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { font: { size: 11 },
+              callback: v => metric === 'lossRatio' || metric === 'frequency' ? v + '%' : metric === 'severity' ? '$' + v.toLocaleString() : '$' + v + 'K'
+            }}
+          }
+        }
+      });
+    }
+
+    /* ── YOY Table ── */
+    function renderYOY() {
+      const lobF   = document.getElementById('yoy-lob')?.value   || '';
+      const stateF = document.getElementById('yoy-state')?.value || '';
+      const rows = HIST_DATA.filter(r => (!lobF || r.lob === lobF) && (!stateF || r.state === stateF));
+      const byYear = aggregateByYear(rows);
+
+      document.getElementById('yoy-tbody').innerHTML = byYear.map((r, i) => {
+        const lr = r.written > 0 ? (r.incurred/r.written*100).toFixed(1) : ' - ';
+        const sev = r.count > 0 ? Math.round(r.incurred/r.count) : 0;
+        const fq  = r.written > 0 ? (r.count/(r.written/10000)).toFixed(2) : ' - ';
+        const prev = i > 0 ? byYear[i-1] : null;
+        const chg = prev ? ((r.incurred - prev.incurred)/prev.incurred*100).toFixed(1) : ' - ';
+        const chgCls = !prev ? '' : parseFloat(chg) > 0 ? 'style="color:#c62828;font-weight:700;"' : 'style="color:#2e7d32;font-weight:700;"';
+        const chgArrow = !prev ? ' - ' : (parseFloat(chg) > 0 ? '↑' : '↓') + ' ' + Math.abs(chg) + '%';
+        return `<tr>
+          <td><strong>${r.year}</strong></td>
+          <td class="text-right">$${fmtM(r.written)}</td>
+          <td class="text-right" style="color:var(--coral);font-weight:600;">$${fmtM(r.incurred)}</td>
+          <td class="text-right">$${fmtM(r.paid)}</td>
+          <td class="text-right" style="color:var(--orange);">$${fmtM(r.ibnr)}</td>
+          <td class="text-right" style="font-weight:700;color:${parseFloat(lr)>65?'#c62828':parseFloat(lr)>55?'#f57f17':'#2e7d32'};">${lr}%</td>
+          <td class="text-right">${r.count}</td>
+          <td class="text-right">$${sev.toLocaleString()}</td>
+          <td class="text-right">${fq}%</td>
+          <td class="text-right" ${chgCls}>${chgArrow}</td>
+        </tr>`;
+      }).reverse().join('');
+    }
+
+    /* ── State Claims Table ── */
+    function renderStateClaimsTable() {
+      const rows = HIST_DATA.filter(r => r.year === 2026);
+      const byState = {};
+      rows.forEach(r => {
+        if (!byState[r.state]) byState[r.state] = { state:r.state, written:0, incurred:0, count:0 };
+        byState[r.state].written  += r.written;
+        byState[r.state].incurred += r.incurred;
+        byState[r.state].count    += r.count;
+      });
+      const sorted = Object.values(byState).sort((a,b) => b.incurred - a.incurred);
+      document.getElementById('state-claims-tbody').innerHTML = sorted.map(r => {
+        const lr  = r.written > 0 ? (r.incurred/r.written*100).toFixed(1) : ' - ';
+        const sev = r.count > 0 ? Math.round(r.incurred/r.count) : 0;
+        const lrColor = parseFloat(lr) > 65 ? '#c62828' : parseFloat(lr) > 55 ? '#f57f17' : '#2e7d32';
+        return `<tr>
+          <td><strong>${r.state}</strong></td>
+          <td class="text-right">${r.count}</td>
+          <td class="text-right" style="color:var(--coral);">$${fmtM(r.incurred)}</td>
+          <td class="text-right" style="color:${lrColor};font-weight:700;">${lr}%</td>
+          <td class="text-right">$${sev.toLocaleString()}</td>
+        </tr>`;
+      }).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--gray-400);padding:16px;">No data for current filters</td></tr>';
+      const period = document.getElementById('cl-year-to')?.value || '2026';
+      setText('state-tbl-period', `(${period})`);
+    }
+
+    /* ── Loss Development Triangle ── */
+    function renderLDT() {
+      const fmt = v => v ? '$' + (v/1000000).toFixed(2) + 'M' : '<span style="color:var(--gray-300);"> - </span>';
+      document.getElementById('ldt-tbody').innerHTML = LDT_DATA.slice().reverse().map(r => {
+        const isBold = r.yr >= 2022;
+        const ultColor = r.yr >= 2022 ? 'color:#7c3aed;font-style:italic;' : 'color:var(--navy);';
+        return `<tr ${isBold ? 'style="font-weight:600;"' : ''}>
+          <td>${r.yr} ${r.yr >= 2022 ? '<span style="font-size:9.5px;background:#f3e8ff;color:#7c3aed;padding:1px 6px;border-radius:4px;font-weight:700;">Est</span>' : ''}</td>
+          <td class="text-right">${fmt(r.d12)}</td>
+          <td class="text-right">${fmt(r.d24)}</td>
+          <td class="text-right">${fmt(r.d36)}</td>
+          <td class="text-right">${fmt(r.d48)}</td>
+          <td class="text-right">${fmt(r.d60)}</td>
+          <td class="text-right" style="${ultColor}">${fmt(r.ult)}</td>
+        </tr>`;
+      }).join('');
+    }
+
+    /* ── Helpers ── */
+    function fmtM(n) { return (n/100000).toFixed(2) + 'L'; }
+    function fmtL(n) { return (n/100000).toFixed(1) + 'L'; }
+    function setText(id, val) { const el = document.getElementById(id); if (el) el.textContent = val; }
+
+    /* ── Export functions ── */
+    function exportHistChart() {
+      const stateF = document.getElementById('hist-state')?.value || '';
+      const lobF   = document.getElementById('hist-lob')?.value   || '';
+      const metric = document.getElementById('hist-metric')?.value || 'incurred';
+      const rows   = HIST_DATA.filter(r => (!stateF || r.state === stateF) && (!lobF || r.lob === lobF));
+      const byYear = aggregateByYear(rows);
+      const headers = ['Year','Written','Incurred','Paid','Reserved','IBNR','Count','LossRatio%','Severity','Frequency%'];
+      const csvRows = byYear.map(r => [
+        r.year, r.written, r.incurred, r.paid, r.reserved, r.ibnr, r.count,
+        r.written > 0 ? (r.incurred/r.written*100).toFixed(2) : 0,
+        r.count > 0 ? Math.round(r.incurred/r.count) : 0,
+        r.written > 0 ? (r.count/(r.written/10000)).toFixed(2) : 0,
+      ]);
+      downloadCSV([headers, ...csvRows], `loss-history-${stateF||'all'}-${lobF||'all'}.csv`);
+      showToast('Historical data exported', 'success');
+    }
+
+    function exportYOY() {
+      const headers = ['Year','WrittenPremium','ClaimsIncurred','ClaimsPaid','IBNR','LossRatio%','ClaimCount','AvgSeverity','Frequency%'];
+      const rows = aggregateByYear(HIST_DATA).map(r => [
+        r.year, r.written, r.incurred, r.paid, r.ibnr,
+        r.written > 0 ? (r.incurred/r.written*100).toFixed(2) : 0,
+        r.count, r.count > 0 ? Math.round(r.incurred/r.count) : 0,
+        r.written > 0 ? (r.count/(r.written/10000)).toFixed(2) : 0,
+      ]);
+      downloadCSV([headers, ...rows], 'yoy-loss-history.csv');
+      showToast('YOY data exported', 'success');
+    }
+
+    function exportStateTable() {
+      const headers = ['State','ClaimCount','Incurred','LossRatio%','AvgSeverity'];
+      const rows = [];
+      const byState = {};
+      HIST_DATA.filter(r => r.year === 2026).forEach(r => {
+        if (!byState[r.state]) byState[r.state] = { state:r.state, written:0, incurred:0, count:0 };
+        byState[r.state].written += r.written; byState[r.state].incurred += r.incurred; byState[r.state].count += r.count;
+      });
+      Object.values(byState).forEach(r => rows.push([
+        r.state, r.count, r.incurred,
+        r.written > 0 ? (r.incurred/r.written*100).toFixed(2) : 0,
+        r.count > 0 ? Math.round(r.incurred/r.count) : 0,
+      ]));
+      downloadCSV([headers, ...rows], 'state-claims-breakdown.csv');
+      showToast('State table exported', 'success');
+    }
+
+    function exportLDT() {
+      const headers = ['AccidentYear','12Mo','24Mo','36Mo','48Mo','60Mo','Ultimate'];
+      const rows = LDT_DATA.map(r => [r.yr, r.d12||'', r.d24||'', r.d36||'', r.d48||'', r.d60||'', r.ult]);
+      downloadCSV([headers, ...rows], 'loss-development-triangle.csv');
+      showToast('LDT exported', 'success');
+    }
+
+    function exportAllHistory() {
+      const headers = ['Year','State','LOB','WrittenPremium','ClaimsIncurred','ClaimsPaid','Reserved','IBNR','ClaimCount','AvgSeverity','Frequency%','LossRatio%'];
+      const rows = HIST_DATA.map(r => [
+        r.year, r.state, r.lob, r.written, r.incurred, r.paid, r.reserved, r.ibnr, r.count,
+        Math.round(r.severity), r.freq.toFixed(2),
+        r.written > 0 ? (r.incurred/r.written*100).toFixed(2) : 0,
+      ]);
+      downloadCSV([headers, ...rows], 'full-loss-history-10yr.csv');
+      showToast('Full 10-year history exported!', 'success');
+    }
+
+    function downloadCSV(rows, filename) {
+      const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(',')).join('\n');
+      const a = document.createElement('a');
+      a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+      a.download = filename;
+      a.click();
+    }
+
+    /* ─── Init ─── */
+    document.addEventListener('DOMContentLoaded', () => {
+      updateStats();
+      updatePeriodLabels();
+      renderPremiums();
+      renderClaims();
+      renderReserves();
+      renderRatios();
+      rebuildCharts();
+    });
+  </script>
+</body>
+</html>

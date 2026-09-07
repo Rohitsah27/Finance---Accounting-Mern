@@ -1,0 +1,37 @@
+{
+  "uploads": [
+    {
+      "id": "UPL-2026-0012",
+      "fileName": "may_premium_je_batch.xlsx",
+      "fileSize": "2.4 MB",
+      "uploadedBy": "Puneet Khurana",
+      "uploadedAt": "2026-05-20 14:32:18",
+      "notes": "May premium recognition batch for TX and CA MGA programs.",
+      "status": "Processed",
+      "rowsImported": 248,
+      "attachment2": "supporting_actuarial_memo.pdf"
+    },
+    {
+      "id": "UPL-2026-0011",
+      "fileName": "claims_adjustments_q2.csv",
+      "fileSize": "856 KB",
+      "uploadedBy": "J. Smith",
+      "uploadedAt": "2026-05-18 09:15:42",
+      "notes": "Q2 claims adjustment entries - pending controller review.",
+      "status": "Pending Approval",
+      "rowsImported": 42,
+      "attachment2": null
+    },
+    {
+      "id": "UPL-2026-0010",
+      "fileName": "reinsurance_cession_may.xlsx",
+      "fileSize": "1.1 MB",
+      "uploadedBy": "M. Johnson",
+      "uploadedAt": "2026-05-15 16:48:05",
+      "notes": "Monthly reinsurance cession true-up.",
+      "status": "Processed",
+      "rowsImported": 18,
+      "attachment2": "treaty_schedule_f.pdf"
+    }
+  ]
+}

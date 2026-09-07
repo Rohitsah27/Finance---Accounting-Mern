@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Subledger Processing — Operations | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/layout.js"></script>
+  <style>
+    .period-toggle { display:flex; border:1px solid var(--gray-300); border-radius:7px; overflow:hidden; flex-shrink:0; }
+    .period-btn { padding:7px 16px; font-size:12px; font-weight:700; border:none; background:var(--white); color:var(--gray-600); cursor:pointer; transition:all .15s; letter-spacing:.3px; }
+    .period-btn.active { background:var(--navy); color:white; }
+    .period-btn:not(.active):hover { background:var(--gray-100); }
+
+    .health-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:12px; margin-bottom:20px; }
+    .health-card { background:white; border-radius:var(--radius); padding:16px; box-shadow:var(--shadow-sm); border:1px solid rgba(0,0,0,.04); border-top:4px solid var(--gray-300); }
+    .health-card-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; color:var(--gray-500); margin-bottom:6px; }
+    .health-card-value { font-size:20px; font-weight:800; color:var(--gray-900); }
+    .health-card-sub { font-size:11px; color:var(--gray-400); margin:4px 0 8px; }
+    .health-card-foot { font-size:10.5px; color:var(--gray-400); margin-top:8px; }
+
+    .break-alert { background:var(--orange-bg); border:1px solid #ffcc80; border-radius:var(--radius); padding:12px 16px; margin-bottom:16px; display:flex; align-items:center; gap:8px; }
+    .sl-tab-wrap { background:white; border-radius:var(--radius) var(--radius) 0 0; border-bottom:1px solid var(--gray-200); display:flex; margin-bottom:0; padding:0 16px; }
+    .sl-tab { padding:12px 18px; font-size:13px; font-weight:500; color:var(--gray-500); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-1px; transition:.15s; white-space:nowrap; }
+    .sl-tab.active { color:var(--navy); border-bottom-color:var(--navy); font-weight:700; }
+    .sl-panel { display:none; }
+    .sl-panel.active { display:block; }
+  </style>
+</head>
+<body>
+  <main class="main-content" id="main-content">
+
+    <div class="page-header">
+      <div>
+        <div class="page-title">Subledger Processing</div>
+        <div class="page-subtitle">Six subledgers - each tied to the GL via control accounts with daily auto-reconciliation</div>
+      </div>
+      <div class="page-actions">
+        <div class="period-toggle" id="sl-period-toggle">
+          <button class="period-btn" onclick="setSLPeriod('itd')">ITD</button>
+          <button class="period-btn active" onclick="setSLPeriod('ytd')">YTD</button>
+          <button class="period-btn" onclick="setSLPeriod('mtd')">MTD</button>
+        </div>
+        <button class="btn btn-outline" onclick="runDailyRecon()">Run Daily Recon</button>
+        <button class="btn btn-primary" onclick="showToast('Generating subledger report…','info')">Generate Report</button>
+      </div>
+    </div>
+
+    <!-- Health Cards -->
+    <div class="health-grid" id="health-grid">
+      <!-- rendered by JS -->
+    </div>
+
+    <!-- Break Alert -->
+    <div class="break-alert" id="break-alert-banner" style="display:none;">
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="7" stroke="#e65100" stroke-width="1.5"/><path d="M8 5v4M8 11v.5" stroke="#e65100" stroke-width="1.8" stroke-linecap="round"/></svg>
+      <span style="font-size:13px;font-weight:600;color:var(--orange);">Break Queue</span>
+      <span style="font-size:12.5px;color:var(--gray-700);"> - 0 unresolved variances require attention</span>
+      <button class="btn btn-sm btn-outline" style="margin-left:auto;" onclick="switchSLTab('reins')">View Breaks</button>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar" style="margin-bottom:0;border-radius:var(--radius) var(--radius) 0 0;">
+      <span class="filter-bar-label">Subledger:</span>
+      <select class="filter-select" id="sl-select" onchange="switchSLTab(this.value)">
+        <option value="premium">Premium</option>
+        <option value="claims">Claims</option>
+        <option value="reins">Reinsurance</option>
+        <option value="ap">AP (Payables)</option>
+        <option value="ar">AR (Receivables)</option>
+        <option value="mga">MGA Settlement</option>
+      </select>
+      <select class="filter-select" id="sl-state" onchange="renderSLTable()">
+        <option value="">All States</option>
+        <option value="TX">TX</option><option value="CA">CA</option>
+        <option value="FL">FL</option><option value="NY">NY</option><option value="GA">GA</option>
+      </select>
+      <select class="filter-select" id="sl-mga-f" onchange="renderSLTable()">
+        <option value="">All MGA</option>
+        <option value="Futuristic">Futuristic</option>
+        <option value="NTA">NTA</option><option value="ACCL">ACCL</option>
+      </select>
+      <select class="filter-select" id="sl-lob" onchange="renderSLTable()">
+        <option value="">All LOB</option>
+        <option value="Auto">Auto</option>
+        <option value="Property">Property</option>
+        <option value="Liability">Liability</option>
+      </select>
+      <div class="filter-spacer"></div>
+      <input type="text" class="filter-input" id="sl-search" placeholder="Search…" style="width:180px;" oninput="renderSLTable()">
+      <span id="sl-period-badge" style="font-size:11px;font-weight:700;color:var(--gray-500);background:var(--gray-100);padding:4px 10px;border-radius:4px;">YTD 2026</span>
+    </div>
+
+    <!-- Tabs for Sub-ledger views -->
+    <div id="sl-tabs-wrap">
+      <div class="sl-tab-wrap" id="sl-tabs-strip">
+        <div class="sl-tab active" id="sl-tab-main" onclick="showMainPanel()">Ledger Entries</div>
+        <div class="sl-tab" id="sl-tab-breaks" onclick="showBreakQueue()">Break Queue <span id="breaks-badge" style="background:var(--gray-400);color:white;font-size:9px;border-radius:8px;padding:1px 5px;margin-left:4px;">0</span></div>
+        <div class="sl-tab" id="sl-tab-aging" onclick="showAgingPanel()">Aging Analysis</div>
+        <div class="sl-tab" id="sl-tab-recon" onclick="showReconPanel()">Reconciliation</div>
+      </div>
+
+      <!-- Ledger Entries Panel -->
+      <div class="sl-panel active" id="sl-panel-main">
+        <div class="form-card" style="border-radius:0 0 var(--radius) var(--radius);padding:0;">
+          <div style="padding:12px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--gray-100);">
+            <span style="font-size:13px;font-weight:700;color:var(--gray-900);" id="sl-table-title">Premium Subledger</span>
+            <div style="display:flex;gap:8px;">
+              <span id="sl-row-count" style="font-size:12px;color:var(--gray-500);display:flex;align-items:center;"> - rows</span>
+              <button class="btn btn-outline btn-sm" onclick="exportTableCSV('sl-main-table','subledger.csv')">Export CSV</button>
+              <button class="btn btn-outline btn-sm" onclick="showToast('Drilling into GL…','info')">Drill Down</button>
+            </div>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="data-table" id="sl-main-table">
+              <thead id="sl-thead"></thead>
+              <tbody id="sl-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Break Queue Panel -->
+      <div class="sl-panel" id="sl-panel-breaks">
+        <div class="form-card" style="border-radius:0 0 var(--radius) var(--radius);padding:0;">
+          <div style="padding:12px 16px;font-size:13px;font-weight:700;color:var(--orange);border-bottom:1px solid var(--gray-100);">
+            ⚠ Break Queue - 2 unresolved variances in Reinsurance subledger
+          </div>
+          <table class="data-table">
+            <thead><tr>
+              <th>Subledger</th><th>Account</th>
+              <th class="text-right">Subledger Bal ($)</th>
+              <th class="text-right">GL Balance ($)</th>
+              <th class="text-right">Variance ($)</th>
+              <th>Age</th><th>Root Cause</th><th>Actions</th>
+            </tr></thead>
+            <tbody>
+              <tr id="empty-breaks-row"><td colspan="8" style="text-align:center;color:var(--gray-400);padding:24px;">No variances or breaks found in any subledger.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Aging Panel -->
+      <div class="sl-panel" id="sl-panel-aging">
+        <div class="form-card" style="border-radius:0 0 var(--radius) var(--radius);padding:20px;">
+          <div style="font-size:13px;font-weight:700;margin-bottom:16px;color:var(--gray-900);" id="aging-title">Aging Analysis - AR Subledger</div>
+          <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px;">
+            <div style="background:var(--green-bg);border-radius:8px;padding:14px;text-align:center;">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--green);margin-bottom:6px;">Current (0-30d)</div>
+              <div style="font-size:18px;font-weight:800;color:var(--green);" id="age-current">$0</div>
+            </div>
+            <div style="background:#fff8f0;border-radius:8px;padding:14px;text-align:center;">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#e65100;margin-bottom:6px;">31-60 Days</div>
+              <div style="font-size:18px;font-weight:800;color:#e65100;" id="age-31">$0</div>
+            </div>
+            <div style="background:#fce4ec;border-radius:8px;padding:14px;text-align:center;">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--red);margin-bottom:6px;">61-90 Days</div>
+              <div style="font-size:18px;font-weight:800;color:var(--red);" id="age-61">$0</div>
+            </div>
+            <div style="background:#f3e5f5;border-radius:8px;padding:14px;text-align:center;">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#6a1b9a;margin-bottom:6px;">91-120 Days</div>
+              <div style="font-size:18px;font-weight:800;color:#6a1b9a;" id="age-91">$0</div>
+            </div>
+            <div style="background:var(--red-bg);border-radius:8px;padding:14px;text-align:center;">
+              <div style="font-size:10px;font-weight:700;text-transform:uppercase;color:var(--red);margin-bottom:6px;">120+ Days</div>
+              <div style="font-size:18px;font-weight:800;color:var(--red);" id="age-120">$0</div>
+            </div>
+          </div>
+          <table class="data-table">
+            <thead><tr><th>Account / Policy</th><th>MGA</th><th>State</th><th>Invoice Date</th><th>Due Date</th><th class="text-right">Amount ($)</th><th>Age Bucket</th><th>Actions</th></tr></thead>
+            <tbody id="aging-tbody">
+              <tr id="empty-aging-row"><td colspan="8" style="text-align:center;color:var(--gray-400);padding:24px;">No outstanding balances to analyze.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Reconciliation Panel -->
+      <div class="sl-panel" id="sl-panel-recon">
+        <div class="form-card" style="border-radius:0 0 var(--radius) var(--radius);padding:20px;">
+          <div style="font-size:13px;font-weight:700;margin-bottom:16px;color:var(--gray-900);">GL Reconciliation Summary - <span id="recon-period-label">YTD 2026</span></div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;">
+            <div class="form-card" style="padding:16px;">
+              <div style="font-size:11px;text-transform:uppercase;font-weight:700;color:var(--gray-500);margin-bottom:8px;">Opening Balance</div>
+              <div style="font-size:20px;font-weight:800;color:var(--navy);" id="recon-opening">$2,14,82,400</div>
+            </div>
+            <div class="form-card" style="padding:16px;">
+              <div style="font-size:11px;text-transform:uppercase;font-weight:700;color:var(--gray-500);margin-bottom:8px;">Net Movement</div>
+              <div style="font-size:20px;font-weight:800;color:var(--green);" id="recon-movement">+$48,24,200</div>
+            </div>
+            <div class="form-card" style="padding:16px;">
+              <div style="font-size:11px;text-transform:uppercase;font-weight:700;color:var(--gray-500);margin-bottom:8px;">Closing Balance</div>
+              <div style="font-size:20px;font-weight:800;color:var(--navy);" id="recon-closing">$2,63,06,600</div>
+            </div>
+          </div>
+          <table class="data-table">
+            <thead><tr><th>Subledger</th><th class="text-right">GL Balance ($)</th><th class="text-right">SL Balance ($)</th><th class="text-right">Variance ($)</th><th>Status</th><th>Last Reconciled</th></tr></thead>
+            <tbody>
+              <tr><td>Premium</td><td class="text-right">1,24,00,000</td><td class="text-right">1,24,00,000</td><td class="text-right"> - </td><td><span class="badge badge-green">✓ Matched</span></td><td>Today 09:00</td></tr>
+              <tr><td>Claims</td><td class="text-right">73,80,000</td><td class="text-right">73,80,000</td><td class="text-right"> - </td><td><span class="badge badge-green">✓ Matched</span></td><td>Today 09:00</td></tr>
+              <tr><td>Reinsurance</td><td class="text-right">18,64,200</td><td class="text-right">18,39,800</td><td class="text-right text-coral font-semibold">+24,400</td><td><span class="badge badge-orange">⚠ Break</span></td><td>Today 09:00</td></tr>
+              <tr><td>AP</td><td class="text-right">48,20,000</td><td class="text-right">48,20,000</td><td class="text-right"> - </td><td><span class="badge badge-green">✓ Matched</span></td><td>Today 09:00</td></tr>
+              <tr><td>AR</td><td class="text-right">32,40,000</td><td class="text-right">32,40,000</td><td class="text-right"> - </td><td><span class="badge badge-green">✓ Matched</span></td><td>Today 09:00</td></tr>
+              <tr><td>MGA Settlement</td><td class="text-right">62,40,000</td><td class="text-right">62,40,000</td><td class="text-right"> - </td><td><span class="badge badge-green">✓ Matched</span></td><td>Today 09:00</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="js/reports-utils.js"></script>
+<script src="js/app.js"></script>
+  <script>
+    initLayout('subledger');
+    (function(){
+      var h = location.hash.replace('#','');
+      var keys = ['premium','claims','reins','ap','ar','mga'];
+      if (keys.indexOf(h) !== -1) switchSLTab(h);
+    })();
+
+    /* ─── Health & Config Data ─── */
+    const HEALTH_CONFIG = [
+      { key:'premium', label:'Premium',       color:'var(--green)',  status:'✓ Balanced', badge:'badge-green' },
+      { key:'claims',  label:'Claims',        color:'var(--coral)',  status:'✓ Balanced', badge:'badge-green' },
+      { key:'reins',   label:'Reinsurance',   color:'var(--navy)',   status:'✓ Balanced', badge:'badge-green' },
+      { key:'ap',      label:'AP',            color:'#fb8c00',       status:'✓ Balanced', badge:'badge-green' },
+      { key:'ar',      label:'AR',            color:'#1565c0',       status:'✓ Balanced', badge:'badge-green' },
+      { key:'mga',     label:'MGA Settlement',color:'#6a1b9a',       status:'✓ Balanced', badge:'badge-green' },
+    ];
+
+    /* ─── Subledger Data Store ─── */
+    const SL_DATA = {
+      premium: {
+        title: 'Premium Subledger',
+        headers: ['Policy No.','Transaction Type','Date','MGA / Producer','State','LOB','Debit ($)','Credit ($)','GL Account','Journal No.'],
+        rows: []
+      },
+      claims: {
+        title: 'Claims Subledger',
+        headers: ['Claim No.','Policy No.','Loss Date','LOB','State','Paid ($)','Reserved ($)','GL Account','Journal No.'],
+        rows: []
+      },
+      reins: {
+        title: 'Reinsurance Subledger',
+        headers: ['Treaty','Policy No.','Date','Ceded Prem ($)','Ceded Loss ($)','Commission ($)','GL Account','Journal No.'],
+        rows: []
+      },
+      ap: {
+        title: 'AP (Accounts Payable) Subledger',
+        headers: ['Vendor / Payee','Invoice No.','Date','Due Date','MGA','State','Amount ($)','GL Account','Status'],
+        rows: []
+      },
+      ar: {
+        title: 'AR (Accounts Receivable) Subledger',
+        headers: ['Policy / Account','Invoice No.','Issue Date','Due Date','MGA','State','LOB','Amount ($)','GL Account','Status'],
+        rows: []
+      },
+      mga: {
+        title: 'MGA Settlement Subledger',
+        headers: ['MGA','Settlement Period','Date','Commission ($)','Deductions ($)','Net Settlement ($)','GL Account','Status'],
+        rows: []
+      }
+    };
+
+    const SL_HEADERS = {
+      premium:['Policy No.','Transaction','Date','MGA / Producer','State','LOB','Debit ($)','Credit ($)','GL Acct','Journal'],
+      claims: ['Claim No.','Policy No.','Loss Date','Type','State','LOB','Paid ($)','Reserved ($)','GL Acct','Journal'],
+      reins:  ['Treaty','Policy No.','Date','MGA','State','LOB','Ceded Prem ($)','Ceded Loss ($)','GL Acct','Journal'],
+      ap:     ['Vendor / Payee','Invoice No.','Date','Due Date','MGA','State','Amount ($)','GL Acct','Status'],
+      ar:     ['Policy / Account','Invoice No.','Issue Date','Due Date','MGA','State','LOB','Amount ($)','GL Acct','Status'],
+      mga:    ['MGA','Period','Date','MGA Filter','State','LOB','Commission ($)','Deductions ($)','GL Acct','Status'],
+    };
+
+    let currentSLPeriod = 'ytd';
+    let currentSLKey    = 'premium';
+
+    function getSLPeriodFilter(row) {
+      if (currentSLPeriod === 'mtd') return row.dateYM === '2026-08' || row.dateYM === '2026-09';
+      if (currentSLPeriod === 'ytd') return row.dateYM && row.dateYM.startsWith('2026');
+      return true;
+    }
+
+    function setSLPeriod(p) {
+      currentSLPeriod = p;
+      document.querySelectorAll('.period-btn').forEach(b => b.classList.toggle('active', b.textContent.trim().toLowerCase() === p));
+      const lbl = p === 'itd' ? 'ITD (All Time)' : (p === 'mtd' ? 'MTD Aug 2026' : 'YTD 2026');
+      const badge = document.getElementById('sl-period-badge');
+      if (badge) badge.textContent = lbl;
+      const rBadge = document.getElementById('recon-period-label');
+      if (rBadge) rBadge.textContent = lbl;
+      renderHealthCards();
+      renderSLTable();
+      if (document.getElementById('sl-panel-recon')?.classList.contains('active')) {
+        showReconPanel();
+      }
+    }
+
+    function fmtUSD(n) {
+      if (n == null || isNaN(n)) return '$0';
+      return '$' + Math.round(n).toLocaleString('en-US');
+    }
+
+    function renderHealthCards() {
+      const premTotal = SL_DATA.premium.rows.reduce((s, r) => s + (r.debit || 0), 0);
+      const claimsTotal = SL_DATA.claims.rows.reduce((s, r) => s + (r.debit || 0), 0);
+      const reinsTotal = SL_DATA.reins.rows.reduce((s, r) => s + (r.debit || 0), 0);
+      const apTotal = SL_DATA.ap.rows.reduce((s, r) => s + (r.debit || 0), 0);
+      const arTotal = SL_DATA.ar.rows.reduce((s, r) => s + (r.debit || 0), 0);
+      const mgaTotal = SL_DATA.mga.rows.reduce((s, r) => s + (r.debit || 0), 0);
+
+      const totals = {
+        premium: premTotal || 39260,
+        claims: claimsTotal || 0,
+        reins: reinsTotal || 0,
+        ap: apTotal || 36527,
+        ar: arTotal || 39260,
+        mga: mgaTotal || 32257
+      };
+
+      document.getElementById('health-grid').innerHTML = HEALTH_CONFIG.map(h => {
+        const val = totals[h.key] || 0;
+        return `
+          <div class="health-card" style="border-top-color:${h.color}; cursor:pointer;" onclick="switchSLTab('${h.key}')">
+            <div class="health-card-label">${h.label}</div>
+            <div class="health-card-value">${fmtUSD(val)}</div>
+            <div class="health-card-sub">GL Balance</div>
+            <span class="badge ${h.badge}">${h.status}</span>
+            <div class="health-card-foot">Last run: Just now</div>
+          </div>`;
+      }).join('');
+    }
+
+    function switchSLTab(key) {
+      currentSLKey = key;
+      document.getElementById('sl-select').value = key;
+      showMainPanel();
+      renderSLTable();
+    }
+
+    function setActiveSlTab(id) {
+      ['main','breaks','aging','recon'].forEach(p => {
+        document.getElementById('sl-panel-' + p).classList.remove('active');
+        document.getElementById('sl-tab-' + p).classList.remove('active');
+      });
+      document.getElementById('sl-panel-' + id).classList.add('active');
+      document.getElementById('sl-tab-' + id).classList.add('active');
+    }
+
+    function showMainPanel() { setActiveSlTab('main'); }
+
+    function showBreakQueue() { setActiveSlTab('breaks'); }
+
+    function showAgingPanel() {
+      setActiveSlTab('aging');
+      const title = (SL_DATA[currentSLKey] && SL_DATA[currentSLKey].title) || 'Subledger';
+      document.getElementById('aging-title').textContent = 'Aging Analysis - ' + title;
+      
+      const active = typeof getActiveEntity === 'function' ? getActiveEntity() : null;
+      const bType = active ? active.businessType : 'mga';
+      const invoices = JSON.parse(localStorage.getItem(bType + '_pas_invoices') || '[]');
+      
+      let age0 = 0;
+      let age30 = 0;
+      let age60 = 0;
+      let age90 = 0;
+      let age120 = 0;
+      
+      const tbody = document.getElementById('aging-tbody');
+      if (tbody) tbody.innerHTML = '';
+      
+      let arInvoicesCount = 0;
+      invoices.forEach(inv => {
+        if (inv.type === 'Premium') {
+          const amt = (parseFloat(inv.amount) || 0) - (parseFloat(inv.paidAmount) || 0);
+          if (amt <= 0) return;
+          
+          arInvoicesCount++;
+          const issueDate = new Date(inv.issueDate);
+          const today = new Date();
+          const diffTime = Math.abs(today - issueDate);
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          
+          let bucket = 'Current';
+          let badgeClass = 'badge-green';
+          
+          if (diffDays <= 30) {
+            age0 += amt;
+          } else if (diffDays <= 60) {
+            age30 += amt;
+            bucket = '31-60 Days';
+            badgeClass = 'badge-orange';
+          } else if (diffDays <= 90) {
+            age60 += amt;
+            bucket = '61-90 Days';
+            badgeClass = 'badge-red';
+          } else if (diffDays <= 120) {
+            age90 += amt;
+            bucket = '91-120 Days';
+            badgeClass = 'badge-red';
+          } else {
+            age120 += amt;
+            bucket = '120+ Days';
+            badgeClass = 'badge-red';
+          }
+          
+          if (tbody) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td class="cell-link">${inv.policyNum}</td>
+              <td>${inv.customer || 'Links Insurance Agency'}</td>
+              <td>TX</td>
+              <td>${inv.issueDate}</td>
+              <td>${inv.dueDate}</td>
+              <td class="text-right">${amt.toLocaleString('en-US', {minimumFractionDigits: 0, maximumFractionDigits: 0})}</td>
+              <td><span class="badge ${badgeClass}">${bucket}</span></td>
+              <td><button class="btn btn-ghost btn-sm" onclick="showToast('Reminder sent to broker','success')">Send Reminder</button></td>
+            `;
+            tbody.appendChild(tr);
+          }
+        }
+      });
+      
+      if (arInvoicesCount === 0 && tbody) {
+        tbody.innerHTML = '<tr id="empty-aging-row"><td colspan="8" style="text-align:center;color:var(--gray-400);padding:24px;">No outstanding balances to analyze.</td></tr>';
+      }
+      
+      document.getElementById('age-current').textContent = fmtCurrency(age0);
+      document.getElementById('age-31').textContent = fmtCurrency(age30);
+      document.getElementById('age-61').textContent = fmtCurrency(age60);
+      document.getElementById('age-91').textContent = fmtCurrency(age90);
+      document.getElementById('age-120').textContent = fmtCurrency(age120);
+    }
+
+    function showReconPanel() {
+      setActiveSlTab('recon');
+      
+      const active = typeof getActiveEntity === 'function' ? getActiveEntity() : null;
+      const bType = active ? active.businessType : 'mga';
+      
+      const policies = JSON.parse(localStorage.getItem(bType + '_pas_policies') || '[]');
+      const invoices = JSON.parse(localStorage.getItem(bType + '_pas_invoices') || '[]');
+      
+      let livePremium = 0;
+      policies.forEach(p => { livePremium += parseFloat(p.premium) || 0; });
+      
+      let liveAR = 0;
+      invoices.forEach(inv => {
+        if (inv.type === 'Premium') {
+          liveAR += (parseFloat(inv.amount) || 0) - (parseFloat(inv.paidAmount) || 0);
+        }
+      });
+      
+      let liveAP = 0;
+      invoices.forEach(inv => {
+        if (inv.type === 'Carrier Payable') {
+          liveAP += (parseFloat(inv.amount) || 0) - (parseFloat(inv.paidAmount) || 0);
+        }
+      });
+
+      const bases = {
+        itd: { premium: 0, claims: 0, reins: 0, ap: 0, ar: 0, mga: 0 },
+        ytd: { premium: 0, claims: 0, reins: 0, ap: 0, ar: 0, mga: 0 },
+        mtd: { premium: 0, claims: 0, reins: 0, ap: 0, ar: 0, mga: 0 }
+      };
+
+      const activeBase = bases[currentSLPeriod] || bases.ytd;
+      
+      const premVal = activeBase.premium + livePremium;
+      const arVal = activeBase.ar + liveAR;
+      const apVal = activeBase.ap + liveAP;
+
+      const tableBody = document.querySelector('#sl-panel-recon tbody');
+      if (tableBody) {
+        tableBody.innerHTML = `
+          <tr><td>Premium</td><td class="text-right">${(premVal).toLocaleString('en-IN')}</td><td class="text-right">${(premVal).toLocaleString('en-IN')}</td><td class="text-right"> - </td><td><span class="badge badge-green">✓ Matched</span></td><td>Today 09:00</td></tr>
+          <tr><td>Claims</td><td class="text-right">${(activeBase.claims).toLocaleString('en-IN')}</td><td class="text-right">${(activeBase.claims).toLocaleString('en-IN')}</td><td class="text-right"> - </td><td><span class="badge badge-green">✓ Matched</span></td><td>Today 09:00</td></tr>
+          <tr><td>Reinsurance</td><td class="text-right">${(activeBase.reins).toLocaleString('en-IN')}</td><td class="text-right">${(activeBase.reins).toLocaleString('en-IN')}</td><td class="text-right"> - </td><td><span class="badge badge-green">✓ Matched</span></td><td>Today 09:00</td></tr>
+          <tr><td>AP</td><td class="text-right">${(apVal).toLocaleString('en-IN')}</td><td class="text-right">${(apVal).toLocaleString('en-IN')}</td><td class="text-right"> - </td><td><span class="badge badge-green">✓ Matched</span></td><td>Today 09:00</td></tr>
+          <tr><td>AR</td><td class="text-right">${(arVal).toLocaleString('en-IN')}</td><td class="text-right">${(arVal).toLocaleString('en-IN')}</td><td class="text-right"> - </td><td><span class="badge badge-green">✓ Matched</span></td><td>Today 09:00</td></tr>
+          <tr><td>MGA Settlement</td><td class="text-right">${(activeBase.mga).toLocaleString('en-IN')}</td><td class="text-right">${(activeBase.mga).toLocaleString('en-IN')}</td><td class="text-right"> - </td><td><span class="badge badge-green">✓ Matched</span></td><td>Today 09:00</td></tr>
+        `;
+      }
+
+      // Update opening/movement/closing summary blocks
+      const totalOpening = bases.itd.premium + bases.itd.claims + bases.itd.reins + bases.itd.ap + bases.itd.ar + bases.itd.mga;
+      const totalClosing = premVal + activeBase.claims + activeBase.reins + apVal + arVal + activeBase.mga;
+      const netMovement = totalClosing - totalOpening;
+
+      document.getElementById('recon-opening').textContent = '$' + totalOpening.toLocaleString('en-IN');
+      document.getElementById('recon-movement').textContent = (netMovement >= 0 ? '+' : '-') + '$' + Math.abs(netMovement).toLocaleString('en-IN');
+      document.getElementById('recon-closing').textContent = '$' + totalClosing.toLocaleString('en-IN');
+    }
+
+    function renderSLTable() {
+      const key  = document.getElementById('sl-select').value;
+      currentSLKey = key;
+      const data = SL_DATA[key];
+      if (!data) return;
+      document.getElementById('sl-table-title').textContent = data.title;
+
+      const stateF  = document.getElementById('sl-state').value;
+      const mgaF    = document.getElementById('sl-mga-f').value;
+      const lobF    = document.getElementById('sl-lob').value;
+      const search  = document.getElementById('sl-search').value.toLowerCase();
+
+      const headers = SL_HEADERS[key];
+      document.getElementById('sl-thead').innerHTML = '<tr>' + headers.map(h => `<th>${h}</th>`).join('') + '</tr>';
+
+      const rows = data.rows.filter(r => {
+        if (!getSLPeriodFilter(r)) return false;
+        if (stateF && r.state !== stateF) return false;
+        if (mgaF   && r.mga   !== mgaF)   return false;
+        if (lobF   && r.lob   !== lobF)   return false;
+        if (search && !JSON.stringify(r).toLowerCase().includes(search)) return false;
+        return true;
+      });
+
+      const fmt = n => n > 0 ? Number(n).toLocaleString('en-IN') : ' - ';
+      const sbadge = s => {
+        if (!s) return ' - ';
+        const m = { Paid:'badge-green', Posted:'badge-green', Open:'badge-blue', Pending:'badge-orange', Overdue:'badge-red' };
+        const k = Object.keys(m).find(k => s.startsWith(k));
+        return `<span class="badge ${k ? m[k] : 'badge-gray'}">${s}</span>`;
+      };
+      const jlink = v => sbadge(v) !== ' - ' ? sbadge(v) : `<span class="cell-link">${v}</span>`;
+
+      // Per-subledger cell builders - avoids column count mismatch
+      const cellBuilders = {
+        premium: r => [`<td class="cell-link">${r.policyNo}</td>`,`<td>${r.txType}</td>`,`<td>${r.date}</td>`,`<td>${r.mga}</td>`,`<td>${r.state}</td>`,`<td>${r.lob}</td>`,`<td class="text-right">${fmt(r.debit)}</td>`,`<td class="text-right">${fmt(r.credit)}</td>`,`<td>${r.gl}</td>`,`<td>${jlink(r.je)}</td>`],
+        claims:  r => [`<td class="cell-link">${r.policyNo}</td>`,`<td>${r.txType}</td>`,`<td>${r.date}</td>`,`<td>${r.mga}</td>`,`<td>${r.state}</td>`,`<td>${r.lob}</td>`,`<td class="text-right">${fmt(r.debit)}</td>`,`<td class="text-right">${fmt(r.credit)}</td>`,`<td>${r.gl}</td>`,`<td>${jlink(r.je)}</td>`],
+        reins:   r => [`<td class="cell-link">${r.policyNo}</td>`,`<td>${r.txType}</td>`,`<td>${r.date}</td>`,`<td>${r.mga}</td>`,`<td>${r.state}</td>`,`<td>${r.lob}</td>`,`<td class="text-right">${fmt(r.debit)}</td>`,`<td class="text-right">${fmt(r.credit)}</td>`,`<td>${r.gl}</td>`,`<td>${jlink(r.je)}</td>`],
+        ap:      r => [`<td class="cell-link">${r.policyNo}</td>`,`<td>${r.txType}</td>`,`<td>${r.date}</td>`,`<td>${r.mga}</td>`,`<td>${r.state}</td>`,`<td>${r.lob}</td>`,`<td class="text-right">${fmt(r.debit)}</td>`,`<td>${r.gl}</td>`,`<td>${sbadge(r.je)}</td>`],
+        ar:      r => [`<td class="cell-link">${r.policyNo}</td>`,`<td>${r.txType}</td>`,`<td>${r.date}</td>`,`<td>${r.mga}</td>`,`<td>${r.state}</td>`,`<td>${r.lob}</td>`,`<td class="text-right">${fmt(r.debit)}</td>`,`<td class="text-right">${fmt(r.credit)}</td>`,`<td>${r.gl}</td>`,`<td>${sbadge(r.je)}</td>`],
+        mga:     r => [`<td class="cell-link">${r.policyNo}</td>`,`<td>${r.txType}</td>`,`<td>${r.date}</td>`,`<td>${r.mga}</td>`,`<td>${r.state}</td>`,`<td>${r.lob}</td>`,`<td class="text-right">${fmt(r.debit)}</td>`,`<td class="text-right">${fmt(r.credit)}</td>`,`<td>${r.gl}</td>`,`<td>${sbadge(r.je)}</td>`],
+      };
+      const builder = cellBuilders[key] || cellBuilders.premium;
+
+      document.getElementById('sl-tbody').innerHTML = rows.length ? rows.map(r =>
+        `<tr>${builder(r).join('')}</tr>`).join('') :
+        `<tr><td colspan="${headers.length}" style="text-align:center;padding:28px;color:var(--gray-400);">No entries for selected filters &amp; period.</td></tr>`;
+
+      document.getElementById('sl-row-count').textContent = rows.length + ' row' + (rows.length !== 1 ? 's' : '');
+    }
+
+    function runDailyRecon() {
+      showToast('Running daily reconciliation…', 'info');
+      setTimeout(() => showToast('Daily recon complete - all subledgers balanced successfully', 'success'), 1500);
+    }
+
+    function resolveBreak(btn) {
+      const row = btn.closest('tr');
+      row.style.opacity = '0.5';
+      row.style.pointerEvents = 'none';
+      showToast('Break resolved - adjustment JE created', 'success');
+    }
+
+    function loadLiveSubledgerData() {
+      // 1. Premium Subledger (Active verified policies)
+      const dynamicPolicies = typeof getPolicies === 'function' ? getPolicies() : [];
+      const premRows = [];
+
+      if (dynamicPolicies && dynamicPolicies.length > 0) {
+        dynamicPolicies.forEach((p, idx) => {
+          const prem = parseFloat(p.premium) || 39260;
+          premRows.push({
+            policyNo: p.policyNumber || `POL-V8NHT`,
+            txType: 'New Business',
+            date: p.effectiveDate || '2026-08-20',
+            mga: p.producer || 'HIT',
+            state: p.state || 'TX',
+            lob: p.lob || 'Commercial Trucking',
+            debit: prem,
+            credit: 0,
+            gl: '1100',
+            je: `JE-2026-000${idx+1}`,
+            dateYM: (p.effectiveDate || '2026-08').slice(0, 7)
+          });
+        });
+      } else {
+        premRows.push({
+          policyNo: 'POL-V8NHT',
+          txType: 'New Business',
+          date: '2026-08-20',
+          mga: 'HIT',
+          state: 'TX',
+          lob: 'Commercial Trucking',
+          debit: 39260,
+          credit: 0,
+          gl: '1100',
+          je: 'JE-2026-0001',
+          dateYM: '2026-08'
+        });
+      }
+
+      SL_DATA.premium.rows = premRows;
+
+      // 2. AR Subledger
+      SL_DATA.ar.rows = [
+        {
+          policyNo: 'POL-V8NHT (Ayushi)',
+          txType: 'INV-V8NHT-1',
+          date: '2026-08-20',
+          mga: '2026-09-19',
+          state: 'TX',
+          lob: 'Commercial Trucking',
+          debit: 39260,
+          credit: 0,
+          gl: '1100',
+          je: 'Open',
+          dateYM: '2026-08'
+        }
+      ];
+
+      // 3. AP Subledger
+      SL_DATA.ap.rows = [
+        {
+          policyNo: 'SOUTHLAKE Insurance Co.',
+          txType: 'PRM-SETTLE-001',
+          date: '2026-08-20',
+          mga: '2026-09-20',
+          state: 'TX',
+          lob: 'Carrier Cession',
+          debit: 32257,
+          credit: 0,
+          gl: '2200',
+          je: 'Pending',
+          dateYM: '2026-08'
+        },
+        {
+          policyNo: 'HIT (Insurance Agency / Broker)',
+          txType: 'COMM-V8NHT',
+          date: '2026-08-20',
+          mga: '2026-09-15',
+          state: 'TX',
+          lob: 'Commission',
+          debit: 2500,
+          credit: 0,
+          gl: '2100',
+          je: 'Approved',
+          dateYM: '2026-08'
+        },
+        {
+          policyNo: 'Texas Stamping Office (SLTX)',
+          txType: 'TAX-TX-0826',
+          date: '2026-08-20',
+          mga: '2026-09-20',
+          state: 'TX',
+          lob: 'Surplus Lines Tax',
+          debit: 1770,
+          credit: 0,
+          gl: '2300',
+          je: 'Pending',
+          dateYM: '2026-08'
+        }
+      ];
+
+      // 4. MGA Settlement Subledger
+      SL_DATA.mga.rows = [
+        {
+          policyNo: 'NTA (Managing General Agent)',
+          txType: 'Aug 2026',
+          date: '2026-08-20',
+          mga: 'NTA',
+          state: 'TX',
+          lob: 'Commercial Trucking',
+          debit: 32257,
+          credit: 0,
+          gl: '2200',
+          je: 'Generated',
+          dateYM: '2026-08'
+        }
+      ];
+
+      // Update Filter Options dynamically
+      const mgaSelect = document.getElementById('sl-mga-f');
+      if (mgaSelect) {
+        mgaSelect.innerHTML = `
+          <option value="">All MGA / Producers</option>
+          <option value="HIT">HIT (Agency)</option>
+          <option value="NTA">NTA (MGA)</option>
+          <option value="SOUTHLAKE">SOUTHLAKE (Carrier)</option>
+        `;
+      }
+
+      const lobSelect = document.getElementById('sl-lob');
+      if (lobSelect) {
+        lobSelect.innerHTML = `
+          <option value="">All LOB</option>
+          <option value="Commercial Trucking">Commercial Trucking</option>
+          <option value="General Liability">General Liability</option>
+          <option value="Property">Property</option>
+        `;
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadLiveSubledgerData();
+      renderHealthCards();
+      renderSLTable();
+    });
+  </script>
+</body>
+</html>

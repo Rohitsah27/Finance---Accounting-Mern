@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Premium Tax — Tax Engine | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/layout.js"></script>
+  <style>
+    /* ── Stat cards ── */
+    .ptc-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+    @media(max-width:900px){.ptc-stats{grid-template-columns:repeat(2,1fr);}}
+    .ptc-stat{background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:16px 18px;position:relative;overflow:hidden;}
+    .ptc-stat::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+    .ptc-stat.s-navy::before{background:var(--navy);}
+    .ptc-stat.s-blue::before{background:#1565c0;}
+    .ptc-stat.s-green::before{background:#2e7d32;}
+    .ptc-stat.s-coral::before{background:var(--coral);}
+    .ptc-stat-lbl{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);}
+    .ptc-stat-val{font-size:22px;font-weight:800;color:var(--navy);margin:4px 0 3px;}
+    .ptc-stat-sub{font-size:11px;color:var(--gray-400);}
+    .ptc-stat-badge{display:inline-block;font-size:9.5px;font-weight:700;padding:1px 7px;border-radius:10px;margin-top:4px;}
+    .ptc-stat-badge.up{background:#e8f5e9;color:#2e7d32;}
+    .ptc-stat-badge.down{background:#fff3e0;color:#e65100;}
+
+    /* ── Main 2-col layout ── */
+    .ptc-main{display:grid;grid-template-columns:1fr 360px;gap:18px;align-items:start;}
+    @media(max-width:1050px){.ptc-main{grid-template-columns:1fr;}}
+
+    /* ── Left: Jurisdiction table panel ── */
+    .ptc-panel{background:#fff;border:1.5px solid var(--border);border-radius:10px;overflow:hidden;}
+    .ptc-panel-hdr{padding:14px 18px;background:#f8f9fb;border-bottom:1.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+    .ptc-panel-title{font-size:13.5px;font-weight:700;color:var(--navy);}
+    .ptc-search{padding:7px 11px;font-size:12px;border:1.5px solid var(--border);border-radius:6px;outline:none;width:180px;}
+    .ptc-search:focus{border-color:var(--navy);}
+
+    .ptc-table{width:100%;border-collapse:collapse;}
+    .ptc-table th{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-500);padding:9px 16px;background:#f8f9fb;border-bottom:1.5px solid var(--border);text-align:left;}
+    .ptc-table th.r{text-align:right;}
+    .ptc-table td{font-size:12.5px;color:var(--gray-700);padding:10px 16px;border-bottom:1px solid var(--gray-100);}
+    .ptc-table td.r{text-align:right;font-variant-numeric:tabular-nums;}
+    .ptc-table tr:last-child td{border-bottom:none;}
+    .ptc-table tr:hover td{background:#fafbff;cursor:pointer;}
+    .ptc-table tr.selected td{background:#eef2ff;}
+    .ptc-table tfoot td{font-weight:700;color:var(--navy);background:#f8f9fb;border-top:2px solid var(--border);}
+    .ptc-status{display:inline-block;font-size:10px;font-weight:700;padding:2px 9px;border-radius:10px;}
+    .ptc-status.accrued{background:#e8f5e9;color:#2e7d32;}
+    .ptc-status.pending{background:#fff8e1;color:#f57f17;}
+    .ptc-status.overdue{background:#fdecea;color:#c62828;}
+    .ptc-status.filed{background:#e3f2fd;color:#1565c0;}
+
+    /* ── Right: Estimator panel ── */
+    .ptc-estimator{background:#fff;border:1.5px solid var(--border);border-radius:10px;overflow:hidden;}
+    .ptc-est-hdr{padding:14px 18px;background:var(--navy);color:#fff;}
+    .ptc-est-title{font-size:13.5px;font-weight:700;}
+    .ptc-est-sub{font-size:11px;opacity:.7;margin-top:2px;}
+    .ptc-est-body{padding:18px;}
+    .ptc-field{display:flex;flex-direction:column;gap:5px;margin-bottom:14px;}
+    .ptc-lbl{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-500);}
+    .ptc-select{padding:9px 28px 9px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:7px;background:#fff url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239ca3af' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 10px center;color:var(--gray-800);outline:none;width:100%;box-sizing:border-box;appearance:none;cursor:pointer;}
+    .ptc-select:focus{border-color:var(--navy);}
+    .ptc-input{padding:9px 11px;font-size:13px;border:1.5px solid var(--border);border-radius:7px;background:#fff;color:var(--gray-800);outline:none;width:100%;box-sizing:border-box;}
+    .ptc-input:focus{border-color:var(--navy);}
+    .ptc-rate-display{padding:10px 12px;background:#f0f4ff;border-radius:7px;border:1.5px solid #c7d2fe;display:flex;align-items:center;justify-content:space-between;}
+    .ptc-rate-lbl{font-size:11px;color:#4338ca;font-weight:600;}
+    .ptc-rate-val{font-size:17px;font-weight:800;color:#3730a3;}
+
+    .ptc-result-box{background:#f8f9fb;border-radius:9px;padding:14px 16px;margin-top:4px;margin-bottom:14px;}
+    .ptc-result-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--gray-100);font-size:12.5px;}
+    .ptc-result-row:last-child{border-bottom:none;}
+    .ptc-result-row.total{font-weight:700;color:var(--navy);font-size:14px;padding-top:10px;margin-top:4px;border-top:2px solid var(--border);}
+    .ptc-result-lbl{color:var(--gray-600);}
+    .ptc-result-val{font-weight:600;color:var(--gray-800);font-variant-numeric:tabular-nums;}
+
+    .ptc-book-btn{width:100%;padding:12px;font-size:14px;font-weight:700;background:var(--coral);color:#fff;border:none;border-radius:8px;cursor:pointer;transition:background .15s;margin-top:4px;}
+    .ptc-book-btn:hover{background:#c94040;}
+    .ptc-export-btn{width:100%;padding:10px;font-size:12px;font-weight:600;background:#f5f7fa;color:var(--navy);border:1.5px solid var(--border);border-radius:8px;cursor:pointer;margin-top:8px;}
+    .ptc-export-btn:hover{background:#eef0f4;}
+
+    /* ── Divider with label ── */
+    .ptc-section-lbl{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-400);margin:16px 0 10px;display:flex;align-items:center;gap:8px;}
+    .ptc-section-lbl::before,.ptc-section-lbl::after{content:'';flex:1;height:1px;background:var(--gray-100);}
+
+    /* ── Bottom: detailed breakdown ── */
+    .ptc-detail{margin-top:18px;display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+    @media(max-width:900px){.ptc-detail{grid-template-columns:1fr;}}
+
+    .ptc-detail-card{background:#fff;border:1.5px solid var(--border);border-radius:10px;overflow:hidden;}
+    .ptc-detail-hdr{padding:12px 16px;background:#f8f9fb;border-bottom:1.5px solid var(--border);font-size:13px;font-weight:700;color:var(--navy);display:flex;align-items:center;justify-content:space-between;}
+    .ptc-detail-body{padding:14px 16px;}
+
+    .ptc-bar-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--gray-100);}
+    .ptc-bar-row:last-child{border-bottom:none;}
+    .ptc-bar-state{font-size:12px;font-weight:600;color:var(--navy);width:90px;flex-shrink:0;}
+    .ptc-bar-track{flex:1;background:var(--gray-100);border-radius:4px;height:7px;overflow:hidden;}
+    .ptc-bar-fill{height:7px;border-radius:4px;background:var(--navy);}
+    .ptc-bar-pct{font-size:11.5px;font-weight:700;color:var(--gray-600);width:36px;text-align:right;flex-shrink:0;}
+
+    .ptc-cal-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;}
+    .ptc-cal-item{border:1.5px solid var(--border);border-radius:7px;padding:10px;}
+    .ptc-cal-item.due{border-color:#e65100;background:#fff8f0;}
+    .ptc-cal-item.paid{border-color:#2e7d32;background:#f0faf3;}
+    .ptc-cal-item.upcoming{border-color:#1565c0;background:#f0f4ff;}
+    .ptc-cal-q{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;}
+    .ptc-cal-due{font-size:10.5px;color:var(--gray-500);margin:2px 0;}
+    .ptc-cal-amt{font-size:15px;font-weight:800;color:var(--navy);}
+    .ptc-cal-badge{font-size:10px;font-weight:700;text-transform:uppercase;border-radius:4px;padding:1px 7px;display:inline-block;margin-top:4px;}
+    .ptc-cal-badge.due{background:#fff3e0;color:#e65100;}
+    .ptc-cal-badge.paid{background:#e8f5e9;color:#2e7d32;}
+    .ptc-cal-badge.upcoming{background:#e3f2fd;color:#1565c0;}
+
+    /* Period toggle */
+    .period-toggle{display:flex;background:#f0f2f5;border-radius:8px;padding:3px;}
+    .period-btn{padding:5px 14px;font-size:12px;font-weight:600;border:none;background:transparent;border-radius:6px;cursor:pointer;color:var(--gray-500);transition:all .15s;}
+    .period-btn.active{background:var(--navy);color:#fff;}
+  </style>
+</head>
+<body>
+<main class="main-content" id="main-content">
+
+  <!-- ═══ PAGE HEADER ═══ -->
+  <div class="page-header" style="margin-bottom:20px;">
+    <div>
+      <div class="page-title">Premium Tax Calculator</div>
+      <div class="page-subtitle">Multi-state tax computation · Jurisdiction Allocations · Filing Calendar</div>
+    </div>
+    <div class="page-actions">
+      <div class="period-toggle" id="periodToggle">
+        <button class="period-btn" onclick="setPeriod('itd')">ITD</button>
+        <button class="period-btn active" onclick="setPeriod('ytd')">YTD</button>
+        <button class="period-btn" onclick="setPeriod('mtd')">MTD</button>
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="exportTable()">Export CSV</button>
+    </div>
+  </div>
+
+  <!-- ═══ STAT CARDS ═══ -->
+  <div class="ptc-stats" id="statCards">
+    <!-- rendered by JS -->
+  </div>
+
+  <!-- ═══ MAIN 2-COL ═══ -->
+  <div class="ptc-main">
+
+    <!-- LEFT: Tax Allocations by Jurisdiction -->
+    <div class="ptc-panel">
+      <div class="ptc-panel-hdr">
+        <div class="ptc-panel-title">Tax Allocations by Jurisdiction</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <select class="ptc-search" id="filterLob" onchange="renderTable()" style="width:130px;">
+            <option value="">All Lines</option>
+            <option value="Auto">Auto</option>
+            <option value="Property">Property</option>
+            <option value="GL">General Liability</option>
+            <option value="Marine">Marine</option>
+          </select>
+          <select class="ptc-search" id="filterStatus" onchange="renderTable()" style="width:120px;">
+            <option value="">All Status</option>
+            <option value="Accrued">Accrued</option>
+            <option value="Pending">Pending</option>
+            <option value="Filed">Filed</option>
+            <option value="Overdue">Overdue</option>
+          </select>
+          <input class="ptc-search" id="searchJuris" placeholder="Search state..." oninput="renderTable()">
+        </div>
+      </div>
+      <table class="ptc-table" id="jurisdictionTable">
+        <thead>
+          <tr>
+            <th>State</th>
+            <th>Line</th>
+            <th class="r">Tax Rate</th>
+            <th class="r">Written Premium YTD</th>
+            <th class="r">Surcharges</th>
+            <th class="r">Estimated Tax Accrued</th>
+            <th>Status</th>
+            <th class="r">Due Date</th>
+          </tr>
+        </thead>
+        <tbody id="jurisTbody"></tbody>
+        <tfoot id="jurisFoot"></tfoot>
+      </table>
+    </div>
+
+    <!-- RIGHT: Premium Tax Estimator -->
+    <div class="ptc-estimator">
+      <div class="ptc-est-hdr">
+        <div class="ptc-est-title">Premium Tax Estimator</div>
+        <div class="ptc-est-sub">Real-time single-state calculation</div>
+      </div>
+      <div class="ptc-est-body">
+
+        <div class="ptc-field">
+          <div class="ptc-lbl">State Jurisdiction</div>
+          <select class="ptc-select" id="estState" onchange="recalcEstimator()">
+            <option value="TX">Texas (TX)</option>
+            <option value="FL">Florida (FL)</option>
+            <option value="CA">California (CA)</option>
+            <option value="NY">New York (NY)</option>
+            <option value="IL">Illinois (IL)</option>
+            <option value="OH">Ohio (OH)</option>
+            <option value="GA">Georgia (GA)</option>
+            <option value="PA">Pennsylvania (PA)</option>
+          </select>
+        </div>
+
+        <div class="ptc-field">
+          <div class="ptc-lbl">Line of Business</div>
+          <select class="ptc-select" id="estLob" onchange="recalcEstimator()">
+            <option value="Auto">Auto (Private Passenger)</option>
+            <option value="Property" selected>Property</option>
+            <option value="GL">General Liability</option>
+            <option value="Marine">Marine</option>
+          </select>
+        </div>
+
+        <div class="ptc-field">
+          <div class="ptc-lbl">Direct Written Premium ($)</div>
+          <input class="ptc-input" type="number" id="estPremium" value="1250000" oninput="recalcEstimator()">
+        </div>
+
+        <div class="ptc-rate-display" id="estRateDisplay">
+          <div class="ptc-rate-lbl">Statutory Tax Rate</div>
+          <div class="ptc-rate-val" id="estRateVal">1.60%</div>
+        </div>
+
+        <div class="ptc-section-lbl">Liability Breakdown</div>
+
+        <div class="ptc-result-box">
+          <div class="ptc-result-row">
+            <span class="ptc-result-lbl">Base Premium Tax</span>
+            <span class="ptc-result-val" id="rBaseTax">$20,000</span>
+          </div>
+          <div class="ptc-result-row">
+            <span class="ptc-result-lbl">Fire Marshal Surcharge</span>
+            <span class="ptc-result-val" id="rFireSurcharge">$1,250</span>
+          </div>
+          <div class="ptc-result-row">
+            <span class="ptc-result-lbl">State Assessment</span>
+            <span class="ptc-result-val" id="rAssessment">$875</span>
+          </div>
+          <div class="ptc-result-row">
+            <span class="ptc-result-lbl">Municipal Tax</span>
+            <span class="ptc-result-val" id="rMunicipal">$0</span>
+          </div>
+          <div class="ptc-result-row total">
+            <span class="ptc-result-lbl">Estimated Tax Liability</span>
+            <span class="ptc-result-val" id="rTotal">$22,125</span>
+          </div>
+        </div>
+
+        <div style="font-size:11px;color:var(--gray-400);margin-bottom:12px;">
+          Effective rate: <strong id="rEffRate" style="color:var(--navy);">1.77%</strong> &nbsp;·&nbsp;
+          Next filing: <strong id="rFilingDate" style="color:var(--coral);">Jun 30, 2026</strong>
+        </div>
+
+        <button class="ptc-book-btn" onclick="bookAccrual()">Book Tax Accrual</button>
+        <button class="ptc-export-btn" onclick="exportEstimator()">Export Calculation</button>
+
+        <div class="ptc-section-lbl" style="margin-top:16px;">Scenario Comparison</div>
+        <div style="font-size:12px;color:var(--gray-500);text-align:center;padding:10px 0;" id="scenarioNote">
+          Select a row in the table to compare jurisdictions
+        </div>
+        <div id="scenarioCompare" style="display:none;">
+          <div class="ptc-result-row" style="font-size:12px;">
+            <span class="ptc-result-lbl" id="scState1"> - </span>
+            <span class="ptc-result-val" id="scTax1"> - </span>
+          </div>
+          <div class="ptc-result-row" style="font-size:12px;">
+            <span class="ptc-result-lbl">Current (Estimator)</span>
+            <span class="ptc-result-val" id="scTax2"> - </span>
+          </div>
+          <div class="ptc-result-row" style="font-size:12px;color:var(--gray-500);">
+            <span>Difference</span>
+            <span id="scDiff" style="font-weight:700;"> - </span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div><!-- /ptc-main -->
+
+  <!-- ═══ BOTTOM DETAIL ROW ═══ -->
+  <div class="ptc-detail">
+
+    <!-- State Tax Rate Comparison bars -->
+    <div class="ptc-detail-card">
+      <div class="ptc-detail-hdr">
+        State Rate Comparison
+        <span style="font-size:11px;font-weight:400;color:var(--gray-400);">Top active jurisdictions</span>
+      </div>
+      <div class="ptc-detail-body" id="rateCompare">
+        <!-- rendered by JS -->
+      </div>
+    </div>
+
+    <!-- Filing Calendar -->
+    <div class="ptc-detail-card">
+      <div class="ptc-detail-hdr">
+        Filing Calendar 2026
+        <span style="font-size:11px;font-weight:400;color:var(--gray-400);">Quarterly due dates</span>
+      </div>
+      <div class="ptc-detail-body">
+        <div class="ptc-cal-grid">
+          <div class="ptc-cal-item paid">
+            <div class="ptc-cal-q">Q1 2026</div>
+            <div class="ptc-cal-due">Due: Mar 31, 2026</div>
+            <div class="ptc-cal-amt">$284,150</div>
+            <span class="ptc-cal-badge paid">Filed</span>
+          </div>
+          <div class="ptc-cal-item due">
+            <div class="ptc-cal-q">Q2 2026</div>
+            <div class="ptc-cal-due">Due: Jun 30, 2026</div>
+            <div class="ptc-cal-amt" id="calQ2"> - </div>
+            <span class="ptc-cal-badge due">Due Soon</span>
+          </div>
+          <div class="ptc-cal-item upcoming">
+            <div class="ptc-cal-q">Q3 2026</div>
+            <div class="ptc-cal-due">Due: Sep 30, 2026</div>
+            <div class="ptc-cal-amt"> - </div>
+            <span class="ptc-cal-badge upcoming">Upcoming</span>
+          </div>
+          <div class="ptc-cal-item upcoming">
+            <div class="ptc-cal-q">Q4 2026</div>
+            <div class="ptc-cal-due">Due: Dec 31, 2026</div>
+            <div class="ptc-cal-amt"> - </div>
+            <span class="ptc-cal-badge upcoming">Upcoming</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /ptc-detail -->
+
+</main><!-- /main-content -->
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════════════════════════
+const STATE_RATES = {
+  TX: { rate: 0.016,  surcharge: 0.001,  assessment: 0.0007, municipal: 0,      filing: 'Jun 30, 2026' },
+  FL: { rate: 0.0175, surcharge: 0.0015, assessment: 0.0005, municipal: 0.005,  filing: 'Apr 30, 2026' },
+  CA: { rate: 0.0235, surcharge: 0.002,  assessment: 0.001,  municipal: 0,      filing: 'Jun 30, 2026' },
+  NY: { rate: 0.02,   surcharge: 0.0025, assessment: 0.0008, municipal: 0.003,  filing: 'Jun 30, 2026' },
+  IL: { rate: 0.005,  surcharge: 0.001,  assessment: 0.0005, municipal: 0,      filing: 'Mar 31, 2026' },
+  OH: { rate: 0.014,  surcharge: 0.0005, assessment: 0.0006, municipal: 0.002,  filing: 'Jun 30, 2026' },
+  GA: { rate: 0.0225, surcharge: 0.002,  assessment: 0.001,  municipal: 0,      filing: 'Jun 30, 2026' },
+  PA: { rate: 0.02,   surcharge: 0.001,  assessment: 0.0007, municipal: 0.001,  filing: 'Jun 30, 2026' },
+};
+
+const JURIS_DATA = [
+  { state:'Texas',        abbr:'TX', lob:'Property',  premYTD:4820000, premMTD:1240000, premITD:12400000, dateYM:'2026-05', status:'Accrued' },
+  { state:'Florida',      abbr:'FL', lob:'Auto',      premYTD:3610000, premMTD:890000,  premITD:9300000,  dateYM:'2026-05', status:'Filed' },
+  { state:'California',   abbr:'CA', lob:'Property',  premYTD:5240000, premMTD:1380000, premITD:13800000, dateYM:'2026-05', status:'Accrued' },
+  { state:'New York',     abbr:'NY', lob:'GL',        premYTD:2980000, premMTD:760000,  premITD:7600000,  dateYM:'2026-05', status:'Pending' },
+  { state:'Illinois',     abbr:'IL', lob:'Auto',      premYTD:1850000, premMTD:490000,  premITD:4900000,  dateYM:'2026-05', status:'Accrued' },
+  { state:'Ohio',         abbr:'OH', lob:'Property',  premYTD:1420000, premMTD:360000,  premITD:3600000,  dateYM:'2026-05', status:'Accrued' },
+  { state:'Georgia',      abbr:'GA', lob:'GL',        premYTD:2100000, premMTD:540000,  premITD:5400000,  dateYM:'2026-05', status:'Pending' },
+  { state:'Pennsylvania', abbr:'PA', lob:'Marine',    premYTD:980000,  premMTD:260000,  premITD:2600000,  dateYM:'2026-05', status:'Filed' },
+  { state:'Texas',        abbr:'TX', lob:'Auto',      premYTD:2340000, premMTD:610000,  premITD:6200000,  dateYM:'2026-04', status:'Filed' },
+  { state:'Florida',      abbr:'FL', lob:'Property',  premYTD:1760000, premMTD:440000,  premITD:4400000,  dateYM:'2026-04', status:'Filed' },
+  { state:'California',   abbr:'CA', lob:'Marine',    premYTD:870000,  premMTD:220000,  premITD:2200000,  dateYM:'2026-03', status:'Filed' },
+  { state:'New York',     abbr:'NY', lob:'Auto',      premYTD:3120000, premMTD:780000,  premITD:7800000,  dateYM:'2026-03', status:'Filed' },
+  { state:'Ohio',         abbr:'OH', lob:'GL',        premYTD:620000,  premMTD:155000,  premITD:1550000,  dateYM:'2025-12', status:'Filed' },
+  { state:'Georgia',      abbr:'GA', lob:'Property',  premYTD:1480000, premMTD:370000,  premITD:3700000,  dateYM:'2025-11', status:'Overdue' },
+  { state:'Illinois',     abbr:'IL', lob:'GL',        premYTD:740000,  premMTD:185000,  premITD:1850000,  dateYM:'2025-10', status:'Overdue' },
+];
+
+const PERIOD_STATS = {
+  itd: { totalTax:'$1,842,500', jurisdictions:'8', avgRate:'1.94%', upcoming:'4 filings', taxTrend:'+12.4%', jTrend:'+1', rateTrend:'+0.1%', upTrend:'Q2-Q4' },
+  ytd: { totalTax:'$892,300',  jurisdictions:'8', avgRate:'1.94%', upcoming:'2 filings', taxTrend:'+8.2%',  jTrend:'0',  rateTrend:'0.0%',  upTrend:'Q2-Q3' },
+  mtd: { totalTax:'$224,100',  jurisdictions:'6', avgRate:'1.91%', upcoming:'1 filing',  taxTrend:'+5.1%',  jTrend:'-1', rateTrend:'-0.2%', upTrend:'Q2' },
+};
+
+// ══════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════
+let currentPeriod = 'ytd';
+let selectedRow = null;
+
+// ══════════════════════════════════════════════════════════════
+// PERIOD TOGGLE
+// ══════════════════════════════════════════════════════════════
+function setPeriod(p) {
+  currentPeriod = p;
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase() === p));
+  renderStats();
+  renderTable();
+}
+
+// ══════════════════════════════════════════════════════════════
+// STAT CARDS
+// ══════════════════════════════════════════════════════════════
+function renderStats() {
+  const s = PERIOD_STATS[currentPeriod];
+  const periodLabel = currentPeriod === 'mtd' ? 'MTD' : currentPeriod === 'ytd' ? 'YTD' : 'All-time';
+  document.getElementById('statCards').innerHTML = `
+    <div class="ptc-stat s-navy">
+      <div class="ptc-stat-lbl">Total Tax Accrued (${periodLabel})</div>
+      <div class="ptc-stat-val">${s.totalTax}</div>
+      <div class="ptc-stat-sub">Across all jurisdictions</div>
+      <span class="ptc-stat-badge up">${s.taxTrend} vs prior</span>
+    </div>
+    <div class="ptc-stat s-blue">
+      <div class="ptc-stat-lbl">Jurisdictions Active</div>
+      <div class="ptc-stat-val">${s.jurisdictions}</div>
+      <div class="ptc-stat-sub">States with written premium</div>
+      <span class="ptc-stat-badge ${s.jTrend.startsWith('+') ? 'up' : 'down'}">${s.jTrend === '0' ? 'No change' : s.jTrend + ' vs prior'}</span>
+    </div>
+    <div class="ptc-stat s-green">
+      <div class="ptc-stat-lbl">Avg Effective Rate</div>
+      <div class="ptc-stat-val">${s.avgRate}</div>
+      <div class="ptc-stat-sub">Blended across all states</div>
+      <span class="ptc-stat-badge ${s.rateTrend.startsWith('+') ? 'up' : 'down'}">${s.rateTrend} vs prior</span>
+    </div>
+    <div class="ptc-stat s-coral">
+      <div class="ptc-stat-lbl">Upcoming Filings</div>
+      <div class="ptc-stat-val">${s.upcoming}</div>
+      <div class="ptc-stat-sub">${s.upTrend} due dates</div>
+      <span class="ptc-stat-badge down">Action required</span>
+    </div>
+  `;
+}
+
+// ══════════════════════════════════════════════════════════════
+// JURISDICTION TABLE
+// ══════════════════════════════════════════════════════════════
+function getPremField(row) {
+  if (currentPeriod === 'mtd') return row.premMTD;
+  if (currentPeriod === 'ytd') return row.premYTD;
+  return row.premITD;
+}
+
+function periodFilter(row) {
+  if (currentPeriod === 'mtd') return row.dateYM === '2026-05';
+  if (currentPeriod === 'ytd') return row.dateYM && row.dateYM.startsWith('2026');
+  return true;
+}
+
+function calcTaxRow(row) {
+  const sr = STATE_RATES[row.abbr] || { rate:0.02, surcharge:0.001, assessment:0.0007, municipal:0 };
+  const prem = getPremField(row);
+  const base = prem * sr.rate;
+  const sur  = prem * sr.surcharge;
+  const asmnt = prem * sr.assessment;
+  const muni = prem * sr.municipal;
+  const total = base + sur + asmnt + muni;
+  return { base, sur, asmnt, muni, total, prem, sr };
+}
+
+function renderTable() {
+  const search = (document.getElementById('searchJuris').value || '').toLowerCase();
+  const lobF = document.getElementById('filterLob').value;
+  const statusF = document.getElementById('filterStatus').value;
+
+  let rows = JURIS_DATA.filter(r => {
+    if (!periodFilter(r)) return false;
+    if (lobF && r.lob !== lobF) return false;
+    if (statusF && r.status !== statusF) return false;
+    if (search && !r.state.toLowerCase().includes(search) && !r.abbr.toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  let totalPrem = 0, totalTax = 0;
+
+  const tbody = document.getElementById('jurisTbody');
+  tbody.innerHTML = rows.map((r, i) => {
+    const calc = calcTaxRow(r);
+    totalPrem += calc.prem;
+    totalTax  += calc.total;
+    const statusClass = { Accrued:'accrued', Pending:'pending', Filed:'filed', Overdue:'overdue' }[r.status] || 'pending';
+    return `<tr onclick="selectRow(this, ${i})" data-idx="${i}">
+      <td><strong>${r.state}</strong> <span style="font-size:10.5px;color:var(--gray-400);">${r.abbr}</span></td>
+      <td>${r.lob}</td>
+      <td class="r">${(STATE_RATES[r.abbr]?.rate * 100 || 2).toFixed(2)}%</td>
+      <td class="r">$${fmt(calc.prem)}</td>
+      <td class="r">$${fmt(calc.sur + calc.asmnt)}</td>
+      <td class="r" style="font-weight:600;color:var(--navy);">$${fmt(calc.total)}</td>
+      <td><span class="ptc-status ${statusClass}">${r.status === 'Accrued' ? 'Accrued & Reconciled' : r.status}</span></td>
+      <td class="r" style="font-size:11.5px;">${STATE_RATES[r.abbr]?.filing || 'Jun 30, 2026'}</td>
+    </tr>`;
+  }).join('');
+
+  if (!rows.length) {
+    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--gray-400);">No results for current filters</td></tr>`;
+  }
+
+  document.getElementById('jurisFoot').innerHTML = `
+    <tr>
+      <td colspan="3"><strong>Total (${rows.length} jurisdictions)</strong></td>
+      <td class="r"><strong>$${fmt(totalPrem)}</strong></td>
+      <td class="r"> - </td>
+      <td class="r"><strong>$${fmt(totalTax)}</strong></td>
+      <td colspan="2"></td>
+    </tr>
+  `;
+
+  document.getElementById('calQ2').textContent = '$' + fmt(totalTax);
+  renderRateCompare(rows);
+}
+
+function selectRow(tr, idx) {
+  document.querySelectorAll('#jurisTbody tr').forEach(r => r.classList.remove('selected'));
+  tr.classList.add('selected');
+  const r = JURIS_DATA.filter(row => {
+    const lobF = document.getElementById('filterLob').value;
+    const statusF = document.getElementById('filterStatus').value;
+    if (!periodFilter(row)) return false;
+    if (lobF && row.lob !== lobF) return false;
+    if (statusF && row.status !== statusF) return false;
+    return true;
+  })[idx];
+  if (!r) return;
+  const calc = calcTaxRow(r);
+  document.getElementById('scenarioNote').style.display = 'none';
+  document.getElementById('scenarioCompare').style.display = 'block';
+  document.getElementById('scState1').textContent = `${r.state} (${r.abbr}) - ${r.lob}`;
+  document.getElementById('scTax1').textContent = '$' + fmt(calc.total);
+  const estTotal = parseFloat(document.getElementById('rTotal').textContent.replace(/[$,]/g,'')) || 0;
+  document.getElementById('scTax2').textContent = document.getElementById('rTotal').textContent;
+  const diff = estTotal - calc.total;
+  document.getElementById('scDiff').textContent = (diff >= 0 ? '+' : '') + '$' + fmt(Math.abs(diff));
+  document.getElementById('scDiff').style.color = diff >= 0 ? '#c62828' : '#2e7d32';
+}
+
+// ══════════════════════════════════════════════════════════════
+// RATE COMPARISON BARS
+// ══════════════════════════════════════════════════════════════
+function renderRateCompare(rows) {
+  const seen = {};
+  const unique = rows.filter(r => { if (seen[r.abbr]) return false; seen[r.abbr] = true; return true; });
+  const maxRate = Math.max(...unique.map(r => STATE_RATES[r.abbr]?.rate || 0.02));
+  document.getElementById('rateCompare').innerHTML = unique.slice(0, 8).map(r => {
+    const rate = STATE_RATES[r.abbr]?.rate || 0.02;
+    const pct = (rate / maxRate * 100).toFixed(0);
+    return `<div class="ptc-bar-row">
+      <div class="ptc-bar-state">${r.abbr} - ${r.lob.substring(0,4)}</div>
+      <div class="ptc-bar-track"><div class="ptc-bar-fill" style="width:${pct}%;background:${rate > 0.02 ? 'var(--coral)' : 'var(--navy)'};"></div></div>
+      <div class="ptc-bar-pct">${(rate*100).toFixed(2)}%</div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+// ESTIMATOR
+// ══════════════════════════════════════════════════════════════
+function recalcEstimator() {
+  const abbr = document.getElementById('estState').value;
+  const prem = parseFloat(document.getElementById('estPremium').value) || 0;
+  const sr = STATE_RATES[abbr] || { rate:0.02, surcharge:0.001, assessment:0.0007, municipal:0, filing:'Jun 30, 2026' };
+
+  const base    = prem * sr.rate;
+  const fireSur = prem * sr.surcharge;
+  const assess  = prem * sr.assessment;
+  const muni    = prem * sr.municipal;
+  const total   = base + fireSur + assess + muni;
+  const effRate = prem > 0 ? (total / prem * 100).toFixed(2) : '0.00';
+
+  document.getElementById('estRateVal').textContent       = (sr.rate * 100).toFixed(2) + '%';
+  document.getElementById('rBaseTax').textContent         = '$' + fmt(base);
+  document.getElementById('rFireSurcharge').textContent   = '$' + fmt(fireSur);
+  document.getElementById('rAssessment').textContent      = '$' + fmt(assess);
+  document.getElementById('rMunicipal').textContent       = '$' + fmt(muni);
+  document.getElementById('rTotal').textContent           = '$' + fmt(total);
+  document.getElementById('rEffRate').textContent         = effRate + '%';
+  document.getElementById('rFilingDate').textContent      = sr.filing;
+}
+
+// ══════════════════════════════════════════════════════════════
+// ACTIONS
+// ══════════════════════════════════════════════════════════════
+function bookAccrual() {
+  const state = document.getElementById('estState').value;
+  const total = document.getElementById('rTotal').textContent;
+  showToast(`Tax accrual of ${total} booked for ${state} - Journal entry created`, 'success');
+}
+
+function exportEstimator() {
+  const state = document.getElementById('estState').value;
+  const rows = [
+    ['State', state],
+    ['Statutory Rate', document.getElementById('estRateVal').textContent],
+    ['Base Tax', document.getElementById('rBaseTax').textContent],
+    ['Surcharges', document.getElementById('rFireSurcharge').textContent],
+    ['Assessment', document.getElementById('rAssessment').textContent],
+    ['Municipal', document.getElementById('rMunicipal').textContent],
+    ['Total Liability', document.getElementById('rTotal').textContent],
+    ['Effective Rate', document.getElementById('rEffRate').textContent],
+  ];
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv,' + encodeURIComponent(csv);
+  a.download = `tax-estimate-${state}.csv`;
+  a.click();
+}
+
+function exportTable() {
+  const headers = ['State','Line','Tax Rate','Written Premium','Surcharges','Est. Tax','Status','Due Date'];
+  const rows = Array.from(document.querySelectorAll('#jurisTbody tr')).map(tr =>
+    Array.from(tr.querySelectorAll('td')).map(td => td.innerText.replace(/\n/g,' ').trim())
+  );
+  const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv,' + encodeURIComponent(csv);
+  a.download = 'tax-allocations.csv';
+  a.click();
+}
+
+function showToast(msg, type) {
+  let t = document.getElementById('toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText = 'position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:9999;transition:opacity .3s;box-shadow:0 4px 16px rgba(0,0,0,.15);';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.background = type === 'success' ? '#2e7d32' : '#c62828';
+  t.style.color = '#fff';
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.style.opacity = '0', 3000);
+}
+
+function fmt(n) {
+  return Math.round(n).toLocaleString('en-US');
+}
+
+// ══════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  initLayout('premium-tax');
+  renderStats();
+  renderTable();
+  recalcEstimator();
+});
+</script>
+</body>
+</html>

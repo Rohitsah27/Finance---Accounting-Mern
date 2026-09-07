@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Collections & Dunning — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Accounts Receivable</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Collections</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-bullhorn" style="color: var(--purple);"></i> Collections &amp; Dunning <span class="file-tag">accounts-receivable.html#ar-collections</span></h1>
+      <p>
+        The Collections module automates customer payment reminder notices, escalating overdue accounts through friendly reminders, formal demands, and cancellation warnings.
+      </p>
+    </div>
+
+    <div class="module-card">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-purple">Dunning Workflows</span>
+            <span class="badge badge-amber">Automated Notices</span>
+          </div>
+          <h2 class="module-title">Automated Dunning Tiers</h2>
+        </div>
+        <a href="../accounts-receivable.html#ar-collections" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Collections</a>
+      </div>
+
+      <div class="flow-steps">
+        <div class="flow-step-item">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <strong>Tier 1 Notice (7 Days Overdue)</strong>
+            <span>Polite email reminder attaching invoice PDF and online payment link.</span>
+          </div>
+        </div>
+        <div class="flow-step-item">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <strong>Tier 2 Notice (21 Days Overdue)</strong>
+            <span>Urgent warning sent to both insured and retail broker with late fee application.</span>
+          </div>
+        </div>
+        <div class="flow-step-item">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <strong>Tier 3: Notice of Intent to Cancel / NOIC (45 Days)</strong>
+            <span>Statutory 10-day notice prior to policy cancellation for non-payment of premium.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="ar-aging.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">AR Aging Analysis</span>
+      </a>
+      <a href="ar-statements.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Submodule &rarr;</span>
+        <span class="nav-page-title">Customer Statements</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('ar-collections');
+</script>
+</body>
+</html>

@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workspace Selector — Platform | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/layout.js"></script>
+</head>
+<body style="background-color: var(--color-surface);">
+  <main class="main-content" style="margin-left:0;padding-top:0;background:transparent;">
+    <div style="max-width:1180px;margin:0 auto;padding:40px 24px 60px;">
+
+      <div style="margin-bottom:20px;">
+        <a href="home.html" class="btn btn-ghost btn-sm">← Back to my business</a>
+      </div>
+      <div style="margin-bottom:28px;">
+        <div class="page-header-title" style="font-size:22px;font-weight:800;color:var(--gray-900);">Explore other business types</div>
+        <div style="font-size:13px;color:var(--gray-500);margin-top:4px;max-width:640px;">
+          This is a demo area, not your day-to-day workspace. Your own business stays exactly as you set it up during onboarding.
+          Use this to see how the same platform reconfigures itself for an insurance agency, MGA, carrier, or reinsurer, or for a different
+          kind of general business, each with its own modules, dimensions, and dashboards driven entirely by configuration.
+        </div>
+      </div>
+
+      <div class="form-card" style="margin-bottom:24px;">
+        <div style="font-size:12.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--gray-500);margin-bottom:12px;">1 · Entity / Business</div>
+        <div class="v-role-grid" id="entity-grid"></div>
+      </div>
+
+      <div class="form-card">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+          <div style="font-size:12.5px;font-weight:800;text-transform:uppercase;letter-spacing:.04em;color:var(--gray-500);">2 · Your Role in <span id="active-entity-name" style="color:var(--v-teal);"></span></div>
+          <span class="v-badge-config">Config-driven</span>
+        </div>
+        <div class="v-role-grid" id="role-grid"></div>
+      </div>
+
+    </div>
+  </main>
+
+  <script src="js/app.js"></script>
+  <script>
+    const ROLE_ICON_BG = {
+      owner:'#e6f4f1', cfo:'#fbf0e2', controller:'#e3f2fd', accountant:'#eeebf6', 'ap-ar-clerk':'#eeebf6',
+      'payroll-admin':'#eeebf6', auditor:'#fce4ec', 'agency-principal':'#e6f4f1', 'broker-producer':'#e6f4f1', 'mga-ops':'#fbf0e2',
+      'carrier-controller':'#e3f2fd', 'reinsurance-analyst':'#eeebf6', admin:'#e6f4f1'
+    };
+    const ROLE_EMOJI = {
+      owner:'👤', cfo:'📊', controller:'📚', accountant:'🧮', 'ap-ar-clerk':'🧾', 'payroll-admin':'💵',
+      auditor:'🔍', 'agency-principal':'🏢', 'broker-producer':'🏢', 'mga-ops':'🧾', 'carrier-controller':'🛡️',
+      'reinsurance-analyst':'🌐', admin:'⚙️'
+    };
+
+    function renderEntityGrid() {
+      const cfg = getTenantConfig();
+      const grid = document.getElementById('entity-grid');
+      grid.innerHTML = cfg.secondaryEntities.map(e => {
+        const bt = getBusinessType(e.businessType);
+        const active = e.id === cfg.activeEntityId;
+        return `<div class="v-role-card" style="${active ? 'border-color:var(--v-teal);box-shadow:var(--shadow);' : ''}" onclick="selectEntity('${e.id}')">
+          <div class="v-role-card-icon" style="background:var(--v-teal-bg);">${bt.icon}</div>
+          <h4>${e.name}</h4>
+          <p>${bt.label} - ${bt.desc}</p>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            ${e.id === 'ENT-MINE' ? '<span class="v-badge-config">Your business</span>' : '<span class="v-badge-industry-only">Demo entity</span>'}
+            ${active ? '<span class="badge badge-green">Active</span>' : ''}
+          </div>
+        </div>`;
+      }).join('');
+      document.getElementById('active-entity-name').textContent = getActiveEntity().name;
+    }
+
+    function selectEntity(entityId) {
+      const cfg = getTenantConfig();
+      if (entityId !== cfg.activeEntityId) {
+        switchActiveEntity(entityId); // reloads the page with that entity's own module/dimension config restored
+        return;
+      }
+      renderEntityGrid();
+      renderRoleGrid();
+    }
+
+    function renderRoleGrid() {
+      const cfg = getTenantConfig();
+      const roles = rolesForBusinessType(cfg.businessType);
+      const grid = document.getElementById('role-grid');
+      grid.innerHTML = roles.map(r => `
+        <div class="v-role-card" onclick="goToDashboard('${r.id}','${r.dashboard}')">
+          <div class="v-role-card-icon" style="background:${ROLE_ICON_BG[r.id] || 'var(--v-teal-bg)'};">${ROLE_EMOJI[r.id] || '👤'}</div>
+          <h4>${r.label}</h4>
+          <p>Opens the ${r.label.toLowerCase()} dashboard, pre-filtered to ${getActiveEntity().name}.</p>
+        </div>`).join('');
+    }
+
+    function goToDashboard(roleId, href) {
+      const user = getCurrentUser();
+      user.role = roleId;
+      sessionStorage.setItem('v_current_user', JSON.stringify(user));
+      window.location.href = href;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      renderEntityGrid();
+      renderRoleGrid();
+    });
+  </script>
+</body>
+</html>

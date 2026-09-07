@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API & Webhook Hub — Integrations | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/layout.js"></script>
+</head>
+<body>
+
+<main class="main-content" id="main-content">
+  <div class="page-header">
+    <div>
+      <div class="page-title">API &amp; Integration Hub</div>
+      <div class="page-subtitle">Keys, webhooks, the full event catalogue and async import/export jobs, all in one place.</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-primary" id="finish-setup-btn" style="display:none;" onclick="finishGuidedSetup()">Finish setup →</button>
+    </div>
+  </div>
+
+  <div class="v-lock-note" id="connect-data-note" style="margin-bottom:16px;display:none;">
+    <strong>Two ways to keep data flowing in besides uploading a spreadsheet:</strong> generate an <strong>API key</strong> below and call the REST endpoints directly, or register a <strong>webhook</strong> (we give you a per-tenant signing secret) so an external system can push data to a URL of yours, or you can point your own sender at ours using that same secret. Pick one, both, or neither, spreadsheet upload always keeps working regardless.
+  </div>
+
+  <div class="v-lock-note" style="margin-bottom:16px;">
+    REST convention: base path <code>/api/v1/{resource}</code>. An <code>Idempotency-Key</code> header is required on every financial POST. Errors are returned as RFC 9457 <code>application/problem+json</code>. List endpoints use cursor pagination (<code>?cursor=</code>), never page numbers.
+  </div>
+
+  <div id="api-tabs">
+    <div class="page-tabs">
+      <div class="page-tab active" data-tab="keys"    onclick="switchTab('api-tabs','keys')">API Keys</div>
+      <div class="page-tab"        data-tab="webhooks" onclick="switchTab('api-tabs','webhooks')">Webhooks</div>
+      <div class="page-tab"        data-tab="events"   onclick="switchTab('api-tabs','events')">Event Catalog</div>
+      <div class="page-tab"        data-tab="jobs"     onclick="switchTab('api-tabs','jobs')">Import/Export Jobs</div>
+    </div>
+
+    <!-- API KEYS -->
+    <div class="tab-panel active" data-panel="keys">
+      <div class="form-card" style="padding:20px;border-radius:0 0 8px 8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <div class="card-title">Active API Keys</div>
+          <button class="btn btn-primary btn-sm" onclick="document.getElementById('new-key-form').style.display='block';">+ Generate New Key</button>
+        </div>
+        <div id="key-rows"></div>
+
+        <div id="new-key-form" class="form-card" style="display:none;margin-top:16px;padding:16px;background:var(--gray-50);">
+          <div class="card-title" style="font-size:13px;">Generate New API Key</div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;">
+            <div>
+              <label class="filter-bar-label" style="display:block;margin-bottom:6px;">Environment</label>
+              <select class="filter-select" id="new-key-env"><option value="live">Live</option><option value="sandbox">Sandbox</option></select>
+            </div>
+            <div>
+              <label class="filter-bar-label" style="display:block;margin-bottom:6px;">Key Name</label>
+              <input class="filter-input" id="new-key-name" placeholder="e.g. Reporting Warehouse Sync">
+            </div>
+          </div>
+          <div style="margin-top:12px;">
+            <label class="filter-bar-label" style="display:block;margin-bottom:6px;">Scopes</label>
+            <div style="display:flex;gap:16px;flex-wrap:wrap;">
+              ${['read:ledger','write:ledger','read:ar-ap','write:ar-ap','read:reports'].map(s => `
+                <label style="display:flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" class="new-key-scope" value="${s}"> ${s}</label>`).join('')}
+            </div>
+          </div>
+          <div style="margin-top:14px;">
+            <button class="btn btn-primary btn-sm" onclick="generateKey()">Generate Key</button>
+            <button class="btn btn-outline btn-sm" onclick="document.getElementById('new-key-form').style.display='none';">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- WEBHOOKS -->
+    <div class="tab-panel" data-panel="webhooks">
+      <div class="form-card" style="padding:20px;border-radius:0 0 8px 8px;margin-bottom:16px;">
+        <div class="card-title">Webhook Endpoints</div>
+        <div id="webhook-subs" style="margin-top:12px;"></div>
+        <div class="form-card" style="margin-top:16px;padding:16px;background:var(--gray-50);">
+          <div class="card-title" style="font-size:13px;">Add Webhook Endpoint</div>
+          <div style="margin-top:12px;">
+            <label class="filter-bar-label" style="display:block;margin-bottom:6px;">Endpoint URL</label>
+            <input class="filter-input" style="width:100%;max-width:480px;" id="new-webhook-url" placeholder="https://your-app.example.com/webhooks/veridex">
+          </div>
+          <div style="margin-top:12px;">
+            <label class="filter-bar-label" style="display:block;margin-bottom:6px;">Signing Secret</label>
+            <div class="v-api-key-value" id="new-webhook-secret">whsec_${Math.random().toString(36).slice(2, 18)}</div>
+          </div>
+          <div style="margin-top:12px;">
+            <label class="filter-bar-label" style="display:block;margin-bottom:6px;">Events</label>
+            <div style="display:flex;gap:14px;flex-wrap:wrap;">
+              ${['invoice.created','payment.applied','journalEntry.posted','claim.reserved','bordereau.imported','commission.calculated'].map(e => `
+                <label style="display:flex;align-items:center;gap:6px;font-size:12px;"><input type="checkbox" class="new-webhook-event"> ${e}</label>`).join('')}
+            </div>
+          </div>
+          <div style="margin-top:14px;"><button class="btn btn-primary btn-sm" onclick="addWebhook()">Save Endpoint</button></div>
+        </div>
+      </div>
+      <div class="form-card" style="padding:20px;border-radius:0 0 8px 8px;">
+        <div class="card-title">Delivery Log</div>
+        <div id="webhook-log" style="margin-top:10px;"></div>
+      </div>
+    </div>
+
+    <!-- EVENT CATALOG -->
+    <div class="tab-panel" data-panel="events">
+      <div class="form-card" style="padding:20px;border-radius:0 0 8px 8px;">
+        <div class="card-title">Event Catalog</div>
+        <div style="font-size:12px;color:var(--gray-500);margin:2px 0 14px;">Click any event to view a sample payload.</div>
+        <table class="data-table" id="events-table">
+          <thead><tr><th>Event</th><th>Description</th></tr></thead>
+          <tbody id="events-rows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- IMPORT/EXPORT JOBS -->
+    <div class="tab-panel" data-panel="jobs">
+      <div class="form-card" style="padding:20px;border-radius:0 0 8px 8px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <div class="card-title">Async Import/Export Jobs</div>
+          <button class="btn btn-primary btn-sm" onclick="document.getElementById('new-export-form').style.display='block';">+ New Export</button>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Job Type</th><th>Status</th><th>Rows</th><th>Started</th><th>Completed</th></tr></thead>
+          <tbody id="jobs-rows"></tbody>
+        </table>
+
+        <div id="new-export-form" class="form-card" style="display:none;margin-top:16px;padding:16px;background:var(--gray-50);">
+          <div class="card-title" style="font-size:13px;">New Export</div>
+          <div style="display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;">
+            <div>
+              <label class="filter-bar-label" style="display:block;margin-bottom:6px;">Entity Type</label>
+              <select class="filter-select" id="export-entity"><option>Chart of Accounts</option><option>Journal Entries</option><option>Invoices</option><option>Vendors</option><option>Policies</option></select>
+            </div>
+            <div>
+              <label class="filter-bar-label" style="display:block;margin-bottom:6px;">Date Range</label>
+              <select class="filter-select" id="export-range"><option>Last 30 days</option><option>Last 90 days</option><option>Current fiscal year</option><option>All time</option></select>
+            </div>
+            <div>
+              <label class="filter-bar-label" style="display:block;margin-bottom:6px;">Format</label>
+              <select class="filter-select" id="export-format"><option>CSV</option><option>JSON</option></select>
+            </div>
+          </div>
+          <div style="margin-top:14px;">
+            <button class="btn btn-primary btn-sm" onclick="queueExport()">Queue Export</button>
+            <button class="btn btn-outline btn-sm" onclick="document.getElementById('new-export-form').style.display='none';">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="js/app.js"></script>
+<script>
+initLayout('integration');
+
+if (isSetupGuardActive() && getTenantConfig().setupStage === 'connect') {
+  const btn = document.getElementById('finish-setup-btn');
+  const note = document.getElementById('connect-data-note');
+  if (btn) btn.style.display = '';
+  if (note) note.style.display = '';
+}
+
+function finishGuidedSetup() {
+  advanceSetupStage('done');
+  showToast('Setup complete. Welcome to Veridex.', 'success');
+  setTimeout(() => { window.location.href = 'home.html'; }, 800);
+}
+
+/* ---------- API Keys ---------- */
+let API_KEYS = [
+  { name: 'Reporting Warehouse', env: 'live',    value: 'vrdx_live_' + '•'.repeat(8) + '8f2a', scopes: ['read:ledger','read:reports'], created: '2026-03-12' },
+  { name: 'Payroll Sync',        env: 'live',    value: 'vrdx_live_' + '•'.repeat(8) + '5c11', scopes: ['read:ar-ap','write:ar-ap'],   created: '2026-05-02' },
+  { name: 'Sandbox Test Key',    env: 'sandbox', value: 'vrdx_test_' + '•'.repeat(8) + '9e30', scopes: ['read:ledger','write:ledger'], created: '2026-07-18' },
+];
+function renderKeys() {
+  document.getElementById('key-rows').innerHTML = API_KEYS.map((k, i) => `
+    <div class="v-api-key-row">
+      <div style="flex:1;">
+        <div style="font-weight:600;font-size:13px;">${k.name} <span class="badge ${k.env==='live'?'badge-green':'badge-gray'}" style="margin-left:6px;">${k.env}</span></div>
+        <div class="v-api-key-value" style="margin-top:4px;display:inline-block;">${k.value}</div>
+        <div style="margin-top:4px;">${k.scopes.map(s => `<span class="badge badge-blue" style="margin-right:3px;">${s}</span>`).join('')}</div>
+      </div>
+      <div style="font-size:11.5px;color:var(--gray-500);">Created ${k.created}</div>
+      <button class="btn btn-ghost btn-sm" style="color:var(--red);" onclick="revokeKey(${i})">Revoke</button>
+    </div>`).join('');
+}
+function generateKey() {
+  const name = document.getElementById('new-key-name').value.trim() || 'Untitled Key';
+  const env = document.getElementById('new-key-env').value;
+  const scopes = Array.from(document.querySelectorAll('.new-key-scope:checked')).map(c => c.value);
+  const suffix = Math.random().toString(16).slice(2, 6);
+  API_KEYS.push({ name, env, value: `vrdx_${env==='live'?'live':'test'}_` + '•'.repeat(8) + suffix, scopes: scopes.length ? scopes : ['read:ledger'], created: new Date().toISOString().slice(0,10) });
+  renderKeys();
+  document.getElementById('new-key-form').style.display = 'none';
+  showToast(`API key "${name}" generated`, 'success');
+}
+function revokeKey(i) {
+  if (!confirm(`Revoke "${API_KEYS[i].name}"? This cannot be undone.`)) return;
+  const name = API_KEYS[i].name;
+  API_KEYS.splice(i, 1);
+  renderKeys();
+  showToast(`Key "${name}" revoked`, 'info');
+}
+
+/* ---------- Webhooks ---------- */
+let WEBHOOK_SUBS = [
+  { url: 'https://ops.acme-mga.example.com/hooks/veridex', events: ['invoice.created','payment.applied'], status: 'active' },
+  { url: 'https://warehouse.internal.example.com/ingest',   events: ['journalEntry.posted','bordereau.imported'], status: 'active' },
+];
+const WEBHOOK_LOG = [
+  { ts: '2026-08-20 09:12', event: 'invoice.created',      url: 'ops.acme-mga.example.com', status: 200, retries: 0, state: 'ok' },
+  { ts: '2026-08-20 08:58', event: 'payment.applied',      url: 'ops.acme-mga.example.com', status: 200, retries: 0, state: 'ok' },
+  { ts: '2026-08-20 08:41', event: 'journalEntry.posted',  url: 'warehouse.internal.example.com', status: 503, retries: 2, state: 'retry' },
+  { ts: '2026-08-19 22:05', event: 'commission.calculated', url: 'warehouse.internal.example.com', status: 500, retries: 3, state: 'fail' },
+];
+function renderWebhooks() {
+  document.getElementById('webhook-subs').innerHTML = WEBHOOK_SUBS.map((w, i) => `
+    <div class="v-webhook-event" style="border:1px solid var(--gray-200);border-radius:8px;margin-bottom:8px;">
+      <span class="v-webhook-dot ${w.status==='active'?'ok':'fail'}"></span>
+      <div style="flex:1;">
+        <div style="font-weight:600;">${w.url}</div>
+        <div style="font-size:11px;color:var(--gray-500);">${w.events.join(', ')}</div>
+      </div>
+      <span class="badge ${w.status==='active'?'badge-green':'badge-gray'}">${w.status}</span>
+      <button class="btn btn-ghost btn-sm" onclick="removeWebhook(${i})">Remove</button>
+    </div>`).join('');
+  document.getElementById('webhook-log').innerHTML = WEBHOOK_LOG.map(l => `
+    <div class="v-webhook-event">
+      <span class="v-webhook-dot ${l.state}"></span>
+      <span style="width:130px;color:var(--gray-500);font-size:11px;">${l.ts}</span>
+      <span style="width:180px;font-weight:600;">${l.event}</span>
+      <span style="flex:1;color:var(--gray-500);">${l.url}</span>
+      <span class="badge ${l.status<300?'badge-green':'badge-red'}">${l.status}</span>
+      <span style="width:70px;font-size:11px;color:var(--gray-500);">retries: ${l.retries}</span>
+    </div>`).join('');
+}
+function removeWebhook(i) {
+  WEBHOOK_SUBS.splice(i, 1);
+  renderWebhooks();
+  showToast('Webhook endpoint removed', 'info');
+}
+function addWebhook() {
+  const url = document.getElementById('new-webhook-url').value.trim();
+  const events = Array.from(document.querySelectorAll('.new-webhook-event:checked')).map(c => c.parentElement.textContent.trim());
+  if (!url) { showToast('Endpoint URL is required', 'error'); return; }
+  WEBHOOK_SUBS.push({ url, events: events.length ? events : ['invoice.created'], status: 'active' });
+  renderWebhooks();
+  document.getElementById('new-webhook-url').value = '';
+  showToast('Webhook endpoint added', 'success');
+}
+
+/* ---------- Event Catalog ---------- */
+const EVENT_CATALOG = [
+  { name: 'invoice.created',       desc: 'Fired when a new customer invoice is issued.',
+    payload: { event: 'invoice.created', id: 'INV-2026-01043', customerId: 'CUST-2201', amount: 4820.00, currency: 'USD', dueDate: '2026-09-19' } },
+  { name: 'payment.applied',       desc: 'Fired when a payment is matched and applied to an open invoice.',
+    payload: { event: 'payment.applied', paymentId: 'PMT-88213', invoiceId: 'INV-2026-01043', amount: 4820.00, method: 'ACH' } },
+  { name: 'journalEntry.posted',   desc: 'Fired when a journal entry is posted to the general ledger.',
+    payload: { event: 'journalEntry.posted', jeId: 'JE-2026-008892', period: '2026-08', debit: 12500.00, credit: 12500.00 } },
+  { name: 'claim.reserved',        desc: 'Fired when a claim reserve is established or revised.',
+    payload: { event: 'claim.reserved', claimId: 'CLM-55210', policyNumber: 'POL-2026-000204', reserveAmount: 75000.00 } },
+  { name: 'bordereau.imported',    desc: 'Fired when a policy/bordereau bulk import job completes.',
+    payload: { event: 'bordereau.imported', jobId: 'JOB-7741', rowsImported: 812, rowsFlagged: 6 } },
+  { name: 'commission.calculated', desc: 'Fired when the commission engine finalizes a producer statement.',
+    payload: { event: 'commission.calculated', producerId: 'PROD-1188', period: '2026-08', amount: 6104.22 } },
+];
+function renderEvents() {
+  document.getElementById('events-rows').innerHTML = EVENT_CATALOG.map((e, i) => `
+    <tr style="cursor:pointer;" onclick="toggleEventPayload(${i})">
+      <td class="font-semibold" style="font-family:'SF Mono','Consolas',monospace;font-size:12px;color:var(--v-teal);">${e.name}</td>
+      <td style="font-size:12px;color:var(--gray-600);">${e.desc}</td>
+    </tr>
+    <tr id="event-payload-${i}" style="display:none;">
+      <td colspan="2"><pre style="background:var(--gray-50);border-radius:8px;padding:12px;font-size:11.5px;overflow-x:auto;"><code>${JSON.stringify(e.payload, null, 2)}</code></pre></td>
+    </tr>`).join('');
+}
+function toggleEventPayload(i) {
+  const row = document.getElementById('event-payload-' + i);
+  row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
+}
+
+/* ---------- Import/Export Jobs ---------- */
+let JOBS = [
+  { type: 'Bordereau Import (Excel Onboarding)', status: 'Succeeded', rows: '812 / 818', started: '2026-08-19 14:02', completed: '2026-08-19 14:04' },
+  { type: 'Vendor Master Import (Excel Onboarding)', status: 'Succeeded', rows: '203 / 203', started: '2026-08-18 09:30', completed: '2026-08-18 09:31' },
+  { type: 'Invoice Export (API)', status: 'Running', rows: 'n/a / 4,102', started: '2026-08-20 09:00', completed: 'n/a' },
+  { type: 'COA Export (API)', status: 'Failed', rows: '0 / 96', started: '2026-08-17 11:15', completed: '2026-08-17 11:15' },
+];
+function renderJobs() {
+  const badgeClass = { Succeeded: 'badge-green', Running: 'badge-blue', Failed: 'badge-red', Pending: 'badge-gray' };
+  document.getElementById('jobs-rows').innerHTML = JOBS.map(j => `
+    <tr>
+      <td>${j.type}</td>
+      <td><span class="badge ${badgeClass[j.status]}">${j.status}</span></td>
+      <td>${j.rows}</td>
+      <td style="font-size:12px;color:var(--gray-500);">${j.started}</td>
+      <td style="font-size:12px;color:var(--gray-500);">${j.completed}</td>
+    </tr>`).join('');
+}
+function queueExport() {
+  const entity = document.getElementById('export-entity').value;
+  const range = document.getElementById('export-range').value;
+  const format = document.getElementById('export-format').value;
+  JOBS.unshift({ type: `${entity} Export (${format})`, status: 'Pending', rows: 'n/a', started: new Date().toISOString().slice(0,16).replace('T',' '), completed: 'n/a' });
+  renderJobs();
+  document.getElementById('new-export-form').style.display = 'none';
+  showToast(`Export queued: ${entity}, ${range}, ${format}`, 'success');
+}
+
+renderKeys();
+renderWebhooks();
+renderEvents();
+renderJobs();
+</script>
+</body>
+</html>

@@ -1,0 +1,1460 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Policy Admin (PAS) — Event &amp; Data Injection Hub | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/layout.js"></script>
+  <script src="js/gl-engine.js"></script>
+  <style>
+    /* Custom High-Fidelity Styling */
+    .pas-tab-group {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--gray-200);
+      padding-bottom: 8px;
+    }
+    .pas-tab {
+      padding: 8px 16px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--gray-500);
+      cursor: pointer;
+      border-radius: 6px;
+      transition: all 0.2s ease;
+      background: none;
+      border: none;
+    }
+    .pas-tab:hover {
+      color: var(--navy);
+      background: var(--gray-100);
+    }
+    .pas-tab.active {
+      color: #fff;
+      background: var(--navy);
+    }
+    
+    .pas-panel {
+      display: none;
+    }
+    .pas-panel.active {
+      display: block;
+    }
+
+    .card-panel { background: #fff; border: 1.5px solid var(--gray-200); border-radius: 10px; padding: 20px; margin-bottom: 20px; }
+    .panel-title { font-size: 16px; font-weight: 800; color: var(--navy); margin-bottom: 16px; }
+
+    .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 20px; }
+    .info-item { display: flex; flex-direction: column; }
+    .info-label { font-size: 11px; font-weight: 700; color: var(--gray-500); text-transform: uppercase; margin-bottom: 4px; }
+    .info-val { font-size: 14px; font-weight: 600; color: var(--navy); }
+    .info-input { border: 1px solid var(--gray-300); border-radius: 6px; padding: 8px; font-size: 14px; background: #fff; color: var(--navy); }
+    .info-input:disabled { background: var(--gray-100); color: var(--gray-600); font-weight: 600; }
+
+    .injector-layout {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 24px;
+    }
+    @media(max-width: 1024px) {
+      .injector-layout { grid-template-columns: 1fr; }
+    }
+
+    .json-preview-container {
+      background: #1e293b;
+      color: #e2e8f0;
+      border-radius: 8px;
+      padding: 16px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 12.5px;
+      overflow-x: auto;
+      max-height: 520px;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+      border: 1px solid #334155;
+      white-space: pre-wrap;
+      word-wrap: break-word;
+    }
+    .json-key { color: #f43f5e; }
+    .json-value { color: #34d399; }
+    .json-number { color: #38bdf8; }
+    .json-string { color: #fb7185; }
+    .json-boolean { color: #fbbf24; }
+
+    /* Badges */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+    }
+    .st-received { background: var(--gray-100); color: var(--gray-600); }
+    .st-processing { background: #fff3e0; color: #e65100; }
+    .st-validated { background: #e3f2fd; color: #1565c0; }
+    .st-posted { background: #e8f5e9; color: #2e7d32; }
+    .st-failed { background: #ffebee; color: #c62828; }
+
+    /* Modal dialog */
+    .pas-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+    .pas-modal.open {
+      display: flex;
+    }
+    .pas-modal-content {
+      background: #fff;
+      border-radius: 12px;
+      width: 80%;
+      max-width: 800px;
+      max-height: 85%;
+      overflow-y: auto;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
+      border: 1px solid var(--gray-200);
+      padding: 24px;
+    }
+    .pas-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--gray-200);
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+    }
+    .pas-modal-close {
+      cursor: pointer;
+      font-size: 20px;
+      color: var(--gray-500);
+      font-weight: bold;
+    }
+
+    .journal-box { background: var(--gray-50); border: 1px dashed var(--gray-300); border-radius: 8px; padding: 16px; margin-top: 16px; font-family: monospace; }
+    .journal-row { display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 13px; }
+    .journal-row.header { font-weight: bold; border-bottom: 1px solid var(--gray-300); padding-bottom: 4px; margin-bottom: 8px; }
+    .dr { color: #1565c0; font-weight: 600; }
+    .cr { color: #e65100; font-weight: 600; }
+  </style>
+</head>
+<body>
+<main class="main-content" id="main-content">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Policy Administration System (PAS) – Event &amp; Data Injection Hub</div>
+      <div class="page-subtitle">Generate business events and inject them directly into the Accounting Rules Engine</div>
+    </div>
+    <div class="page-actions" id="page-hdr-actions">
+      <!-- Dynamic header action button -->
+      <button class="btn btn-primary" onclick="loadSimulationPreset()">⚡ Quick Simulate End-to-End (POL-V8NHT · $39,260)</button>
+    </div>
+  </div>
+
+  <!-- Custom Tabbed Menu -->
+  <div class="pas-tab-group">
+    <button class="pas-tab active" onclick="switchPasTab('injector')" id="tab-injector">Event Data Injector</button>
+    <button class="pas-tab" onclick="switchPasTab('intake')" id="tab-intake">Intake Event Log</button>
+    <button class="pas-tab" onclick="switchPasTab('exceptions')" id="tab-exceptions">Exception Queue <span id="exc-badge-count" style="display:none; background:var(--red-600); color:#fff; font-size:10px; padding:2px 6px; border-radius:10px; margin-left:4px;">0</span></button>
+    <button class="pas-tab" onclick="switchPasTab('register')" id="tab-register">Policies Register</button>
+  </div>
+
+  <!-- Tab 1: Event Data Injector Panel -->
+  <div class="pas-panel active" id="panel-injector">
+    <div class="injector-layout">
+      <!-- Left Column: Event Customizer Form -->
+      <div class="form-card">
+        <div class="panel-title">Configure &amp; Inject Custom Event</div>
+        
+        <div style="margin-bottom: 16px;">
+          <label class="info-label">Load Event Preset</label>
+          <select class="info-input" id="event-preset-select" onchange="applyPresetSelection()" style="width: 100%;">
+            <option value="policy_bound" selected>Stage 1: POLICY_BINDING_INVOICED (POL-V8NHT · $39,260)</option>
+            <option value="payment_received">Stage 2: PAYMENT_RECEIVED (Ayushi pays Broker · $39,260)</option>
+            <option value="broker_settlement">Stage 3: BROKER_SETTLEMENT_COMPLETED (Broker pays MGA · $36,760)</option>
+            <option value="bordereau_ingested">Stage 4: BORDEREAU_INGESTED (Carrier Ingestion · $33,257 GWP)</option>
+            <option value="carrier_payment_completed">Stage 5: CARRIER_PAYMENT_COMPLETED (MGA pays Carrier · $29,757)</option>
+            <option value="premium_adjusted">Preset: PREMIUM_ADJUSTED (Endorsement Increase)</option>
+            <option value="policy_cancelled">Preset: POLICY_CANCELLED (Pro-Rata Reversal)</option>
+          </select>
+        </div>
+
+        <div style="border-top: 1px solid var(--gray-200); padding-top: 16px; margin-bottom: 16px;">
+          <div style="font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 12px;">Event Header &amp; Metadata</div>
+          <div class="info-grid">
+            <div class="info-item">
+              <label class="info-label">Event ID</label>
+              <input type="text" class="info-input" id="inj-evt-id" oninput="onFormInputChanged()">
+            </div>
+            <div class="info-item">
+              <label class="info-label">Transaction ID</label>
+              <input type="text" class="info-input" id="inj-txn-id" oninput="onFormInputChanged()">
+            </div>
+            <div class="info-item">
+              <label class="info-label">Event Type</label>
+              <input type="text" class="info-input" id="inj-evt-type" value="POLICY_BINDING_INVOICED" oninput="onFormInputChanged()">
+            </div>
+            <div class="info-item">
+              <label class="info-label">Source System</label>
+              <input type="text" class="info-input" id="inj-source" value="PAS" disabled>
+            </div>
+          </div>
+        </div>
+
+        <div style="border-top: 1px solid var(--gray-200); padding-top: 16px; margin-bottom: 16px;">
+          <div style="font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 12px;">Policy &amp; Invoice Reference</div>
+          <div class="info-grid">
+            <div class="info-item">
+              <label class="info-label">Policy Number</label>
+              <input type="text" class="info-input" id="inj-pol-num" value="POL-V8NHT" oninput="onFormInputChanged()">
+            </div>
+            <div class="info-item">
+              <label class="info-label">Invoice Number</label>
+              <input type="text" class="info-input" id="inj-inv-num" value="INV-V8NHT-1" oninput="onFormInputChanged()">
+            </div>
+            <div class="info-item">
+              <label class="info-label">Line of Business (LOB)</label>
+              <select class="info-input" id="inj-pol-lob" onchange="onFormInputChanged()">
+                <option selected>Commercial Trucking</option>
+                <option>Commercial Auto</option>
+                <option>General Liability</option>
+                <option>Commercial Property</option>
+                <option>Inland Marine</option>
+              </select>
+            </div>
+            <div class="info-item">
+              <label class="info-label">State</label>
+              <input type="text" class="info-input" id="inj-pol-state" value="TX" oninput="onFormInputChanged()">
+            </div>
+          </div>
+        </div>
+
+        <div style="border-top: 1px solid var(--gray-200); padding-top: 16px; margin-bottom: 16px;">
+          <div style="font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 12px;">Parties Information</div>
+          <div class="info-grid">
+            <div class="info-item">
+              <label class="info-label">Named Insured</label>
+              <input type="text" class="info-input" id="inj-party-insured" value="Ayushi" oninput="onFormInputChanged()">
+            </div>
+            <div class="info-item">
+              <label class="info-label">Producer / Broker</label>
+              <input type="text" class="info-input" id="inj-party-broker" value="HIT" oninput="onFormInputChanged()">
+            </div>
+            <div class="info-item">
+              <label class="info-label">Carrier Name</label>
+              <input type="text" class="info-input" id="inj-party-carrier" value="SOUTHLAKE" oninput="onFormInputChanged()">
+            </div>
+            <div class="info-item">
+              <label class="info-label">MGA Name</label>
+              <input type="text" class="info-input" id="inj-party-mga" value="NTA" oninput="onFormInputChanged()">
+            </div>
+          </div>
+        </div>
+
+        <div style="border-top: 1px solid var(--gray-200); padding-top: 16px; margin-bottom: 16px;">
+          <div style="font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 12px;">Financial Parameters</div>
+          <div class="info-grid">
+            <div class="info-item">
+              <label class="info-label">Carrier Base Premium ($)</label>
+              <input type="number" class="info-input" id="inj-fin-premium" value="33257" oninput="onFormInputChanged()">
+            </div>
+            <div class="info-item">
+              <label class="info-label">Texas Surplus Tax &amp; Fees ($)</label>
+              <input type="number" class="info-input" id="inj-fin-tax" value="3503" oninput="onFormInputChanged()">
+            </div>
+            <div class="info-item">
+              <label class="info-label">Producer / Broker Commission ($)</label>
+              <input type="number" class="info-input" id="inj-fin-commission" value="2500" oninput="onFormInputChanged()">
+            </div>
+            <div class="info-item">
+              <label class="info-label">Payment Amount ($)</label>
+              <input type="number" class="info-input" id="inj-fin-payment" value="0" oninput="onFormInputChanged()">
+            </div>
+          </div>
+        </div>
+
+        <div style="border-top: 1px solid var(--gray-200); padding-top: 16px; margin-bottom: 20px;">
+          <div style="font-size: 13px; font-weight: 700; color: var(--navy); margin-bottom: 12px;">Transaction Dates</div>
+          <div class="info-grid">
+            <div class="info-item">
+              <label class="info-label">Transaction / Invoice Date</label>
+              <input type="date" class="info-input" id="inj-date-tx" value="2026-08-20" oninput="onFormInputChanged()">
+            </div>
+            <div class="info-item">
+              <label class="info-label">Effective Date</label>
+              <input type="date" class="info-input" id="inj-date-eff" value="2026-08-20" oninput="onFormInputChanged()">
+            </div>
+          </div>
+        </div>
+
+        <button class="btn btn-primary" onclick="submitInjectedEventForm()" style="width:100%; padding:12px; font-weight:700;">⚡ Inject Event into Rules Engine</button>
+      </div>
+
+      <!-- Right Column: Live Event JSON Preview -->
+      <div>
+        <div style="font-size:14px; font-weight:700; color:var(--navy); margin-bottom:10px;">Event Payload JSON Preview</div>
+        <pre class="json-preview-container" id="json-preview-box"></pre>
+        <div style="font-size:11px; color:var(--gray-500); margin-top:8px;">
+          * Note: Live changes update the JSON payload above in real-time. Injected events undergo Section 10 validations.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 2: Intake Event Log -->
+  <div class="pas-panel" id="panel-intake">
+    <div class="form-card">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+        <div class="panel-title" style="margin-bottom:0;">Intake Event Log &amp; Queue Status</div>
+        <button class="btn btn-outline btn-xs" onclick="clearInjectedEventsLog()">Clear Log History</button>
+      </div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Event ID</th>
+              <th>Event Type</th>
+              <th>Invoice / TX Date</th>
+              <th>Policy / Invoice Ref</th>
+              <th>Insured</th>
+              <th>Total Amount</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="intake-log-tbody">
+            <!-- Dynamic rows injected here -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 3: Exception Queue -->
+  <div class="pas-panel" id="panel-exceptions">
+    <div class="form-card">
+      <div class="panel-title">Validation Exceptions &amp; Resolution Queue</div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Event ID</th>
+              <th>Event Type</th>
+              <th>Policy Number</th>
+              <th>Failed Reason / Error Logs</th>
+              <th>Timestamp</th>
+              <th>Resolution Action</th>
+            </tr>
+          </thead>
+          <tbody id="exceptions-tbody">
+            <!-- Exceptions rows dynamic -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Tab 4: Policies Register -->
+  <div class="pas-panel" id="panel-register">
+    <div class="form-card">
+      <div class="panel-title">Active Policy Contracts</div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Policy Number</th>
+              <th>Insured Name</th>
+              <th>Effective Date</th>
+              <th>Total Premium</th>
+              <th>Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="register-tbody">
+            <!-- Managed dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Event Details Modal dialog -->
+  <div class="pas-modal" id="event-detail-modal">
+    <div class="pas-modal-content">
+      <div class="pas-modal-header">
+        <div style="font-size:16px; font-weight:800; color:var(--navy);" id="modal-title-text">Event Details</div>
+        <div class="pas-modal-close" onclick="closeEventDetailModal()">&times;</div>
+      </div>
+      <div>
+        <div style="font-size:12px; font-weight:700; color:var(--gray-500); text-transform:uppercase; margin-bottom:8px;">JSON Payload</div>
+        <pre class="json-preview-container" style="max-height:260px;" id="modal-json-box"></pre>
+
+        <div style="border-top:1px solid var(--gray-200); padding-top:16px; margin-top:16px;">
+          <div style="font-size:12px; font-weight:700; color:var(--gray-500); text-transform:uppercase; margin-bottom:8px;">Resulting General Ledger Journal Entry</div>
+          <div id="modal-je-content">
+            <!-- JE details here -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script src="js/app.js"></script>
+<script>
+  initLayout('pas-policy');
+
+  // Shared state variables
+  let currentEventPayload = {};
+
+  // Helper functions
+  function getActiveUserPrefix() {
+    const active = typeof getActiveEntity === 'function' ? getActiveEntity() : null;
+    return active ? active.businessType + '_' : '';
+  }
+
+  function getInjectedEvents() {
+    const key = getActiveUserPrefix() + 'v_pas_injected_events';
+    try {
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : [];
+    } catch(e) {
+      return [];
+    }
+  }
+
+  function saveInjectedEvents(events) {
+    const key = getActiveUserPrefix() + 'v_pas_injected_events';
+    localStorage.setItem(key, JSON.stringify(events));
+  }
+
+  // Generate Unique Identifiers
+  function generateUUID(prefix = "EVT") {
+    return prefix + "-" + Math.floor(100000 + Math.random() * 900000);
+  }
+
+  // Tabs Management
+  function switchPasTab(tabId) {
+    document.querySelectorAll('.pas-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.pas-panel').forEach(p => p.classList.remove('active'));
+    
+    document.getElementById('tab-' + tabId).classList.add('active');
+    document.getElementById('panel-' + tabId).classList.add('active');
+
+    if (tabId === 'intake') renderIntakeLogTable();
+    if (tabId === 'exceptions') renderExceptionsTable();
+    if (tabId === 'register') renderPoliciesRegister();
+  }
+
+  // Pre-populate Data Injector Preset
+  function applyPresetSelection() {
+    const preset = document.getElementById('event-preset-select').value;
+    const todayStr = "2026-08-20";
+    
+    // Seed Form Fields
+    document.getElementById('inj-evt-id').value = generateUUID("EVT");
+    document.getElementById('inj-txn-id').value = generateUUID("TXN");
+    document.getElementById('inj-source').value = "PAS";
+    document.getElementById('inj-date-tx').value = todayStr;
+    document.getElementById('inj-date-eff').value = todayStr;
+    
+    const active = typeof getActiveEntity === 'function' ? getActiveEntity() : null;
+    
+    // Set party names based on configuration
+    document.getElementById('inj-party-mga').value = active && active.businessType === 'mga' ? active.name : "NTA";
+    document.getElementById('inj-party-carrier').value = active && active.businessType === 'carrier' ? active.name : "SOUTHLAKE";
+    document.getElementById('inj-party-insured').value = "Ayushi";
+    document.getElementById('inj-party-broker').value = "HIT";
+    document.getElementById('inj-pol-lob').value = "Commercial Trucking";
+    document.getElementById('inj-pol-state').value = "TX";
+    document.getElementById('inj-pol-num').value = "POL-V8NHT";
+    document.getElementById('inj-inv-num').value = "INV-V8NHT-1";
+    
+    // Financial settings populated with the Commercial Trucking invoice data ($33,257 Gross Base + $3,503 Tax/Fees + $2,500 Broker Comm = $39,260 Total Billed)
+    document.getElementById('inj-fin-premium').value = "33257";
+    document.getElementById('inj-fin-tax').value = "3503";
+    document.getElementById('inj-fin-commission').value = "2500";
+    document.getElementById('inj-fin-payment').value = "0";
+
+    // Try to find the latest active policy from the subledger
+    const activePolicies = JSON.parse(localStorage.getItem('mga_pas_policies') || '[]');
+    const latestPol = activePolicies.length > 0 ? activePolicies[0] : null;
+
+    switch(preset) {
+      case 'policy_bound':
+        document.getElementById('inj-evt-type').value = "POLICY_BINDING_INVOICED";
+        document.getElementById('inj-pol-num').value = "POL-V8NHT";
+        document.getElementById('inj-inv-num').value = "INV-V8NHT-1";
+        document.getElementById('inj-party-insured').value = "Ayushi";
+        document.getElementById('inj-party-broker').value = "HIT";
+        document.getElementById('inj-fin-payment').value = "0";
+        break;
+      case 'payment_received':
+        document.getElementById('inj-evt-type').value = "PAYMENT_RECEIVED";
+        document.getElementById('inj-pol-num').value = "POL-V8NHT";
+        document.getElementById('inj-inv-num').value = "INV-V8NHT-1";
+        document.getElementById('inj-party-insured').value = "Ayushi";
+        document.getElementById('inj-party-broker').value = "HIT";
+        document.getElementById('inj-fin-premium').value = "33257";
+        document.getElementById('inj-fin-tax').value = "3503";
+        document.getElementById('inj-fin-commission').value = "2500";
+        document.getElementById('inj-fin-payment').value = "39260";
+        break;
+      case 'broker_settlement':
+        document.getElementById('inj-evt-type').value = "BROKER_SETTLEMENT_COMPLETED";
+        document.getElementById('inj-pol-num').value = "POL-V8NHT";
+        document.getElementById('inj-inv-num').value = "INV-V8NHT-1";
+        document.getElementById('inj-party-insured').value = "Ayushi";
+        document.getElementById('inj-party-broker').value = "HIT";
+        document.getElementById('inj-fin-payment').value = "36760";
+        break;
+      case 'bordereau_ingested':
+        document.getElementById('inj-evt-type').value = "BORDEREAU_INGESTED";
+        document.getElementById('inj-pol-num').value = "POL-V8NHT";
+        document.getElementById('inj-party-mga').value = "NTA";
+        document.getElementById('inj-party-carrier').value = "SOUTHLAKE";
+        document.getElementById('inj-fin-premium').value = "33257";
+        document.getElementById('inj-fin-tax').value = "0";
+        document.getElementById('inj-fin-commission').value = "3500";
+        document.getElementById('inj-fin-payment').value = "0";
+        break;
+      case 'carrier_payment_completed':
+        document.getElementById('inj-evt-type').value = "CARRIER_PAYMENT_COMPLETED";
+        document.getElementById('inj-pol-num').value = "POL-V8NHT";
+        document.getElementById('inj-party-mga').value = "NTA";
+        document.getElementById('inj-party-carrier').value = "SOUTHLAKE";
+        document.getElementById('inj-fin-payment').value = "29757";
+        break;
+      case 'premium_adjusted':
+        document.getElementById('inj-evt-type').value = "PREMIUM_ADJUSTED";
+        if (latestPol) {
+          document.getElementById('inj-pol-num').value = latestPol.number;
+          document.getElementById('inj-party-insured').value = latestPol.name;
+        } else {
+          document.getElementById('inj-pol-num').value = "POL-V8NHT";
+          document.getElementById('inj-party-insured').value = "Ayushi";
+          document.getElementById('inj-party-broker').value = "HIT";
+        }
+        document.getElementById('inj-fin-premium').value = "1500";
+        document.getElementById('inj-fin-tax').value = "200";
+        document.getElementById('inj-fin-commission').value = "120";
+        break;
+      case 'policy_cancelled':
+        document.getElementById('inj-evt-type').value = "POLICY_CANCELLED";
+        if (latestPol) {
+          document.getElementById('inj-pol-num').value = latestPol.number;
+          document.getElementById('inj-party-insured').value = latestPol.name;
+        } else {
+          document.getElementById('inj-pol-num').value = "POL-V8NHT";
+          document.getElementById('inj-party-insured').value = "Ayushi";
+          document.getElementById('inj-party-broker').value = "HIT";
+        }
+        document.getElementById('inj-fin-premium').value = "-16128";
+        document.getElementById('inj-fin-tax').value = "-3501";
+        document.getElementById('inj-fin-commission').value = "-1250";
+        break;
+    }
+
+    onFormInputChanged();
+  }
+
+  // Re-generate JSON representation and write to PRE element
+  function onFormInputChanged() {
+    const polNum = document.getElementById('inj-pol-num').value || "POL-V8NHT";
+    const invNum = document.getElementById('inj-inv-num').value || "INV-V8NHT-1";
+    const insuredName = document.getElementById('inj-party-insured').value || "Ayushi";
+    const carrierName = document.getElementById('inj-party-carrier').value || "SOUTHLAKE";
+    const mgaName = document.getElementById('inj-party-mga').value || "NTA";
+    const brokerName = document.getElementById('inj-party-broker').value || "HIT";
+    const stateVal = document.getElementById('inj-pol-state').value || "TX";
+
+    const payload = {
+      event_id: document.getElementById('inj-evt-id').value,
+      event_type: document.getElementById('inj-evt-type').value,
+      transaction_id: document.getElementById('inj-txn-id').value,
+      invoice_number: invNum,
+      policy: {
+        policy_id: polNum,
+        policy_number: polNum,
+        lob: document.getElementById('inj-pol-lob').value,
+        state: stateVal
+      },
+      parties: {
+        insured_name: insuredName,
+        insured_id: "INS-" + insuredName.toUpperCase(),
+        carrier_name: carrierName,
+        carrier_id: "CAR-" + carrierName.toUpperCase(),
+        mga_name: mgaName,
+        mga_id: "MGA-" + mgaName.toUpperCase(),
+        producer: brokerName
+      },
+      financials: {
+        premium: parseFloat(document.getElementById('inj-fin-premium').value) || 0,
+        tax_and_fees: parseFloat(document.getElementById('inj-fin-tax').value) || 0,
+        total_premium: (parseFloat(document.getElementById('inj-fin-premium').value) || 0) + (parseFloat(document.getElementById('inj-fin-tax').value) || 0) + (parseFloat(document.getElementById('inj-fin-commission').value) || 0),
+        broker_commission: parseFloat(document.getElementById('inj-fin-commission').value) || 0,
+        payment_amount: parseFloat(document.getElementById('inj-fin-payment').value) || 0,
+        currency: "USD"
+      },
+      dates: {
+        effective_date: document.getElementById('inj-date-eff').value,
+        transaction_date: document.getElementById('inj-date-tx').value
+      },
+      source_system: "PAS"
+    };
+
+    currentEventPayload = payload;
+    renderJsonPreview(payload);
+  }
+
+  function renderJsonPreview(payload) {
+    const jsonStr = JSON.stringify(payload, null, 2);
+    
+    // Simple colored syntax highlighter
+    const html = jsonStr
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/("(\\u[a-zA-Z0-9]{4}|\\[^u]|[^\\"])*"(\s*:)?|\b(true|false|null)\b|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?)/g, function (match) {
+        let cls = 'json-number';
+        if (/^"/.test(match)) {
+          if (/:$/.test(match)) {
+            cls = 'json-key';
+          } else {
+            cls = 'json-string';
+          }
+        } else if (/true|false/.test(match)) {
+          cls = 'json-boolean';
+        } else if (/null/.test(match)) {
+          cls = 'json-value';
+        }
+        return '<span class="' + cls + '">' + match + '</span>';
+      });
+
+    document.getElementById('json-preview-box').innerHTML = html;
+  }
+
+  // Validation function (Section 10)
+  function validatePASEvent(evt) {
+    const errors = [];
+    if (!evt.event_id) errors.push("Event ID is missing");
+    if (!evt.transaction_id) errors.push("Transaction ID is missing");
+    if (!evt.policy || !evt.policy.policy_number) errors.push("Policy Number is missing");
+    
+    // Duplicate check in POSTED events
+    const allEvents = getInjectedEvents();
+    const isDup = allEvents.some(e => e.status === 'POSTED' && (e.event_id === evt.event_id || e.transaction_id === evt.transaction_id));
+    if (isDup) errors.push("Duplicate check failed: Event/Transaction ID already exists in Posted GL");
+
+    // Amounts validation
+    if (evt.event_type !== 'POLICY_CANCELLED' && evt.event_type !== 'PREMIUM_REFUNDED') {
+      if (evt.financials.premium < 0) errors.push("Premium amount must be positive");
+      if (evt.financials.tax_and_fees < 0) errors.push("Tax & Fees must be positive");
+      if (evt.financials.broker_commission < 0) errors.push("Commission must be positive");
+    } else {
+      if (evt.financials.premium > 0) errors.push("Refund Premium must be negative or zero");
+    }
+
+    // Date validation
+    if (!evt.dates.transaction_date || isNaN(Date.parse(evt.dates.transaction_date))) {
+      errors.push("Transaction Date is invalid");
+    } else {
+      // Check accounting period is open
+      if (typeof getPeriodForDate === 'function') {
+        const period = getPeriodForDate(evt.dates.transaction_date);
+        if (!period) {
+          errors.push("No open fiscal period matches this transaction date");
+        } else if (period.status === 'closed') {
+          errors.push(`Fiscal period '${period.label}' is closed. Lock Override required.`);
+        }
+      }
+    }
+
+    // Party presence
+    if (!evt.parties.insured_name) errors.push("Insured party name is missing");
+    if (!evt.parties.carrier_name) errors.push("Carrier party name is missing");
+    if (!evt.parties.mga_name) errors.push("MGA party name is missing");
+
+    return errors;
+  }
+
+  // Rules Engine & GL Entry Generator
+  function processRulesEngine(evt) {
+    const active = typeof getActiveEntity === 'function' ? getActiveEntity() : null;
+    const activeId = active ? active.id : 'ENT-MINE';
+    
+    const premium = parseFloat(evt.financials.premium) || 0;
+    const taxAndFees = parseFloat(evt.financials.tax_and_fees) || 0;
+    const commission = parseFloat(evt.financials.broker_commission) || 0;
+    const totalBilled = parseFloat(evt.financials.total_premium) || (premium + taxAndFees + commission) || 39260;
+    const netToMGA = totalBilled - commission; // $36,760
+    const paid = parseFloat(evt.financials.payment_amount) || 0;
+
+    // Helper for simple sentences
+    function getCleanJeSentence(eventType, polNum, insName, invNum) {
+      const inv = invNum ? ` · Invoice ${invNum}` : '';
+      const ins = insName ? ` (${insName})` : '';
+      switch (eventType) {
+        case 'POLICY_BINDING_INVOICED':
+          return `Policy binding and premium invoice issued for ${polNum}${ins}${inv}`;
+        case 'PREMIUM_ADJUSTED':
+          return `Policy endorsement and premium adjustment for ${polNum}${ins}`;
+        case 'PAYMENT_RECEIVED':
+          return `Customer premium receipt — ${insName || 'Ayushi'}`;
+        case 'BROKER_SETTLEMENT_COMPLETED':
+          return `Broker premium settlement payment received from ${evt.parties.producer || 'HIT'} for ${polNum}${ins}`;
+        case 'BORDEREAU_INGESTED':
+          return `Monthly Bordereau Ingestion for ${polNum}${ins}`;
+        case 'COMMISSION_CALCULATED':
+          return `Producer commission calculated and allocated for ${polNum}${ins}`;
+        case 'CARRIER_PAYMENT_COMPLETED':
+          return `Net premium settlement payment disbursed to carrier for ${polNum}${ins}`;
+        case 'POLICY_CANCELLED':
+          return `Policy cancellation and unearned premium reversal for ${polNum}${ins}`;
+        case 'POLICY_RENEWED':
+          return `Policy renewal binding and annual invoice for ${polNum}${ins}`;
+        default:
+          return `${eventType.replace(/_/g, ' ').toLowerCase()} for ${polNum}${ins}`;
+      }
+    }
+
+    // --- 1. Broker GL lines (DBA Agency Bill per README.md Stage 1, 2, 3) ---
+    const brokerLines = [];
+    if (evt.event_type === 'POLICY_BINDING_INVOICED' || evt.event_type === 'PREMIUM_ADJUSTED') {
+      const netToMGA = totalBilled - commission; // $36,760
+      brokerLines.push({ acct: '1100', debit: Math.abs(totalBilled), credit: 0, desc: `Premium Receivable — ${evt.parties.insured_name} (${evt.invoice_number || evt.policy.policy_number})`, dims: { broker: evt.parties.producer, mga: evt.parties.mga_name, lob: evt.policy.lob } });
+      brokerLines.push({ acct: '2200', debit: 0, credit: Math.abs(netToMGA), desc: `Net Premium Payable — ${evt.parties.mga_name}`, dims: { mga: evt.parties.mga_name, lob: evt.policy.lob } });
+      brokerLines.push({ acct: '5100', debit: 0, credit: Math.abs(commission), desc: `Producer / Broker Commission Revenue`, dims: { broker: evt.parties.producer, lob: evt.policy.lob } });
+    }
+    else if (evt.event_type === 'PAYMENT_RECEIVED') {
+      brokerLines.push({ acct: '1001', debit: paid || totalBilled, credit: 0, desc: `Customer Premium Receipt — ${evt.parties.insured_name}`, dims: { location: 'HQ' } });
+      brokerLines.push({ acct: '1100', debit: 0, credit: paid || totalBilled, desc: `Clear Premium Receivable — ${evt.parties.insured_name}`, dims: { broker: evt.parties.producer } });
+    }
+    else if (evt.event_type === 'BROKER_SETTLEMENT_COMPLETED') {
+      const netToMGA = totalBilled - commission; // $36,760
+      brokerLines.push({ acct: '2200', debit: Math.abs(netToMGA), credit: 0, desc: `Clear Net Premium Payable to ${evt.parties.mga_name}`, dims: { mga: evt.parties.mga_name } });
+      brokerLines.push({ acct: '1001', debit: 0, credit: Math.abs(netToMGA), desc: `Disburse Net Premium to ${evt.parties.mga_name}`, dims: { location: 'HQ' } });
+    }
+    else if (evt.event_type === 'POLICY_CANCELLED') {
+      const netToMGA = totalBilled - commission;
+      brokerLines.push({ acct: '2200', debit: Math.abs(netToMGA), credit: 0, desc: `Reverse Net Premium Payable to ${evt.parties.mga_name}` });
+      brokerLines.push({ acct: '5100', debit: Math.abs(commission), credit: 0, desc: `Reverse Commission Revenue` });
+      brokerLines.push({ acct: '1100', debit: 0, credit: Math.abs(totalBilled), desc: `Reverse Premium Receivable` });
+    }
+
+    // --- 2. MGA GL lines (DBA Agency Bill per README.md Stage 1, 3, 5) ---
+    const mgaLines = [];
+    const mgaNetToBroker = totalBilled - commission; // $36,760.00
+    const mgaFeeOverride = 3500; // $3,500.00
+    const taxLiability = 3503; // Texas Surplus Lines Tax & Fees
+    const mgaCarrierPayable = 29757; // Net settlement to Carrier ($36,760 - $3,500 - $3,503)
+
+    if (evt.event_type === 'POLICY_BINDING_INVOICED' || evt.event_type === 'PREMIUM_ADJUSTED') {
+      mgaLines.push({ acct: '1100', debit: Math.abs(mgaNetToBroker), credit: 0, desc: `Premium Receivable — ${evt.parties.producer || 'HIT'} (Broker Net Remittance)`, dims: { broker: evt.parties.producer || 'HIT', lob: evt.policy.lob } });
+      mgaLines.push({ acct: '2200', debit: 0, credit: Math.abs(mgaCarrierPayable), desc: `Net Premium Payable — ${evt.parties.carrier_name || 'Southlake Insurance Co.'}`, dims: { cost_center: '00 - Corporate', lob: evt.policy.lob } });
+      mgaLines.push({ acct: '2300', debit: 0, credit: Math.abs(taxLiability), desc: 'Surplus Lines Taxes & Regulatory Fees (TX)', dims: { state: 'TX', lob: evt.policy.lob } });
+      mgaLines.push({ acct: '4100', debit: 0, credit: Math.abs(mgaFeeOverride), desc: 'MGA Program Override & Policy Fee Revenue', dims: { mga: evt.parties.mga_name || 'NTA', lob: evt.policy.lob } });
+    }
+    else if (evt.event_type === 'BROKER_SETTLEMENT_COMPLETED') {
+      mgaLines.push({ acct: '1001', debit: Math.abs(mgaNetToBroker), credit: 0, desc: `Broker Premium Settlement Receipt — ${evt.parties.producer || 'HIT'}`, dims: { location: 'HQ' } });
+      mgaLines.push({ acct: '1100', debit: 0, credit: Math.abs(mgaNetToBroker), desc: `Clear Broker Premium Receivable — ${evt.parties.producer || 'HIT'}`, dims: { broker: evt.parties.producer || 'HIT', lob: evt.policy.lob } });
+    }
+    else if (evt.event_type === 'CARRIER_PAYMENT_COMPLETED') {
+      mgaLines.push({ acct: '2200', debit: Math.abs(mgaCarrierPayable), credit: 0, desc: `Clear Net Premium Payable to ${evt.parties.carrier_name || 'Southlake Insurance Co.'}`, dims: { cost_center: '00 - Corporate', lob: evt.policy.lob } });
+      mgaLines.push({ acct: '1001', debit: 0, credit: Math.abs(mgaCarrierPayable), desc: 'Disburse Net Carrier Settlement (ACH)', dims: { location: 'HQ' } });
+    }
+    else if (evt.event_type === 'POLICY_CANCELLED') {
+      mgaLines.push({ acct: '2200', debit: Math.abs(mgaCarrierPayable), credit: 0, desc: 'Reverse Net Carrier Payable' });
+      mgaLines.push({ acct: '4100', debit: Math.abs(mgaFeeOverride), credit: 0, desc: 'Reverse MGA Override Revenue' });
+      if (taxLiability !== 0) {
+        mgaLines.push({ acct: '2300', debit: Math.abs(taxLiability), credit: 0, desc: 'Reverse Tax & Fees Payable' });
+      }
+      mgaLines.push({ acct: '1100', debit: 0, credit: Math.abs(mgaNetToBroker), desc: 'Reverse Premium Receivable' });
+    }
+
+    // --- 3. Carrier GL lines (DBA: Off-ledger at binding; Ingested upon Bordereau Stage 4; Matched in Stage 5) ---
+    const carrierLines = [];
+    if (evt.event_type === 'BORDEREAU_INGESTED') {
+      carrierLines.push({ acct: '1100', debit: 29757.00, credit: 0, desc: `Settlement Receivable — ${evt.parties.mga_name || 'NTA'}`, dims: { mga: evt.parties.mga_name || 'NTA', lob: evt.policy.lob } });
+      carrierLines.push({ acct: '6101', debit: 3500.00, credit: 0, desc: 'Commission Expense — MGA Override', dims: { mga: evt.parties.mga_name || 'NTA', lob: evt.policy.lob } });
+      carrierLines.push({ acct: '4100', debit: 0, credit: 33257.00, desc: 'Gross Written Premium Revenue', dims: { lob: evt.policy.lob } });
+    }
+    else if (evt.event_type === 'CARRIER_PAYMENT_COMPLETED') {
+      carrierLines.push({ acct: '1001', debit: 29757.00, credit: 0, desc: `MGA Premium Settlement Receipt — ${evt.parties.mga_name || 'NTA'}`, dims: { location: 'HQ' } });
+      carrierLines.push({ acct: '1100', debit: 0, credit: 29757.00, desc: `Clear Settlement Receivable — ${evt.parties.mga_name || 'NTA'}`, dims: { mga: evt.parties.mga_name || 'NTA', lob: evt.policy.lob } });
+    }
+    else if (evt.event_type === 'POLICY_CANCELLED') {
+      carrierLines.push({ acct: '4100', debit: 33257.00, credit: 0, desc: 'Reverse Gross Premium Revenue' });
+      carrierLines.push({ acct: '6101', debit: 0, credit: 3500.00, desc: 'Reverse MGA Commission Expense' });
+      carrierLines.push({ acct: '1100', debit: 0, credit: 29757.00, desc: 'Reverse Settlement Receivable' });
+    }
+
+    // --- 4. Save & Post entries ---
+    let activeResult = null;
+
+    if (brokerLines.length > 0 && typeof createJournalEntry === 'function') {
+      const brokerJE = createJournalEntry({
+        entityId: 'ENT-AGY-01',
+        date: evt.dates.transaction_date,
+        description: getCleanJeSentence(evt.event_type, evt.policy.policy_number, evt.parties.insured_name, evt.invoice_number),
+        source: 'INSURANCE',
+        lines: brokerLines
+      });
+      if (activeId === 'ENT-AGY-01' || activeId === 'ENT-BRK-01') {
+        activeResult = { jeId: brokerJE.id, jeNumber: brokerJE.number };
+      }
+    }
+
+    if (mgaLines.length > 0 && typeof createJournalEntry === 'function') {
+      const mgaJE = createJournalEntry({
+        entityId: 'ENT-MINE',
+        date: evt.dates.transaction_date,
+        description: getCleanJeSentence(evt.event_type, evt.policy.policy_number, evt.parties.insured_name, evt.invoice_number),
+        source: 'INSURANCE',
+        lines: mgaLines
+      });
+      if (activeId === 'ENT-MINE') {
+        activeResult = { jeId: mgaJE.id, jeNumber: mgaJE.number };
+      }
+    }
+
+    if (carrierLines.length > 0 && typeof createJournalEntry === 'function') {
+      const carrierJE = createJournalEntry({
+        entityId: 'ENT-CAR-01',
+        date: evt.dates.transaction_date,
+        description: `Carrier Ledger — ${getCleanJeSentence(evt.event_type, evt.policy.policy_number, evt.parties.insured_name, null)}`,
+        source: 'INSURANCE',
+        lines: carrierLines
+      });
+      if (activeId === 'ENT-CAR-01') {
+        activeResult = { jeId: carrierJE.id, jeNumber: carrierJE.number };
+      }
+    }
+
+    return activeResult;
+  }
+
+  // Update the Policy, Invoice, and Payment registers for both MGA and Carrier
+  function updateInjectedSubledgers(evt) {
+    const premium = parseFloat(evt.financials.premium) || 0;
+    const taxAndFees = parseFloat(evt.financials.tax_and_fees) || 0;
+    const commission = parseFloat(evt.financials.broker_commission) || 0;
+    const totalAmount = parseFloat(evt.financials.total_premium) || (premium + taxAndFees + commission) || 39260;
+    const netPremium = totalAmount - commission; // $36,760
+    const paid = parseFloat(evt.financials.payment_amount) || 0;
+
+    // --- 1. Update Agency / Broker Subledger ---
+    let agencyPolicies = JSON.parse(localStorage.getItem('agency_pas_policies') || '[]');
+    if (evt.event_type === 'POLICY_BINDING_INVOICED') {
+      agencyPolicies.unshift({
+        number: evt.policy.policy_number,
+        name: evt.parties.insured_name,
+        date: evt.dates.effective_date,
+        premium: totalAmount,
+        commissionPct: Math.round((commission / premium) * 100) || 8,
+        status: 'BOUND',
+        mgaName: evt.parties.mga_name || 'NTA'
+      });
+    } else if (evt.event_type === 'POLICY_CANCELLED') {
+      let target = agencyPolicies.find(p => p.number === evt.policy.policy_number);
+      if (target) target.status = 'CANCELLED';
+    } else if (evt.event_type === 'POLICY_RENEWED') {
+      let target = agencyPolicies.find(p => p.number === evt.policy.policy_number);
+      if (target) target.status = 'RENEWED';
+    }
+    localStorage.setItem('agency_pas_policies', JSON.stringify(agencyPolicies));
+
+    let agencyInvoices = JSON.parse(localStorage.getItem('agency_pas_invoices') || '[]');
+    if (evt.event_type === 'POLICY_BINDING_INVOICED' || evt.event_type === 'PREMIUM_ADJUSTED') {
+      agencyInvoices.unshift({
+        id: evt.invoice_number || ('INV-' + Math.floor(1000 + Math.random() * 9000)),
+        policyNum: evt.policy.policy_number,
+        customer: evt.parties.insured_name,
+        type: evt.event_type === 'PREMIUM_ADJUSTED' ? 'Premium Adjustment' : 'Commercial Trucking Premium',
+        issueDate: evt.dates.transaction_date,
+        dueDate: evt.dates.transaction_date,
+        amount: totalAmount,
+        paidAmount: 0,
+        status: 'Sent'
+      });
+      agencyInvoices.unshift({
+        id: 'PAY-MGA-' + Math.floor(1000 + Math.random() * 9000),
+        policyNum: evt.policy.policy_number,
+        customer: evt.parties.mga_name || 'NTA',
+        type: 'MGA Payable',
+        issueDate: evt.dates.transaction_date,
+        dueDate: evt.dates.transaction_date,
+        amount: totalAmount - commission,
+        paidAmount: 0,
+        status: 'Approved',
+        category: 'MGA Settlement',
+        glAcct: '2200',
+        method: 'ACH'
+      });
+    } else if (evt.event_type === 'PAYMENT_RECEIVED') {
+      let inv = agencyInvoices.find(i => i.policyNum === evt.policy.policy_number && (i.type.includes('Premium') || i.type === 'Premium'));
+      if (inv) {
+        inv.paidAmount = paid;
+        inv.status = paid >= inv.amount ? 'Paid' : 'Partial';
+      }
+      let pay = agencyInvoices.find(i => i.policyNum === evt.policy.policy_number && (i.type.includes('Payable') || i.type.includes('MGA')));
+      if (!pay) {
+        agencyInvoices.unshift({
+          id: 'PAY-MGA-' + Math.floor(1000 + Math.random() * 9000),
+          policyNum: evt.policy.policy_number,
+          customer: evt.parties.mga_name || 'NTA',
+          type: 'MGA Payable',
+          issueDate: evt.dates.transaction_date,
+          dueDate: evt.dates.transaction_date,
+          amount: totalAmount - commission,
+          paidAmount: 0,
+          status: 'Approved',
+          category: 'MGA Settlement',
+          glAcct: '2200',
+          method: 'ACH'
+        });
+      }
+    } else if (evt.event_type === 'CARRIER_PAYMENT_COMPLETED') {
+      let pay = agencyInvoices.find(i => i.policyNum === evt.policy.policy_number && (i.type.includes('Payable') || i.type.includes('MGA')));
+      if (pay) {
+        pay.paidAmount = totalAmount - commission;
+        pay.status = 'Paid';
+      }
+    } else if (evt.event_type === 'POLICY_CANCELLED') {
+      agencyInvoices.unshift({
+        id: 'INV-CAN-' + Math.floor(1000 + Math.random() * 9000),
+        policyNum: evt.policy.policy_number,
+        customer: evt.parties.insured_name,
+        type: 'Premium (Cancellation)',
+        issueDate: evt.dates.transaction_date,
+        amount: -totalAmount,
+        paidAmount: 0,
+        status: 'Paid'
+      });
+      agencyInvoices.unshift({
+        id: 'PAY-MGA-CAN-' + Math.floor(1000 + Math.random() * 9000),
+        policyNum: evt.policy.policy_number,
+        customer: evt.parties.mga_name || 'NTA',
+        type: 'MGA Payable',
+        issueDate: evt.dates.transaction_date,
+        amount: -(totalAmount - commission),
+        paidAmount: 0,
+        status: 'Unpaid'
+      });
+    }
+    localStorage.setItem('agency_pas_invoices', JSON.stringify(agencyInvoices));
+
+    // --- 2. Update MGA Subledger ---
+    let mgaPolicies = JSON.parse(localStorage.getItem('mga_pas_policies') || '[]');
+    if (evt.event_type === 'POLICY_BINDING_INVOICED') {
+      mgaPolicies.unshift({
+        number: evt.policy.policy_number,
+        name: evt.parties.insured_name,
+        date: evt.dates.effective_date,
+        premium: totalAmount,
+        commissionPct: Math.round((commission / premium) * 100) || 8,
+        status: 'BOUND',
+        brokerName: evt.parties.producer || 'Direct'
+      });
+    } else if (evt.event_type === 'POLICY_CANCELLED') {
+      let target = mgaPolicies.find(p => p.number === evt.policy.policy_number);
+      if (target) target.status = 'CANCELLED';
+    } else if (evt.event_type === 'POLICY_RENEWED') {
+      let target = mgaPolicies.find(p => p.number === evt.policy.policy_number);
+      if (target) target.status = 'RENEWED';
+    }
+    localStorage.setItem('mga_pas_policies', JSON.stringify(mgaPolicies));
+
+    let mgaInvoices = JSON.parse(localStorage.getItem('mga_pas_invoices') || '[]');
+    if (evt.event_type === 'POLICY_BINDING_INVOICED' || evt.event_type === 'PREMIUM_ADJUSTED') {
+      mgaInvoices.unshift({
+        id: evt.invoice_number || ('INV-' + Math.floor(1000 + Math.random() * 9000)),
+        policyNum: evt.policy.policy_number,
+        customer: evt.parties.producer || 'HIT',
+        type: 'Broker Net Remittance',
+        issueDate: evt.dates.transaction_date,
+        dueDate: evt.dates.transaction_date,
+        amount: 36760.00,
+        paidAmount: 0,
+        status: 'Sent'
+      });
+      mgaInvoices.unshift({
+        id: 'PAY-CAR-' + Math.floor(1000 + Math.random() * 9000),
+        policyNum: evt.policy.policy_number,
+        customer: evt.parties.carrier_name || 'Southlake Insurance Co.',
+        type: 'Carrier Payable',
+        issueDate: evt.dates.transaction_date,
+        dueDate: evt.dates.transaction_date,
+        amount: 29757.00,
+        paidAmount: 0,
+        status: 'Unpaid'
+      });
+    } else if (evt.event_type === 'BROKER_SETTLEMENT_COMPLETED' || evt.event_type === 'PAYMENT_RECEIVED') {
+      let inv = mgaInvoices.find(i => i.policyNum === evt.policy.policy_number && (i.type.includes('Remittance') || i.type.includes('Premium')));
+      if (inv) {
+        inv.paidAmount = inv.amount;
+        inv.status = 'Paid';
+      }
+    } else if (evt.event_type === 'CARRIER_PAYMENT_COMPLETED') {
+      let pay = mgaInvoices.find(i => i.policyNum === evt.policy.policy_number && i.type.includes('Carrier'));
+      if (pay) {
+        pay.paidAmount = 29757.00;
+        pay.status = 'Paid';
+      }
+    } else if (evt.event_type === 'POLICY_CANCELLED') {
+      mgaInvoices.unshift({
+        id: 'INV-CAN-' + Math.floor(1000 + Math.random() * 9000),
+        policyNum: evt.policy.policy_number,
+        customer: evt.parties.producer || 'HIT',
+        type: 'Broker Remittance (Cancellation)',
+        issueDate: evt.dates.transaction_date,
+        amount: -36760.00,
+        paidAmount: 0,
+        status: 'Paid'
+      });
+      mgaInvoices.unshift({
+        id: 'PAY-CAR-CAN-' + Math.floor(1000 + Math.random() * 9000),
+        policyNum: evt.policy.policy_number,
+        customer: evt.parties.carrier_name,
+        type: 'Carrier Payable',
+        issueDate: evt.dates.transaction_date,
+        amount: -29757.00,
+        paidAmount: 0,
+        status: 'Unpaid'
+      });
+    }
+    localStorage.setItem('mga_pas_invoices', JSON.stringify(mgaInvoices));
+
+    // --- 3. Update Carrier Subledger (DBA: Off-ledger at binding; Ingested at Stage 4 upon Bordereau) ---
+    let carrierPolicies = JSON.parse(localStorage.getItem('carrier_pas_policies') || '[]');
+    let carrierInvoices = JSON.parse(localStorage.getItem('carrier_pas_invoices') || '[]');
+
+    if (evt.event_type === 'BORDEREAU_INGESTED') {
+      carrierPolicies.unshift({
+        number: evt.policy.policy_number,
+        name: evt.parties.insured_name,
+        date: evt.dates.effective_date,
+        premium: 33257.00,
+        commissionPct: 10,
+        status: 'BOUND',
+        mgaName: evt.parties.mga_name || 'NTA'
+      });
+      carrierInvoices.unshift({
+        id: 'REC-MGA-' + Math.floor(1000 + Math.random() * 9000),
+        policyNum: evt.policy.policy_number,
+        customer: evt.parties.mga_name || 'NTA',
+        type: 'Premium',
+        issueDate: evt.dates.transaction_date,
+        dueDate: evt.dates.transaction_date,
+        amount: 29757.00,
+        paidAmount: 0,
+        status: 'Sent'
+      });
+      localStorage.setItem('v_bordereau_ingested_POL-V8NHT', 'true');
+    } else if (evt.event_type === 'CARRIER_PAYMENT_COMPLETED') {
+      let inv = carrierInvoices.find(i => i.policyNum === evt.policy.policy_number && i.type === 'Premium');
+      if (inv) {
+        inv.paidAmount = 29757.00;
+        inv.status = 'Paid';
+      }
+    } else if (evt.event_type === 'POLICY_CANCELLED') {
+      carrierInvoices.unshift({
+        id: 'REC-MGA-CAN-' + Math.floor(1000 + Math.random() * 9000),
+        policyNum: evt.policy.policy_number,
+        customer: evt.parties.mga_name,
+        type: 'Premium (Cancellation)',
+        issueDate: evt.dates.transaction_date,
+        amount: -29757.00,
+        paidAmount: 0,
+        status: 'Paid'
+      });
+    }
+    localStorage.setItem('carrier_pas_policies', JSON.stringify(carrierPolicies));
+    localStorage.setItem('carrier_pas_invoices', JSON.stringify(carrierInvoices));
+  }
+
+  // Central Intake Event Queue Handler
+  function injectEventProcessor(evt) {
+    const events = getInjectedEvents();
+    
+    // Step 1: Intake Event
+    const eventRecord = Object.assign({}, evt, {
+      status: 'RECEIVED',
+      timestamp: new Date().toISOString(),
+      errors: [],
+      jeId: null,
+      jeNumber: null
+    });
+    events.unshift(eventRecord);
+    saveInjectedEvents(events);
+
+    // Step 2: Validation
+    eventRecord.status = 'PROCESSING';
+    const errors = validatePASEvent(evt);
+    
+    if (errors.length > 0) {
+      eventRecord.status = 'FAILED';
+      eventRecord.errors = errors;
+      saveInjectedEvents(events);
+      showToast("Event Validation Failed! Check Exception Queue.", "error");
+      return false;
+    }
+
+    // Step 3: Rules engine & GL posting
+    eventRecord.status = 'VALIDATED';
+    try {
+      const jeDetails = processRulesEngine(evt);
+      if (jeDetails) {
+        eventRecord.jeId = jeDetails.jeId;
+        eventRecord.jeNumber = jeDetails.jeNumber;
+      }
+      
+      // Step 4: Update subledgers
+      updateInjectedSubledgers(evt);
+      
+      eventRecord.status = 'POSTED';
+      saveInjectedEvents(events);
+      showToast(`Event ${evt.event_id} (${evt.policy.policy_number}) successfully validated & posted.`, "success");
+      return true;
+    } catch (err) {
+      eventRecord.status = 'FAILED';
+      eventRecord.errors = ["Rules Engine Error: " + err.message];
+      saveInjectedEvents(events);
+      showToast("Rules Engine Exception: " + err.message, "error");
+      return false;
+    }
+  }
+
+  // Submission click handler from Data Injector
+  function submitInjectedEventForm() {
+    onFormInputChanged(); // sync values
+    const ok = injectEventProcessor(currentEventPayload);
+    if (ok) {
+      // Generate new IDs for next injection
+      document.getElementById('inj-evt-id').value = generateUUID("EVT");
+      document.getElementById('inj-txn-id').value = generateUUID("TXN");
+      onFormInputChanged();
+    }
+  }
+
+  // Render Log list
+  function renderIntakeLogTable() {
+    const events = getInjectedEvents();
+    const tbody = document.getElementById('intake-log-tbody');
+    
+    if (events.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--gray-400);padding:24px;">No events recorded. Set presets and click "Inject Event" to start.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = events.map(e => `
+      <tr>
+        <td style="font-weight:600; color:var(--navy);">${e.event_id}</td>
+        <td><strong>${e.event_type}</strong></td>
+        <td>${e.dates.transaction_date}</td>
+        <td>${e.policy.policy_number} <span style="font-size:11px;color:var(--gray-500);">(${e.invoice_number || 'INV-V8NHT-1'})</span></td>
+        <td>${e.parties.insured_name}</td>
+        <td>$${((parseFloat(e.financials.premium) || 0) + (parseFloat(e.financials.tax_and_fees) || 0)).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+        <td><span class="status-badge st-${e.status.toLowerCase()}">${e.status}</span></td>
+        <td><button class="btn btn-outline btn-xs" onclick="viewEventDetails('${e.event_id}')">View details</button></td>
+      </tr>
+    `).join('');
+  }
+
+  // Render Exceptions list
+  function renderExceptionsTable() {
+    const events = getInjectedEvents().filter(e => e.status === 'FAILED');
+    const tbody = document.getElementById('exceptions-tbody');
+    
+    // Update badge count
+    const badge = document.getElementById('exc-badge-count');
+    if (events.length > 0) {
+      badge.textContent = events.length;
+      badge.style.display = 'inline-block';
+    } else {
+      badge.style.display = 'none';
+    }
+
+    if (events.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--gray-400);padding:24px;">No validation failures found. Systems are clean.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = events.map(e => `
+      <tr>
+        <td style="font-weight:600; color:#c62828;">${e.event_id}</td>
+        <td><strong>${e.event_type}</strong></td>
+        <td>${e.policy.policy_number}</td>
+        <td style="color:#c62828; font-size:12px; font-weight:500;">
+          ${e.errors.map(err => `&bull; ${err}`).join('<br>')}
+        </td>
+        <td>${new Date(e.timestamp).toLocaleTimeString()}</td>
+        <td>
+          <button class="btn btn-primary btn-xs" onclick="loadFailedEventForRetry('${e.event_id}')">Edit &amp; Retry</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  // Edit failed event
+  function loadFailedEventForRetry(eventId) {
+    const events = getInjectedEvents();
+    const evt = events.find(e => e.event_id === eventId);
+    if (!evt) return;
+
+    // Load to form inputs
+    document.getElementById('inj-evt-id').value = evt.event_id;
+    document.getElementById('inj-txn-id').value = evt.transaction_id;
+    document.getElementById('inj-evt-type').value = evt.event_type;
+    document.getElementById('inj-pol-num').value = evt.policy.policy_number;
+    document.getElementById('inj-inv-num').value = evt.invoice_number || "INV-V8NHT-1";
+    document.getElementById('inj-pol-lob').value = evt.policy.lob;
+    document.getElementById('inj-party-insured').value = evt.parties.insured_name;
+    document.getElementById('inj-party-carrier').value = evt.parties.carrier_name;
+    document.getElementById('inj-party-mga').value = evt.parties.mga_name;
+    document.getElementById('inj-party-broker').value = evt.parties.producer || "Direct";
+    document.getElementById('inj-fin-premium').value = evt.financials.premium;
+    document.getElementById('inj-fin-tax').value = evt.financials.tax_and_fees;
+    document.getElementById('inj-fin-commission').value = evt.financials.broker_commission;
+    document.getElementById('inj-fin-payment').value = evt.financials.payment_amount || 0;
+    document.getElementById('inj-date-eff').value = evt.dates.effective_date;
+    document.getElementById('inj-date-tx').value = evt.dates.transaction_date;
+
+    // Delete failed event record so it doesn't cause duplicate errors on retry
+    const index = events.indexOf(evt);
+    if (index > -1) {
+      events.splice(index, 1);
+      saveInjectedEvents(events);
+    }
+
+    switchPasTab('injector');
+    showToast("Loaded failed event details. Correct errors and re-inject.", "info");
+  }
+
+  // Clear events log history
+  function clearInjectedEventsLog() {
+    if (confirm("Are you sure you want to clear the logs and exception queues? This won't affect GL postings.")) {
+      saveInjectedEvents([]);
+      switchPasTab('injector');
+      showToast("Logs cleared.", "info");
+    }
+  }
+
+  // Modal Detail View
+  function viewEventDetails(eventId) {
+    const events = getInjectedEvents();
+    const evt = events.find(e => e.event_id === eventId);
+    if (!evt) return;
+
+    document.getElementById('modal-title-text').textContent = `Intake Event Details: ${evt.event_id} (${evt.policy.policy_number})`;
+    document.getElementById('modal-json-box').innerHTML = JSON.stringify(evt, null, 2);
+
+    const jeBox = document.getElementById('modal-je-content');
+    if (!evt.jeId) {
+      jeBox.innerHTML = `<div class="text-muted" style="font-size:12.5px; padding:10px 0;">No Journal Entry posted for this event (State: ${evt.status}).</div>`;
+    } else {
+      // Load corresponding JE lines from gl-engine
+      const JEs = typeof getJournalEntries === 'function' ? getJournalEntries() : [];
+      const targetJE = JEs.find(j => j.id === evt.jeId);
+      if (!targetJE) {
+        jeBox.innerHTML = `<div class="text-muted" style="font-size:12.5px; padding:10px 0;">JE reference ${evt.jeNumber} exists in General Ledger.</div>`;
+      } else {
+        const total = targetJE.lines.reduce((s, l) => s + (l.debit || 0), 0);
+        jeBox.innerHTML = `
+          <div style="display:flex; justify-content:space-between; margin-bottom:8px; font-size:12.5px; font-weight:700;">
+            <span>Journal Entry: ${targetJE.number}</span>
+            <span>Status: <span class="badge badge-green" style="font-size:9.5px;">POSTED</span></span>
+          </div>
+          <div class="journal-box" style="margin-top:0;">
+            <div class="journal-row header"><span>Account Code &amp; Name</span><span>Debit</span><span>Credit</span></div>
+            ${targetJE.lines.map(l => {
+              const acct = typeof lookupAccount === 'function' ? lookupAccount(l.acct) : { name: "GL Account" };
+              return `
+                <div class="journal-row">
+                  <span class="${l.debit > 0 ? '' : 'dr-indent'}">${l.acct} - ${acct ? acct.name : l.desc}</span>
+                  ${l.debit > 0 ? `<span class="dr">$${l.debit.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>` : '<span></span>'}
+                  ${l.credit > 0 ? `<span class="cr">$${l.credit.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>` : '<span></span>'}
+                </div>
+              `;
+            }).join('')}
+            <div class="journal-row" style="font-weight:700; border-top:1px solid var(--gray-300); margin-top:6px; padding-top:4px;">
+              <span>Total Balanced</span>
+              <span>$${total.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+              <span>$${total.toLocaleString('en-US', {minimumFractionDigits: 2})}</span>
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    document.getElementById('event-detail-modal').classList.add('open');
+  }
+
+  function closeEventDetailModal() {
+    document.getElementById('event-detail-modal').classList.remove('open');
+  }
+
+  // Render dynamic policies from storage
+  function renderPoliciesRegister() {
+    const active = typeof getActiveEntity === 'function' ? getActiveEntity() : null;
+    const bType = active ? active.businessType : 'mga';
+    let policies = JSON.parse(localStorage.getItem(bType + '_pas_policies') || '[]');
+
+    // Default with the POL-V8NHT policy if empty
+    if (policies.length === 0) {
+      policies = [{
+        number: "POL-V8NHT",
+        name: "Ayushi",
+        date: "2026-08-20",
+        premium: 39260,
+        commissionPct: 8,
+        status: 'BOUND',
+        brokerName: 'HIT'
+      }];
+      localStorage.setItem(bType + '_pas_policies', JSON.stringify(policies));
+    }
+
+    const tbody = document.getElementById('register-tbody');
+    tbody.innerHTML = policies.map(p => `
+      <tr>
+        <td style="font-weight:600; color:var(--navy);">${p.number}</td>
+        <td><strong>${p.name}</strong></td>
+        <td>${p.date}</td>
+        <td>$${Number(p.premium).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+        <td><span class="status-badge st-posted">${p.status}</span></td>
+        <td><button class="btn btn-outline btn-sm" onclick="loadSimOpsFromRegister('${p.number}')">Inject Actions</button></td>
+      </tr>
+    `).join('');
+  }
+
+  function loadSimOpsFromRegister(policyNumber) {
+    const active = typeof getActiveEntity === 'function' ? getActiveEntity() : null;
+    const bType = active ? active.businessType : 'mga';
+    let policies = JSON.parse(localStorage.getItem(bType + '_pas_policies') || '[]');
+    let pol = policies.find(p => p.number === policyNumber);
+    if (pol) {
+      // Switch to Event Data Injector tab
+      switchPasTab('injector');
+
+      // Pre-fill the Event Data Injector form with the selected policy details
+      document.getElementById('inj-pol-num').value = pol.number;
+      document.getElementById('inj-party-insured').value = pol.name;
+      document.getElementById('inj-party-broker').value = pol.brokerName || 'HIT';
+      document.getElementById('inj-fin-premium').value = 32257;
+      document.getElementById('inj-fin-tax').value = 7003;
+      document.getElementById('inj-fin-commission').value = 2500;
+      
+      // Default preset to payment_received so they can record collections easily
+      document.getElementById('event-preset-select').value = 'payment_received';
+      document.getElementById('inj-evt-type').value = 'PAYMENT_RECEIVED';
+      document.getElementById('inj-fin-payment').value = 39260;
+
+      // Trigger change update
+      onFormInputChanged();
+    }
+  }
+
+  // --- End-to-End Quick simulation wizard ---
+  function loadSimulationPreset() {
+    if (confirm("Simulate PAS 5-Stage DBA Lifecycle for POL-V8NHT (Ayushi - Commercial Trucking · $39,260 Total Billed)?")) {
+      const active = typeof getActiveEntity === 'function' ? getActiveEntity() : null;
+      const bType = active ? active.businessType : 'mga';
+      
+      const boundEvt = {
+        event_id: generateUUID("EVT"),
+        event_type: "POLICY_BINDING_INVOICED",
+        transaction_id: generateUUID("TXN"),
+        invoice_number: "INV-V8NHT-1",
+        policy: { policy_id: "POL-V8NHT", policy_number: "POL-V8NHT", lob: "Commercial Trucking", state: "TX" },
+        parties: {
+          insured_name: "Ayushi", insured_id: "INS-AYUSHI",
+          carrier_name: "SOUTHLAKE", carrier_id: "CAR-SOUTHLAKE",
+          mga_name: "NTA", mga_id: "MGA-NTA",
+          producer: "HIT"
+        },
+        financials: { premium: 33257, tax_and_fees: 3503, total_premium: 39260, broker_commission: 2500, payment_amount: 0, currency: "USD" },
+        dates: { effective_date: "2026-08-20", transaction_date: "2026-08-20" },
+        source_system: "PAS"
+      };
+
+      // 1. Stage 1: POLICY_BINDING_INVOICED (Broker & MGA recognized, Carrier off-ledger)
+      const ok1 = injectEventProcessor(boundEvt);
+      if (!ok1) return;
+
+      // 2. Stage 2: PAYMENT_RECEIVED (Ayushi pays Broker $39,260)
+      setTimeout(() => {
+        const payEvt = Object.assign({}, boundEvt, {
+          event_id: generateUUID("EVT"),
+          event_type: "PAYMENT_RECEIVED",
+          transaction_id: generateUUID("TXN"),
+          financials: Object.assign({}, boundEvt.financials, { payment_amount: 39260 })
+        });
+        injectEventProcessor(payEvt);
+
+        // 3. Stage 3: BROKER_SETTLEMENT_COMPLETED (Broker pays MGA $36,760 net)
+        setTimeout(() => {
+          const brokerSettleEvt = Object.assign({}, boundEvt, {
+            event_id: generateUUID("EVT"),
+            event_type: "BROKER_SETTLEMENT_COMPLETED",
+            transaction_id: generateUUID("TXN"),
+            financials: Object.assign({}, boundEvt.financials, { payment_amount: 36760 })
+          });
+          injectEventProcessor(brokerSettleEvt);
+
+          // 4. Stage 4: BORDEREAU_INGESTED (Carrier ingests monthly Bordereau report: Dr. AR $29,757, Dr. Comm Exp $3,500, Cr. GWP $33,257)
+          setTimeout(() => {
+            const bxEvt = Object.assign({}, boundEvt, {
+              event_id: generateUUID("EVT"),
+              event_type: "BORDEREAU_INGESTED",
+              transaction_id: generateUUID("TXN")
+            });
+            injectEventProcessor(bxEvt);
+
+            // 5. Stage 5: CARRIER_PAYMENT_COMPLETED (MGA pays Carrier $29,757 net ACH wire; Carrier matches cash)
+            setTimeout(() => {
+              const settleEvt = Object.assign({}, boundEvt, {
+                event_id: generateUUID("EVT"),
+                event_type: "CARRIER_PAYMENT_COMPLETED",
+                transaction_id: generateUUID("TXN"),
+                financials: Object.assign({}, boundEvt.financials, { payment_amount: 29757 })
+              });
+              injectEventProcessor(settleEvt);
+              
+              switchPasTab('intake');
+              showToast("End-to-End Simulation complete! All 5 DBA Lifecycle Stages reconciled.", "success");
+            }, 500);
+          }, 500);
+        }, 500);
+      }, 500);
+    }
+  }
+
+  // Initialize view
+  document.addEventListener('DOMContentLoaded', () => {
+    applyPresetSelection();
+    
+    // Seed initial badges/states
+    const failedEvents = getInjectedEvents().filter(e => e.status === 'FAILED');
+    const badge = document.getElementById('exc-badge-count');
+    if (failedEvents.length > 0) {
+      badge.textContent = failedEvents.length;
+      badge.style.display = 'inline-block';
+    }
+  });
+</script>
+</body>
+</html>

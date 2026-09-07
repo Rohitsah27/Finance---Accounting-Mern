@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Policy Administration (PAS) — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Insurance Operations (PAS &amp; MGA)</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Policy Admin (PAS)</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-file-contract" style="color: var(--green);"></i> Policy Administration System (PAS)</h1>
+      <p>
+        The PAS module manages the end-to-end policy lifecycle for commercial insurance. It powers underwriting intake, premium rating, policy binding, endorsement modifications, cancellations, and renewals with real-time financial ledger synchronizations.
+      </p>
+    </div>
+
+    <div class="module-card" id="policy-lifecycle">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-teal">Underwriting</span>
+            <span class="badge badge-purple">Policy Lifecycle</span>
+          </div>
+          <h2 class="module-title">Policy Lifecycle Stages (`pas-policy.html`)</h2>
+        </div>
+        <a href="../pas-policy.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open PAS Engine</a>
+      </div>
+
+      <div class="flow-steps">
+        <div class="flow-step-item">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <strong>Quote &amp; Rate</strong>
+            <span>Input policyholder entity (`Ayushi`), Line of Business (`Commercial Trucking`), State (`TX`), and limits ($1,000,000 occurrence).</span>
+          </div>
+        </div>
+        <div class="flow-step-item">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <strong>Bind &amp; Issue (`POL-V8NHT`)</strong>
+            <span>Generates official policy binder. Creates Invoice `INV-V8NHT-1` for $39,260.00 ($35k Gross Premium + $1,770 Taxes + $2,490 Surcharges).</span>
+          </div>
+        </div>
+        <div class="flow-step-item">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <strong>Mid-Term Endorsement</strong>
+            <span>Allows adding vehicles/drivers with prorated Additional Premium (AP) or Return Premium (RP) ledger calculations.</span>
+          </div>
+        </div>
+        <div class="flow-step-item">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <strong>Cancellation &amp; Audit</strong>
+            <span>Calculates pro-rata or short-rate unearned premium return, reverses unearned commissions, and creates refund entries.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="workflow-approvals.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">Workflow Approvals</span>
+      </a>
+      <a href="subledger-processing.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Module &rarr;</span>
+        <span class="nav-page-title">Subledger &amp; Bordereau (BX)</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('policy-admin');
+</script>
+</body>
+</html>

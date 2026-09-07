@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document Management — Workspace | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/layout.js"></script>
+</head>
+<body>
+
+<main class="main-content" id="main-content">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Document Management</div>
+      <div class="page-subtitle">Templates, attachments and e-signature status across every module, in one place.</div>
+    </div>
+  </div>
+
+  <div id="doc-tabs">
+    <div class="page-tabs">
+      <div class="page-tab active" data-tab="templates"   onclick="switchTab('doc-tabs','templates')">Document Templates</div>
+      <div class="page-tab"        data-tab="attachments"  onclick="switchTab('doc-tabs','attachments')">Attachments Library</div>
+      <div class="page-tab"        data-tab="esign"        onclick="switchTab('doc-tabs','esign')">E-Signature Ready</div>
+    </div>
+
+    <!-- TEMPLATES -->
+    <div class="tab-panel active" data-panel="templates">
+      <div class="form-card" style="padding:20px;border-radius:0 0 8px 8px;">
+        <div class="card-title">Document Templates</div>
+        <div style="font-size:12px;color:var(--gray-500);margin:2px 0 16px;">Each template is bound to the numbering sequence for that document type. Configure sequences in the Configuration Centre.</div>
+        <div class="v-module-grid" id="templates-grid"></div>
+      </div>
+    </div>
+
+    <!-- ATTACHMENTS -->
+    <div class="tab-panel" data-panel="attachments">
+      <div class="form-card" style="padding:20px;border-radius:0 0 8px 8px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div class="card-title">Attachments Library</div>
+          <input type="text" class="filter-input" id="attach-search" placeholder="Search filename or record…" oninput="renderAttachments()" style="width:240px;">
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Filename</th><th>Linked Record</th><th>Uploaded By</th><th>Size</th><th>Classification</th></tr></thead>
+          <tbody id="attach-rows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- E-SIGNATURE -->
+    <div class="tab-panel" data-panel="esign">
+      <div class="form-card" style="padding:20px;border-radius:0 0 8px 8px;">
+        <div class="card-title">E-Signature Ready</div>
+        <div style="font-size:12px;color:var(--gray-500);margin:2px 0 16px;">Documents currently in flight for signature.</div>
+        <table class="data-table">
+          <thead><tr><th>Document</th><th>Linked Record</th><th>Recipient</th><th>Status</th><th>Sent</th></tr></thead>
+          <tbody id="esign-rows"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="js/app.js"></script>
+<script>
+initLayout('documents');
+
+const DOC_TEMPLATES = [
+  { name: 'Invoice', desc: 'Customer-facing invoice with itemized line items and payment terms.', sequence: 'INV-{YYYY}-{00000}' },
+  { name: 'Statement', desc: 'Monthly customer or vendor statement of account.', sequence: 'STMT-{YYYY}-{0000}' },
+  { name: '1099', desc: 'Year-end vendor tax form (1099-NEC / 1099-MISC).', sequence: 'N/A (annual filing)' },
+  { name: 'Policy Declaration', desc: 'Insurance policy declarations page for bound coverage.', sequence: 'POL-{YYYY}-{000000}' },
+];
+function renderTemplates() {
+  document.getElementById('templates-grid').innerHTML = DOC_TEMPLATES.map(t => `
+    <div class="v-module-card">
+      <div class="v-module-card-title">${t.name}</div>
+      <div class="v-module-card-desc">${t.desc}</div>
+      <div style="font-size:11px;color:var(--gray-400);font-family:'SF Mono','Consolas',monospace;margin-top:4px;">${t.sequence}</div>
+      <div class="v-module-card-meta">
+        <button class="btn btn-outline btn-sm" onclick="showToast('${t.name} preview stub','info')">Preview</button>
+        <button class="btn btn-outline btn-sm" onclick="showToast('${t.name} template editor stub','info')">Edit</button>
+      </div>
+    </div>`).join('');
+}
+
+const ATTACHMENTS = [
+  { file: 'JE-2026-000481-support.pdf', record: 'JE-2026-000481', by: 'Maria Johnson', size: '412 KB', classification: 'Internal' },
+  { file: 'vendor-w9-acme-supplies.pdf', record: 'Vendor: Acme Supplies', by: 'Robert Patel', size: '188 KB', classification: 'Confidential-PII' },
+  { file: 'policy-declaration-POL-2026-000204.pdf', record: 'POL-2026-000204', by: 'System', size: '96 KB', classification: 'Public' },
+  { file: 'bank-statement-aug-2026.pdf', record: 'Bank Reconciliation: Aug 2026', by: 'James Smith', size: '640 KB', classification: 'Confidential-PII' },
+  { file: 'invoice-INV-2026-01043.pdf', record: 'INV-2026-01043', by: 'System', size: '74 KB', classification: 'Public' },
+  { file: 'employee-i9-r-patel.pdf', record: 'Employee: Robert Patel', by: 'Payroll Admin', size: '210 KB', classification: 'Confidential-PII' },
+];
+function renderAttachments() {
+  const term = (document.getElementById('attach-search').value || '').toLowerCase();
+  const rows = ATTACHMENTS.filter(a => a.file.toLowerCase().includes(term) || a.record.toLowerCase().includes(term));
+  const clsBadge = { 'Public': 'badge-green', 'Internal': 'badge-blue', 'Confidential-PII': 'badge-red' };
+  document.getElementById('attach-rows').innerHTML = rows.map(a => `
+    <tr>
+      <td class="font-semibold" style="font-size:12.5px;">${a.file}</td>
+      <td style="font-size:12px;color:var(--gray-600);">${a.record}</td>
+      <td>${a.by}</td>
+      <td style="font-size:12px;color:var(--gray-500);">${a.size}</td>
+      <td><span class="badge ${clsBadge[a.classification]}">${a.classification}</span></td>
+    </tr>`).join('');
+}
+
+const ESIGN_DOCS = [
+  { doc: 'Policy Declaration', record: 'POL-2026-000204', recipient: 'Southlake Insured Co.', status: 'Sent',   sent: '2026-08-18' },
+  { doc: 'Vendor Agreement',   record: 'Vendor: Acme Supplies', recipient: 'Acme Supplies AP Contact', status: 'Viewed', sent: '2026-08-17' },
+  { doc: 'Commission Statement', record: 'Producer: PROD-1188', recipient: 'PROD-1188 Agent', status: 'Signed', sent: '2026-08-10' },
+];
+function renderEsign() {
+  const statusBadge = { Sent: 'badge-gray', Viewed: 'badge-blue', Signed: 'badge-green' };
+  document.getElementById('esign-rows').innerHTML = ESIGN_DOCS.map(d => `
+    <tr>
+      <td class="font-semibold">${d.doc}</td>
+      <td style="font-size:12px;color:var(--gray-600);">${d.record}</td>
+      <td style="font-size:12px;color:var(--gray-600);">${d.recipient}</td>
+      <td><span class="badge ${statusBadge[d.status]}">${d.status}</span></td>
+      <td style="font-size:12px;color:var(--gray-500);">${d.sent}</td>
+    </tr>`).join('');
+}
+
+renderTemplates();
+renderAttachments();
+renderEsign();
+</script>
+</body>
+</html>

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payroll & Employees — People | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/layout.js"></script>
+</head>
+<body>
+  <main class="main-content" id="main-content">
+
+    <div class="page-header">
+      <div>
+        <div class="page-title">Payroll</div>
+        <div class="page-subtitle">Employee master, pay runs, statutory filings (Form 941, W-2 e-filing), and benefit deductions</div>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-outline" onclick="showToast('Exporting payroll register...','info')">Export</button>
+        <button class="btn btn-primary" onclick="showToast('New employee wizard opened','info')">+ New Employee</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon si-navy"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="8" cy="6" r="2.6" stroke="#102a2e" stroke-width="1.5"/><path d="M2.5 17c0-3.1 2.4-5.6 5.5-5.6s5.5 2.5 5.5 5.6" stroke="#102a2e" stroke-width="1.5" stroke-linecap="round"/><circle cx="15" cy="7" r="2" stroke="#102a2e" stroke-width="1.3"/></svg></div>
+        <div class="stat-info"><div class="stat-value">142</div><div class="stat-label">Active Employees</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-green"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 12l4-5 3 3 6-7" stroke="#2e7d32" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="stat-info"><div class="stat-value">$486,240</div><div class="stat-label">This Period's Gross Pay</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-orange"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="14" height="14" rx="1.5" stroke="#e65100" stroke-width="1.6"/><path d="M6 8h8M6 11h5" stroke="#e65100" stroke-width="1.4" stroke-linecap="round"/></svg></div>
+        <div class="stat-info"><div class="stat-value">$118,340</div><div class="stat-label">Total Tax Withheld</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-coral"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="13" rx="1.5" stroke="#c9791f" stroke-width="1.5"/><path d="M3 8h14" stroke="#c9791f" stroke-width="1.5"/><path d="M7 2v4M13 2v4" stroke="#c9791f" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+        <div class="stat-info"><div class="stat-value">Sep 4, 2026</div><div class="stat-label">Next Pay Date</div></div>
+      </div>
+    </div>
+
+    <div class="page-tabs" id="pr-tabs">
+      <button class="page-tab active" data-tab="employees" onclick="switchTab('pr-tabs','employees')">Employee Master</button>
+      <button class="page-tab" data-tab="payruns" onclick="switchTab('pr-tabs','payruns')">Pay Runs</button>
+      <button class="page-tab" data-tab="statutory" onclick="switchTab('pr-tabs','statutory')">Statutory Filings</button>
+      <button class="page-tab" data-tab="benefits" onclick="switchTab('pr-tabs','benefits')">Benefits &amp; Deductions</button>
+    </div>
+
+    <!-- Employee Master -->
+    <div class="tab-panel active" data-panel="employees">
+      <div class="filter-bar" style="border-radius:0;">
+        <span class="filter-bar-label">Filters:</span>
+        <select class="filter-select">
+          <option>All Departments</option>
+          <option>Manufacturing</option>
+          <option>Sales</option>
+          <option>Finance</option>
+          <option>Operations</option>
+        </select>
+        <select class="filter-select">
+          <option>All Pay Types</option>
+          <option>Salary</option>
+          <option>Hourly</option>
+        </select>
+        <div class="filter-spacer"></div>
+        <input type="text" class="filter-input" placeholder="Search employee..." id="emp-search" data-filter-input="emp-table" style="width:200px;">
+      </div>
+      <div class="table-wrap" style="border-radius:0 0 var(--radius) var(--radius);">
+        <table class="data-table" id="emp-table" data-table-init>
+          <thead><tr>
+            <th><input type="checkbox" class="table-check"></th>
+            <th>Employee</th><th>Department</th><th>Pay Type</th><th class="text-right">Annual Salary / Rate</th><th>Filing Status</th><th>Status</th><th>Actions</th>
+          </tr></thead>
+          <tbody>
+            <tr><td><input type="checkbox" class="table-check"></td><td class="cell-link">Marcus Whitfield</td><td>Manufacturing</td><td><span class="badge badge-navy">Salary</span></td><td class="text-right">$78,500 /yr</td><td>Single</td><td><span class="badge badge-green">Active</span></td><td><button class="btn btn-ghost btn-sm">Edit</button></td></tr>
+            <tr><td><input type="checkbox" class="table-check"></td><td class="cell-link">Priya Nandakumar</td><td>Finance</td><td><span class="badge badge-navy">Salary</span></td><td class="text-right">$96,200 /yr</td><td>Married Filing Jointly</td><td><span class="badge badge-green">Active</span></td><td><button class="btn btn-ghost btn-sm">Edit</button></td></tr>
+            <tr><td><input type="checkbox" class="table-check"></td><td class="cell-link">Devon Ackerman</td><td>Operations</td><td><span class="badge badge-blue">Hourly</span></td><td class="text-right">$28.50 /hr</td><td>Single</td><td><span class="badge badge-green">Active</span></td><td><button class="btn btn-ghost btn-sm">Edit</button></td></tr>
+            <tr><td><input type="checkbox" class="table-check"></td><td class="cell-link">Renata Osei</td><td>Sales</td><td><span class="badge badge-navy">Salary</span></td><td class="text-right">$64,000 /yr</td><td>Head of Household</td><td><span class="badge badge-green">Active</span></td><td><button class="btn btn-ghost btn-sm">Edit</button></td></tr>
+            <tr><td><input type="checkbox" class="table-check"></td><td class="cell-link">Tobias Klein</td><td>Manufacturing</td><td><span class="badge badge-blue">Hourly</span></td><td class="text-right">$24.75 /hr</td><td>Married Filing Jointly</td><td><span class="badge badge-green">Active</span></td><td><button class="btn btn-ghost btn-sm">Edit</button></td></tr>
+            <tr><td><input type="checkbox" class="table-check"></td><td class="cell-link">Simone Vasquez</td><td>Finance</td><td><span class="badge badge-navy">Salary</span></td><td class="text-right">$112,000 /yr</td><td>Single</td><td><span class="badge badge-green">Active</span></td><td><button class="btn btn-ghost btn-sm">Edit</button></td></tr>
+            <tr><td><input type="checkbox" class="table-check"></td><td class="cell-link">Aaron Feldstein</td><td>Operations</td><td><span class="badge badge-blue">Hourly</span></td><td class="text-right">$21.00 /hr</td><td>Single</td><td><span class="badge badge-gray">On Leave</span></td><td><button class="btn btn-ghost btn-sm">Edit</button></td></tr>
+            <tr><td><input type="checkbox" class="table-check"></td><td class="cell-link">Latoya Simmons</td><td>Sales</td><td><span class="badge badge-navy">Salary</span></td><td class="text-right">$71,500 /yr</td><td>Married Filing Jointly</td><td><span class="badge badge-green">Active</span></td><td><button class="btn btn-ghost btn-sm">Edit</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Pay Runs -->
+    <div class="tab-panel" data-panel="payruns">
+      <div class="table-wrap">
+        <div class="table-head-row">
+          <div class="table-head-title">Pay Runs</div>
+          <div class="table-head-actions">
+            <button class="btn btn-primary btn-sm" id="process-payroll-btn" onclick="processPayroll()">Process Payroll</button>
+          </div>
+        </div>
+        <table class="data-table" id="payrun-table">
+          <thead><tr><th>Pay Period</th><th>Run Date</th><th>Status</th><th class="text-right">Gross Total</th><th class="text-right">Net Total</th><th>Actions</th></tr></thead>
+          <tbody>
+            <tr id="pr-current-row">
+              <td class="font-semibold">08/16/2026 – 08/31/2026</td><td>09/04/2026</td>
+              <td><span class="badge badge-gray" id="pr-current-status">Draft</span></td>
+              <td class="text-right">$243,120</td><td class="text-right">$178,480</td>
+              <td><button class="btn btn-ghost btn-sm">View</button></td>
+            </tr>
+            <tr><td class="font-semibold">08/01/2026 – 08/15/2026</td><td>08/20/2026</td><td><span class="badge badge-green">Paid</span></td><td class="text-right">$241,860</td><td class="text-right">$177,610</td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+            <tr><td class="font-semibold">07/16/2026 – 07/31/2026</td><td>08/05/2026</td><td><span class="badge badge-green">Paid</span></td><td class="text-right">$239,940</td><td class="text-right">$176,220</td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+            <tr><td class="font-semibold">07/01/2026 – 07/15/2026</td><td>07/20/2026</td><td><span class="badge badge-green">Paid</span></td><td class="text-right">$238,500</td><td class="text-right">$175,180</td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="form-card" style="margin-top:16px;padding:16px 20px;">
+        <div style="font-size:12px;font-weight:700;color:var(--gray-900);margin-bottom:10px;">Statutory Withholding Rates Applied</div>
+        <div style="display:flex;gap:24px;flex-wrap:wrap;font-size:12.5px;color:var(--gray-600);">
+          <div><strong style="color:var(--navy);">Social Security (OASDI):</strong> 6.2% up to the annual wage base</div>
+          <div><strong style="color:var(--navy);">Medicare:</strong> 1.45% (+0.9% Additional Medicare over $200,000)</div>
+          <div><strong style="color:var(--navy);">FUTA:</strong> 0.6% effective rate on first $7,000 per employee</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Statutory Filings -->
+    <div class="tab-panel" data-panel="statutory">
+      <div class="table-wrap">
+        <div class="table-head-row">
+          <div class="table-head-title">Statutory Filings</div>
+          <div class="table-head-actions">
+            <button class="btn btn-outline btn-sm" onclick="showToast('W-2 e-file batch queued with SSA','info')">E-File W-2s</button>
+          </div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Filing</th><th>Type</th><th>Period</th><th>Due Date</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody>
+            <tr><td class="font-semibold">Form 941 - Q2 2026</td><td>Federal Quarterly</td><td>Apr–Jun 2026</td><td>07/31/2026</td><td><span class="badge badge-green">Filed</span></td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+            <tr><td class="font-semibold">Form 941 - Q3 2026</td><td>Federal Quarterly</td><td>Jul–Sep 2026</td><td>10/31/2026</td><td><span class="badge badge-orange">Pending</span></td><td><button class="btn btn-ghost btn-sm" onclick="showToast('Draft Form 941 generated','info')">Prepare</button></td></tr>
+            <tr><td class="font-semibold">Form W-2 - Tax Year 2025</td><td>Federal Annual</td><td>Jan–Dec 2025</td><td>01/31/2026</td><td><span class="badge badge-green">E-Filed with SSA</span></td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+            <tr><td class="font-semibold">Form W-2 - Tax Year 2026</td><td>Federal Annual</td><td>Jan–Dec 2026</td><td>01/31/2027</td><td><span class="badge badge-gray">Not Yet Due</span></td><td><button class="btn btn-ghost btn-sm">Prepare</button></td></tr>
+            <tr><td class="font-semibold">Texas Workforce Commission - Q2</td><td>State Unemployment</td><td>Apr–Jun 2026</td><td>07/31/2026</td><td><span class="badge badge-green">Filed</span></td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+            <tr><td class="font-semibold">Form 940 - FUTA Annual</td><td>Federal Annual</td><td>Jan–Dec 2025</td><td>01/31/2026</td><td><span class="badge badge-green">Filed</span></td><td><button class="btn btn-ghost btn-sm">View</button></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Benefits & Deductions -->
+    <div class="tab-panel" data-panel="benefits">
+      <div class="table-wrap">
+        <div class="table-head-row"><div class="table-head-title">Benefits &amp; Deduction Types</div></div>
+        <table class="data-table">
+          <thead><tr><th>Deduction</th><th>Tax Treatment</th><th class="text-right">Employee Contribution</th><th class="text-right">Employer Match</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td class="font-semibold">401(k) Retirement</td><td><span class="badge badge-blue">Pre-Tax</span></td><td class="text-right">5% of gross</td><td class="text-right">50% up to 3%</td><td><span class="badge badge-green">Active</span></td></tr>
+            <tr><td class="font-semibold">Medical Insurance (PPO)</td><td><span class="badge badge-blue">Pre-Tax</span></td><td class="text-right">$186 /pay period</td><td class="text-right">$412 /pay period</td><td><span class="badge badge-green">Active</span></td></tr>
+            <tr><td class="font-semibold">Dental &amp; Vision</td><td><span class="badge badge-blue">Pre-Tax</span></td><td class="text-right">$24 /pay period</td><td class="text-right">$18 /pay period</td><td><span class="badge badge-green">Active</span></td></tr>
+            <tr><td class="font-semibold">HSA Contribution</td><td><span class="badge badge-blue">Pre-Tax</span></td><td class="text-right">$75 /pay period</td><td class="text-right">$40 /pay period</td><td><span class="badge badge-green">Active</span></td></tr>
+            <tr><td class="font-semibold">Roth 401(k)</td><td><span class="badge badge-orange">Post-Tax</span></td><td class="text-right">3% of gross</td><td class="text-right"> - </td><td><span class="badge badge-green">Active</span></td></tr>
+            <tr><td class="font-semibold">Wage Garnishment</td><td><span class="badge badge-orange">Post-Tax</span></td><td class="text-right">Per court order</td><td class="text-right"> - </td><td><span class="badge badge-gray">2 employees</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="js/app.js"></script>
+  <script>
+    initLayout('payroll');
+    renderImportResultBanner('employee');
+
+    function processPayroll() {
+      const btn = document.getElementById('process-payroll-btn');
+      const statusBadge = document.getElementById('pr-current-status');
+      btn.disabled = true;
+      btn.textContent = 'Processing...';
+      showToast('Step 1/3: Calculating gross pay for 142 employees...', 'info');
+      setTimeout(() => {
+        showToast('Step 2/3: Applying SS (6.2%), Medicare (1.45%), and FUTA withholding...', 'info');
+        setTimeout(() => {
+          showToast('Step 3/3: Posting journal entries and generating pay stubs...', 'info');
+          setTimeout(() => {
+            statusBadge.className = 'badge badge-green';
+            statusBadge.textContent = 'Approved';
+            btn.disabled = false;
+            btn.textContent = 'Process Payroll';
+            showToast('Payroll run approved - $243,120 gross / $178,480 net', 'success');
+          }, 1200);
+        }, 1200);
+      }, 1000);
+    }
+  </script>
+</body>
+</html>

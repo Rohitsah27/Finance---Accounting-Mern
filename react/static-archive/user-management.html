@@ -1,0 +1,1365 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title>User Management — Identity & Security | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css?v=5">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/gl-engine.js"></script>
+  <script src="js/layout.js?v=5"></script>
+  <style>
+    /* ---- Slide Panel ---- */
+    .slide-panel{position:fixed;top:0;right:-490px;width:468px;height:100vh;background:#fff;box-shadow:-4px 0 30px rgba(0,0,0,0.14);z-index:1001;transition:right .3s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;}
+    .slide-panel.open{right:0;}
+    .panel-overlay{position:fixed;inset:0;background:rgba(13,27,75,0.25);backdrop-filter:blur(2px);z-index:1000;display:none;}
+    .panel-overlay.show{display:block;}
+    .panel-head{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+    .panel-body{flex:1;overflow-y:auto;}
+    .panel-foot{padding:12px 22px;border-top:1px solid var(--border);display:flex;gap:8px;flex-shrink:0;}
+    /* ---- Panel tabs ---- */
+    .ptabs-bar{display:flex;gap:0;padding:0 22px;border-bottom:1px solid var(--border);background:#f8f9fb;flex-shrink:0;}
+    .ptab{padding:10px 16px;font-size:12.5px;font-weight:600;color:var(--gray-500);border:none;background:transparent;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .15s,border-color .15s;}
+    .ptab.active{color:var(--navy);border-bottom-color:var(--navy);}
+    .ptab-body{padding:22px;}
+    /* ---- Modal overlay + animations ---- */
+    .modal-overlay{position:fixed;inset:0;background:rgba(13,27,75,0.45);backdrop-filter:blur(4px);z-index:1002;display:none;align-items:center;justify-content:center;}
+    .modal-overlay.show{display:flex;animation:backdropIn .2s ease forwards;}
+    .modal-overlay.closing{display:flex;animation:backdropOut .18s ease forwards;}
+    .modal-box{background:#fff;border-radius:14px;display:flex;flex-direction:column;box-shadow:0 24px 64px rgba(0,0,0,0.22);}
+    .modal-overlay.show .modal-box{animation:modalIn .28s cubic-bezier(0.34,1.4,0.64,1) forwards;}
+    .modal-overlay.closing .modal-box{animation:modalOut .18s ease forwards;}
+    @keyframes backdropIn{from{opacity:0}to{opacity:1}}
+    @keyframes backdropOut{from{opacity:1}to{opacity:0}}
+    @keyframes modalIn{from{transform:translateY(24px) scale(0.95);opacity:0}to{transform:translateY(0) scale(1);opacity:1}}
+    @keyframes modalOut{from{transform:translateY(0) scale(1);opacity:1}to{transform:translateY(16px) scale(0.96);opacity:0}}
+    .modal-head{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+    .modal-body{flex:1;overflow-y:auto;padding:18px 22px;}
+    .modal-foot{padding:12px 22px;border-top:1px solid var(--border);display:flex;gap:8px;justify-content:flex-end;flex-shrink:0;}
+    /* ---- IAM styles ---- */
+    .iam-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;}
+    .iam-sum-card{border-radius:9px;padding:12px 14px;border:1.5px solid;cursor:pointer;transition:transform .1s;}
+    .iam-sum-card:hover{transform:translateY(-1px);}
+    .iam-sum-card.full{background:#e8f5e9;border-color:#a5d6a7;color:#2e7d32;}
+    .iam-sum-card.custom{background:#fff3e0;border-color:#ffcc80;color:#e65100;}
+    .iam-sum-card.read{background:#e3f2fd;border-color:#90caf9;color:#1565c0;}
+    .iam-sum-card.none{background:#f5f5f5;border-color:#e0e0e0;color:#757575;}
+    .iam-sum-card.active-filter{box-shadow:0 0 0 2px currentColor;}
+    .iam-expand-btn{background:none;border:1px solid var(--border);border-radius:4px;width:22px;height:22px;cursor:pointer;font-size:10px;transition:all .15s;display:flex;align-items:center;justify-content:center;color:var(--gray-500);}
+    .iam-expand-btn.open{background:var(--navy);color:#fff;border-color:var(--navy);transform:rotate(90deg);}
+    .iam-level-badge{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;}
+    .iam-level-badge.full{background:#e8f5e9;color:#2e7d32;}
+    .iam-level-badge.custom{background:#fff3e0;color:#e65100;}
+    .iam-level-badge.read{background:#e3f2fd;color:#1565c0;}
+    .iam-level-badge.none{background:#f5f5f5;color:#9e9e9e;}
+    .iam-preset{border:1px solid;background:transparent;border-radius:4px;font-size:10.5px;font-weight:700;padding:2px 8px;cursor:pointer;transition:all .1s;}
+    .iam-preset.full{color:#2e7d32;border-color:#a5d6a7;} .iam-preset.full:hover{background:#e8f5e9;}
+    .iam-preset.read{color:#1565c0;border-color:#90caf9;} .iam-preset.read:hover{background:#e3f2fd;}
+    .iam-preset.none{color:#c62828;border-color:#ef9a9a;} .iam-preset.none:hover{background:#ffebee;}
+    .iam-mod-row td{padding:10px 12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+    .iam-detail-row{display:none;}
+    .iam-detail-row.open{display:table-row;}
+    .iam-action-item{display:flex;align-items:center;gap:8px;padding:8px 12px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;transition:all .12s;background:#fff;}
+    .iam-action-item:hover{border-color:#90caf9;background:#f0f7ff;}
+    .iam-action-item.on{border-color:#90caf9;background:#e3f0ff;}
+    /* ---- Panel perm chips ---- */
+    .panel-perm-row{border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;margin-bottom:8px;background:#fff;}
+    .panel-perm-row.custom{border-color:#f9a825;background:#fffde7;}
+    .perm-chip{display:inline-flex;align-items:center;gap:3px;font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:20px;cursor:pointer;border:1.5px solid var(--border);background:#f5f5f5;color:var(--gray-500);margin:2px;transition:all .12s;user-select:none;}
+    .perm-chip.on{background:#e3f0ff;border-color:#90caf9;color:#1565c0;}
+    /* ---- Form controls ---- */
+    .f-label{display:block;font-size:11.5px;font-weight:600;color:var(--gray-600);margin-bottom:5px;margin-top:14px;}
+    .f-label:first-child{margin-top:0;}
+    .f-input{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px;color:var(--gray-900);outline:none;box-sizing:border-box;}
+    .f-input:focus{border-color:var(--navy);box-shadow:0 0 0 3px rgba(13,27,75,.08);}
+    .f-input:disabled{opacity:.55;background:var(--bg);cursor:not-allowed;}
+    .f-select{width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px;color:var(--gray-900);background:#fff;outline:none;box-sizing:border-box;cursor:pointer;}
+    .f-select:focus{border-color:var(--navy);}
+    .tog-wrap{display:flex;align-items:center;gap:10px;margin-top:14px;}
+    .tog{position:relative;width:40px;height:22px;flex-shrink:0;}
+    .tog input{opacity:0;width:0;height:0;position:absolute;}
+    .tog-sl{position:absolute;inset:0;background:var(--border);border-radius:11px;cursor:pointer;transition:.2s;}
+    .tog-sl:before{content:'';position:absolute;width:16px;height:16px;left:3px;bottom:3px;background:#fff;border-radius:50%;transition:.2s;}
+    .tog input:checked+.tog-sl{background:var(--green);}
+    .tog input:checked+.tog-sl:before{transform:translateX(18px);}
+    .x-btn{width:28px;height:28px;border:none;background:var(--bg);border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--gray-500);font-size:17px;line-height:1;}
+    .x-btn:hover{background:var(--border);color:var(--gray-800);}
+    .legend-dot{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:4px;vertical-align:middle;}
+    .roles-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+    .role-card{border:1px solid var(--border);border-radius:10px;padding:18px;transition:box-shadow .15s;}
+    .role-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.08);}
+    .role-card-new{border:2px dashed var(--border);border-radius:10px;padding:18px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:160px;cursor:pointer;transition:border-color .15s;}
+    .role-card-new:hover{border-color:var(--navy);}
+    .f-divider{border:none;border-top:1px solid var(--border);margin:16px 0;}
+    .u-avatar{width:32px;height:32px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0;}
+    .role-dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;flex-shrink:0;vertical-align:middle;}
+    .perm-table{width:100%;border-collapse:collapse;}
+    .perm-table thead th{font-size:10.5px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.5px;padding:8px;text-align:center;border-bottom:2px solid var(--border);position:sticky;top:0;background:#fff;z-index:1;}
+    .perm-table thead th.mod-col{text-align:left;min-width:175px;}
+    .perm-table tbody td{padding:6px 8px;border-bottom:1px solid var(--bg);text-align:center;font-size:12.5px;}
+    .perm-table tbody td.mod-col{text-align:left;font-weight:500;color:var(--gray-800);}
+    .perm-table tbody tr:hover td{background:var(--bg);}
+    .perm-table tbody tr.custom-row td{background:#fffde7;}
+    .perm-cb{width:15px;height:15px;cursor:pointer;accent-color:var(--navy);}
+    /* ---- Custom perm modal ---- */
+    .cpm-layout{display:grid;grid-template-columns:200px 1fr;gap:0;border:1.5px solid var(--border);border-radius:8px;overflow:hidden;height:420px;}
+    .cpm-modules{border-right:1.5px solid var(--border);overflow-y:auto;background:#f8f9fb;}
+    .cpm-mod-item{padding:10px 14px;font-size:12.5px;font-weight:500;cursor:pointer;border-bottom:1px solid var(--border);color:var(--gray-700);}
+    .cpm-mod-item:hover{background:#f0f4ff;}
+    .cpm-mod-item.active{background:#e8eeff;color:var(--navy);font-weight:700;}
+    .cpm-actions{overflow-y:auto;padding:12px;}
+    .cpm-act-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border:1.5px solid var(--border);border-radius:8px;cursor:pointer;margin-bottom:7px;transition:all .12s;background:#fff;}
+    .cpm-act-item:hover{border-color:#90caf9;background:#f0f7ff;}
+    .cpm-act-item.on{border-color:#90caf9;background:#e3f0ff;}
+    .cpm-act-item .cpm-check{margin-left:auto;font-size:14px;color:#1565c0;opacity:0;}
+    .cpm-act-item.on .cpm-check{opacity:1;}
+  </style>
+</head>
+<body>
+
+<div id="js-error-banner" style="display:none;position:fixed;top:0;left:0;right:0;background:#c62828;color:#fff;padding:10px 16px;font-size:13px;font-weight:600;z-index:9999;"></div>
+
+<main class="main-content" id="main-content">
+  <div class="page-header">
+    <div>
+      <div class="page-title" style="display:flex;align-items:center;gap:8px;">
+        User Management
+        <span style="font-size:10.5px;font-weight:700;background:#0d1b4b;color:#fff;border-radius:4px;padding:2px 7px;letter-spacing:.5px;">v5</span>
+      </div>
+      <div class="page-subtitle">Invite users · Manage roles · Custom per-user permissions · Data stored in localStorage</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline btn-sm" onclick="hardReset()" style="color:var(--coral);border-color:var(--coral);">Reset Cache</button>
+      <button class="btn btn-outline" onclick="exportDataJSON()">Export JSON</button>
+      <button class="btn btn-outline" onclick="document.getElementById('import-file').click()">Import JSON</button>
+      <input type="file" id="import-file" accept=".json" style="display:none" onchange="importJSON(this)">
+      <button class="btn btn-primary" onclick="openInvitePanel()">+ Invite User</button>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon si-navy"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="8" cy="7" r="3" stroke="#0d1b4b" stroke-width="1.8"/><path d="M2 17c0-3.314 2.686-6 6-6s6 2.686 6 6" stroke="#0d1b4b" stroke-width="1.8" stroke-linecap="round"/><path d="M15 9a3 3 0 0 1 0 6" stroke="#0d1b4b" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+      <div class="stat-info"><div class="stat-value" id="stat-total"> - </div><div class="stat-label">Total Users</div><div class="stat-change text-muted" id="stat-total-sub"></div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon si-green"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 10l3.5 3.5L15 6" stroke="#2e7d32" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+      <div class="stat-info"><div class="stat-value" id="stat-active"> - </div><div class="stat-label">Active</div><div class="stat-change text-muted" id="stat-active-sub"></div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon si-coral"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="5" width="14" height="12" rx="2" stroke="#e05470" stroke-width="1.8"/><path d="M7 5V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1" stroke="#e05470" stroke-width="1.8"/></svg></div>
+      <div class="stat-info"><div class="stat-value" id="stat-roles"> - </div><div class="stat-label">Roles Defined</div><div class="stat-change text-muted">Manage below</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon si-orange"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="#e65100" stroke-width="1.8"/><path d="M10 7v3l2 2" stroke="#e65100" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+      <div class="stat-info"><div class="stat-value" id="stat-invites"> - </div><div class="stat-label">Pending Invites</div><div class="stat-change text-muted">Awaiting signup</div></div>
+    </div>
+  </div>
+
+  <div id="um-tabs">
+    <div class="page-tabs" style="border-radius:8px 8px 0 0;">
+      <div class="page-tab active" data-tab="users"  onclick="switchTab('um-tabs','users')">Users</div>
+      <div class="page-tab"        data-tab="roles"  onclick="switchTab('um-tabs','roles')">Roles &amp; Permissions</div>
+      <div class="page-tab"        data-tab="matrix" onclick="switchTab('um-tabs','matrix')">Custom Permissions</div>
+    </div>
+
+    <!-- USERS TAB -->
+    <div class="tab-panel active" data-panel="users">
+      <div class="form-card" style="border-radius:0 0 8px 8px;padding:20px;">
+        <div class="filter-bar" style="margin-bottom:0;">
+          <input type="text" class="filter-input" id="user-search" placeholder="Search name or email…" oninput="renderUsersTable()" style="width:220px;">
+          <select class="filter-select" id="role-filter" onchange="renderUsersTable()"><option value="">All Roles</option></select>
+          <select class="filter-select" id="status-filter" onchange="renderUsersTable()">
+            <option value="">All Status</option><option value="active">Active</option><option value="inactive">Inactive</option>
+          </select>
+          <div class="filter-spacer"></div>
+          <button class="btn btn-ghost btn-sm" id="bulk-deactivate-btn" style="display:none;" onclick="bulkDeactivate()">Deactivate Selected</button>
+        </div>
+        <table class="data-table mt-16" id="users-table">
+          <thead><tr>
+            <th style="width:32px;"><input type="checkbox" id="select-all-cb" onchange="toggleSelectAll(this)"></th>
+            <th>User</th><th>Role</th><th>Department</th><th>Title</th><th>Status</th><th>MFA</th><th>Last Login</th><th>Actions</th>
+          </tr></thead>
+          <tbody id="users-tbody"></tbody>
+        </table>
+        <div id="invites-section" class="mt-20"></div>
+      </div>
+    </div>
+
+    <!-- ROLES TAB -->
+    <div class="tab-panel" data-panel="roles">
+      <div class="form-card" style="border-radius:0 0 8px 8px;padding:20px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+          <div>
+            <div class="card-title">Roles &amp; Permission Sets</div>
+            <div style="font-size:12px;color:var(--gray-500);margin-top:2px;">Click "Edit Permissions" on any role to configure the full IAM-style permission matrix.</div>
+          </div>
+        </div>
+        <div class="roles-grid" id="roles-grid"></div>
+      </div>
+    </div>
+
+    <!-- CUSTOM PERMISSIONS MATRIX TAB -->
+    <div class="tab-panel" data-panel="matrix">
+      <div class="form-card" style="border-radius:0 0 8px 8px;padding:20px;">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px;">
+          <span style="font-size:13px;font-weight:600;color:var(--gray-700);">Viewing permissions for:</span>
+          <select class="filter-select" id="matrix-user-select" onchange="renderPermMatrix(this.value)" style="min-width:220px;"></select>
+          <span id="matrix-role-badge"></span>
+          <div style="margin-left:auto;display:flex;align-items:center;gap:14px;font-size:11.5px;color:var(--gray-500);">
+            <span><span class="legend-dot" style="background:#e3f0ff;border:1px solid #90caf9;"></span>From role</span>
+            <span><span class="legend-dot" style="background:#fffde7;border:1px solid #f9a825;"></span>Custom override</span>
+          </div>
+        </div>
+        <div id="matrix-container"></div>
+        <div id="matrix-actions" style="display:none;margin-top:16px;display:flex;gap:8px;">
+          <button class="btn btn-primary" onclick="saveUserPerms()">Save Custom Permissions</button>
+          <button class="btn btn-outline" onclick="resetAllPerms()">Reset All to Role Defaults</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<!-- Panel backdrop -->
+<div id="panel-overlay" class="panel-overlay" onclick="closePanel()"></div>
+
+<!-- Slide Panel -->
+<div id="user-slide-panel" class="slide-panel">
+  <div class="panel-head">
+    <div>
+      <div id="panel-title" style="font-size:16px;font-weight:700;color:var(--gray-900);">Invite New User</div>
+      <div id="panel-subtitle" style="font-size:12px;color:var(--gray-500);margin-top:2px;">Send email invite with login instructions</div>
+    </div>
+    <button class="x-btn" onclick="closePanel()">×</button>
+  </div>
+  <div id="ptabs-bar" class="ptabs-bar" style="display:none;">
+    <button class="ptab active" id="ptab-btn-profile" onclick="switchPanelTab('profile')">Profile</button>
+    <button class="ptab" id="ptab-btn-perms" onclick="switchPanelTab('perms')">Permissions</button>
+  </div>
+  <div class="panel-body">
+    <div id="ptab-profile" class="ptab-body"></div>
+    <div id="ptab-perms" class="ptab-body" style="display:none;padding:14px;"></div>
+  </div>
+  <div class="panel-foot">
+    <button class="btn btn-primary" id="panel-save-btn" onclick="savePanel()">Send Invite</button>
+    <button class="btn btn-outline" id="panel-reset-btn" style="display:none;" onclick="resetAllPanelPerms()">Reset All to Role</button>
+    <button class="btn btn-outline" onclick="closePanel()">Cancel</button>
+  </div>
+</div>
+
+<!-- Role Edit Modal (IAM style) -->
+<div id="role-modal" class="modal-overlay">
+  <div class="modal-box" style="width:960px;max-width:97vw;max-height:92vh;">
+    <div class="modal-head">
+      <div>
+        <div id="modal-title" style="font-size:16px;font-weight:700;color:var(--gray-900);"></div>
+        <div id="modal-subtitle" style="font-size:12px;color:var(--gray-500);margin-top:2px;"></div>
+      </div>
+      <button class="x-btn" onclick="closeModal('role-modal',()=>{currentRoleId=null;})">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:grid;grid-template-columns:1fr 2fr;gap:12px;margin-bottom:18px;">
+        <div>
+          <label class="f-label" style="margin-top:0;">Role Name *</label>
+          <input class="f-input" id="modal-role-name" type="text" placeholder="e.g. Compliance Officer">
+        </div>
+        <div>
+          <label class="f-label" style="margin-top:0;">Description</label>
+          <input class="f-input" id="modal-role-desc" type="text" placeholder="Brief description of this role's responsibilities">
+        </div>
+      </div>
+      <div id="modal-perm-matrix"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" id="modal-delete-btn" onclick="deleteRole()" style="margin-right:auto;color:var(--coral);">Delete Role</button>
+      <button class="btn btn-outline" onclick="closeModal('role-modal',()=>{currentRoleId=null;})">Cancel</button>
+      <button class="btn btn-primary" onclick="saveRoleModal()">Save Role</button>
+    </div>
+  </div>
+</div>
+
+<!-- Custom Permission Modal -->
+<div id="custom-perm-modal" class="modal-overlay">
+  <div class="modal-box" style="width:680px;max-width:96vw;max-height:88vh;">
+    <div class="modal-head">
+      <div>
+        <div style="font-size:16px;font-weight:700;color:var(--gray-900);">Add Custom Permissions</div>
+        <div id="cpm-subtitle" style="font-size:12px;color:var(--gray-500);margin-top:2px;">Select a module then click actions to toggle</div>
+      </div>
+      <button class="x-btn" onclick="closeModal('custom-perm-modal')">×</button>
+    </div>
+    <div class="modal-body" style="padding:0;">
+      <div class="cpm-layout">
+        <div class="cpm-modules" id="cpm-modules"></div>
+        <div class="cpm-actions" id="cpm-actions">
+          <div style="color:var(--gray-400);font-size:12.5px;padding:20px;text-align:center;">Select a module to see available actions</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-outline" onclick="closeModal('custom-perm-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveCpmModal()">Apply Permissions</button>
+    </div>
+  </div>
+</div>
+
+<!-- Per-user Permission Modal -->
+<div id="user-perm-modal" class="modal-overlay">
+  <div class="modal-box" style="width:880px;max-width:97vw;max-height:92vh;">
+    <div class="modal-head">
+      <div>
+        <div id="upm-title" style="font-size:16px;font-weight:700;color:var(--gray-900);"></div>
+        <div id="upm-subtitle" style="font-size:12px;color:var(--gray-500);margin-top:2px;"></div>
+      </div>
+      <button class="x-btn" onclick="closeModal('user-perm-modal')">×</button>
+    </div>
+    <div class="modal-body">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;font-size:11.5px;color:var(--gray-500);">
+        <span><span class="legend-dot" style="background:#e3f0ff;border:1px solid #90caf9;"></span>From role default</span>
+        <span><span class="legend-dot" style="background:#fffde7;border:1px solid #f9a825;"></span>Custom override</span>
+        <button class="btn btn-outline btn-sm" onclick="openCpmModal()" style="margin-left:auto;">+ Add Extra Action</button>
+      </div>
+      <div id="upm-container"></div>
+    </div>
+    <div class="modal-foot">
+      <button class="btn btn-ghost" onclick="resetAllUserPermModal()" style="margin-right:auto;color:var(--coral);">Reset All to Role</button>
+      <button class="btn btn-outline" onclick="closeModal('user-perm-modal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveUserPermModal()">Save Permissions</button>
+    </div>
+  </div>
+</div>
+
+<script src="js/app.js"></script>
+<script>
+/* ================================================================
+   DATA
+================================================================ */
+const DEFAULT_DB = {"modules":[{"id":"dashboard","label":"Dashboard"},{"id":"chart-of-accounts","label":"Chart of Accounts"},{"id":"journal-entry","label":"Journal Entry","extraActions":["post"]},{"id":"financial-statements","label":"Financial Statements"},{"id":"bank-reconciliation","label":"Bank Reconciliation"},{"id":"accounts-payable","label":"Bank & AP/AR Hub"},{"id":"premium-claims","label":"Premium & Claims"},{"id":"subledger","label":"Subledger Processing"},{"id":"reinsurance","label":"Reinsurance"},{"id":"statutory-reports","label":"Statutory Reports","extraActions":["file"]},{"id":"mga-operations","label":"MGA Operations"},{"id":"compliance-filings","label":"Compliance & Filings","extraActions":["file"]},{"id":"period-locking","label":"Period Locking","extraActions":["lock","override"]},{"id":"audit-trail","label":"Audit Trail"},{"id":"user-management","label":"User Management"}],"stdActions":["view","create","edit","approve","export"],"roles":[{"id":"admin","label":"Administrator","color":"#0d1b4b","description":"Full system access - all modules and all actions including break-glass override and user management.","permissions":{"dashboard":["view","export"],"chart-of-accounts":["view","create","edit","approve","export"],"journal-entry":["view","create","edit","approve","export","post"],"financial-statements":["view","export"],"bank-reconciliation":["view","create","edit","approve","export"],"accounts-payable":["view","create","edit","approve","export"],"premium-claims":["view","create","edit","approve","export"],"subledger":["view","create","edit","approve","export"],"reinsurance":["view","create","edit","approve","export"],"statutory-reports":["view","create","edit","approve","export","file"],"mga-operations":["view","create","edit","approve","export"],"compliance-filings":["view","create","edit","approve","export","file"],"period-locking":["view","approve","export","lock","override"],"audit-trail":["view","export"],"user-management":["view","create","edit","approve","export"]}},{"id":"cfo","label":"CFO","color":"#1a237e","description":"Strategic oversight - approve and export across all modules, break-glass on period locking.","permissions":{"dashboard":["view","export"],"chart-of-accounts":["view","export"],"journal-entry":["view","approve","export"],"financial-statements":["view","export"],"bank-reconciliation":["view","export"],"accounts-payable":["view","approve","export"],"premium-claims":["view","export"],"subledger":["view","export"],"reinsurance":["view","approve","export"],"statutory-reports":["view","approve","export","file"],"mga-operations":["view","approve","export"],"compliance-filings":["view","approve","export","file"],"period-locking":["view","approve","lock","override"],"audit-trail":["view","export"],"user-management":["view","export"]}},{"id":"controller","label":"Controller","color":"#1565c0","description":"Day-to-day accounting control - create, edit, approve and post transactions; soft & hard period locks.","permissions":{"dashboard":["view","export"],"chart-of-accounts":["view","create","edit","approve","export"],"journal-entry":["view","create","edit","approve","export","post"],"financial-statements":["view","export"],"bank-reconciliation":["view","create","edit","approve","export"],"accounts-payable":["view","create","edit","approve","export"],"premium-claims":["view","create","edit","export"],"subledger":["view","create","edit","approve","export"],"reinsurance":["view","create","edit","export"],"statutory-reports":["view","create","edit","approve","export","file"],"mga-operations":["view","create","edit","approve","export"],"compliance-filings":["view","create","edit","approve","export","file"],"period-locking":["view","approve","lock"],"audit-trail":["view","export"],"user-management":["view"]}},{"id":"accountant","label":"Accountant","color":"#2e7d32","description":"Create and edit transactions - submit for approval but cannot approve, post, or lock periods.","permissions":{"dashboard":["view"],"chart-of-accounts":["view"],"journal-entry":["view","create","edit","export"],"financial-statements":["view"],"bank-reconciliation":["view","create","edit"],"accounts-payable":["view","create","edit","export"],"premium-claims":["view"],"subledger":["view","create","edit"],"reinsurance":["view"],"statutory-reports":["view"],"mga-operations":["view","create","edit"],"compliance-filings":["view"],"period-locking":["view"],"audit-trail":["view"],"user-management":[]}},{"id":"auditor","label":"Auditor","color":"#e65100","description":"Read-only across all modules with full export rights - no data entry or approval authority.","permissions":{"dashboard":["view","export"],"chart-of-accounts":["view","export"],"journal-entry":["view","export"],"financial-statements":["view","export"],"bank-reconciliation":["view","export"],"accounts-payable":["view","export"],"premium-claims":["view","export"],"subledger":["view","export"],"reinsurance":["view","export"],"statutory-reports":["view","export"],"mga-operations":["view","export"],"compliance-filings":["view","export"],"period-locking":["view"],"audit-trail":["view","export"],"user-management":["view"]}},{"id":"actuary","label":"Actuary","color":"#6a1b9a","description":"Specialist access - full control of premium, claims and reinsurance data; read-only elsewhere.","permissions":{"dashboard":["view"],"chart-of-accounts":[],"journal-entry":[],"financial-statements":["view"],"bank-reconciliation":[],"accounts-payable":[],"premium-claims":["view","create","edit","approve","export"],"subledger":["view","export"],"reinsurance":["view","create","edit","export"],"statutory-reports":["view","export"],"mga-operations":["view"],"compliance-filings":[],"period-locking":[],"audit-trail":["view"],"user-management":[]}}],"users":[{"id":"USR-001","name":"John Doe","email":"john.doe@southlake.com","initials":"JD","avatarColor":"#0d1b4b","role":"admin","department":"IT","title":"System Administrator","status":"active","mfa":true,"lastLogin":"21/05/2026 09:14","joinedDate":"01/01/2024","customPermissions":{}},{"id":"USR-002","name":"Sarah Chen","email":"sarah.chen@southlake.com","initials":"SC","avatarColor":"#e05470","role":"cfo","department":"Finance","title":"Chief Financial Officer","status":"active","mfa":true,"lastLogin":"21/05/2026 08:30","joinedDate":"15/03/2022","customPermissions":{}},{"id":"USR-003","name":"James Smith","email":"j.smith@southlake.com","initials":"JS","avatarColor":"#1565c0","role":"controller","department":"Finance","title":"Controller","status":"active","mfa":true,"lastLogin":"20/05/2026 17:42","joinedDate":"01/06/2022","customPermissions":{}},{"id":"USR-004","name":"Maria Johnson","email":"m.johnson@southlake.com","initials":"MJ","avatarColor":"#2e7d32","role":"controller","department":"Finance","title":"Assistant Controller","status":"active","mfa":true,"lastLogin":"21/05/2026 08:55","joinedDate":"12/08/2023","customPermissions":{}},{"id":"USR-005","name":"Robert Patel","email":"r.patel@southlake.com","initials":"RP","avatarColor":"#e65100","role":"accountant","department":"Finance","title":"Senior Accountant","status":"active","mfa":false,"lastLogin":"21/05/2026 09:02","joinedDate":"05/02/2024","customPermissions":{"bank-reconciliation":["view","create","edit","approve"]}},{"id":"USR-006","name":"Emily Davis","email":"e.davis@southlake.com","initials":"ED","avatarColor":"#e65100","role":"auditor","department":"Compliance","title":"Internal Auditor","status":"active","mfa":true,"lastLogin":"19/05/2026 14:20","joinedDate":"20/11/2023","customPermissions":{}},{"id":"USR-007","name":"Michael Brown","email":"m.brown@southlake.com","initials":"MB","avatarColor":"#6a1b9a","role":"actuary","department":"Actuarial","title":"Chief Actuary","status":"active","mfa":true,"lastLogin":"18/05/2026 11:05","joinedDate":"01/09/2021","customPermissions":{}},{"id":"USR-008","name":"Lisa Wang","email":"l.wang@southlake.com","initials":"LW","avatarColor":"#0d1b4b","role":"accountant","department":"Operations","title":"MGA Accounts Manager","status":"inactive","mfa":false,"lastLogin":"10/04/2026 09:30","joinedDate":"15/07/2024","customPermissions":{}}],"pendingInvites":[{"id":"INV-001","name":"Alice Kumar","email":"alice.kumar@southlake.com","role":"accountant","department":"Finance","invitedBy":"John Doe","invitedDate":"20/05/2026","expiresDate":"27/05/2026","status":"pending"},{"id":"INV-002","name":"Tom Harris","email":"tom.harris@southlake.com","role":"auditor","department":"Compliance","invitedBy":"Sarah Chen","invitedDate":"19/05/2026","expiresDate":"26/05/2026","status":"pending"}]};
+
+/* ================================================================
+   DB VERSIONING
+================================================================ */
+const DB_VERSION = 5;
+function loadDB() {
+  try {
+    const s = localStorage.getItem('sl_users_db');
+    if (s) { const p = JSON.parse(s); if (p._v === DB_VERSION) return p; }
+  } catch(e) {}
+  return JSON.parse(JSON.stringify(DEFAULT_DB));
+}
+function saveDB() { db._v = DB_VERSION; localStorage.setItem('sl_users_db', JSON.stringify(db)); }
+function hardReset() { localStorage.removeItem('sl_users_db'); location.reload(true); }
+
+/* ================================================================
+   CONSTANTS - must be before renderAll()
+================================================================ */
+const ALL_ACTIONS   = ['view','create','edit','approve','export','post','file','lock','override'];
+const ACTION_LABELS = {view:'View',create:'Create',edit:'Edit',approve:'Approve',export:'Export',post:'Post',file:'File',lock:'Lock',override:'Override'};
+const LEVEL_LABELS  = {full:'Full Access',custom:'Custom',read:'Read Only',none:'No Access'};
+const LEVEL_ICONS   = {full:'●',custom:'◑',read:'◔',none:'○'};
+const ACTION_ICONS  = {view:'👁',create:'➕',edit:'✏️',approve:'✅',export:'📤',post:'📋',file:'📁',lock:'🔒',override:'⚡'};
+
+const EXTRA_ACT_CATALOGUE = [
+  {id:'post',      label:'Post',       icon:'📋', desc:'Post entries to ledger'},
+  {id:'file',      label:'File',       icon:'📁', desc:'File statutory documents'},
+  {id:'lock',      label:'Lock',       icon:'🔒', desc:'Lock accounting periods'},
+  {id:'override',  label:'Override',   icon:'⚡', desc:'Break-glass period override'},
+  {id:'reconcile', label:'Reconcile',  icon:'🔄', desc:'Reconcile account balances'},
+  {id:'void',      label:'Void',       icon:'🚫', desc:'Void posted transactions'},
+  {id:'reverse',   label:'Reverse',    icon:'↩️', desc:'Reverse journal entries'},
+  {id:'archive',   label:'Archive',    icon:'🗄️', desc:'Archive records'},
+  {id:'print',     label:'Print',      icon:'🖨️', desc:'Print reports and documents'},
+  {id:'download',  label:'Download',   icon:'⬇️', desc:'Download files and attachments'},
+  {id:'bulk-edit', label:'Bulk Edit',  icon:'📝', desc:'Edit multiple records at once'},
+  {id:'restore',   label:'Restore',    icon:'♻️', desc:'Restore archived records'},
+  {id:'notify',    label:'Notify',     icon:'🔔', desc:'Send system notifications'},
+  {id:'schedule',  label:'Schedule',   icon:'📅', desc:'Schedule automated tasks'},
+  {id:'sign-off',  label:'Sign Off',   icon:'✍️', desc:'Sign off on reviews'},
+  {id:'submit',    label:'Submit',     icon:'📨', desc:'Submit for regulatory filing'},
+  {id:'review',    label:'Review',     icon:'🔍', desc:'Perform formal review'},
+  {id:'reopen',    label:'Reopen',     icon:'🔓', desc:'Reopen closed periods or records'},
+  {id:'flag',      label:'Flag',       icon:'🚩', desc:'Flag records for attention'},
+  {id:'delegate',  label:'Delegate',   icon:'👥', desc:'Delegate tasks to other users'},
+];
+
+/* ================================================================
+   INIT
+================================================================ */
+window.onerror = function(msg, src, line) {
+  const el = document.getElementById('js-error-banner');
+  if (el) { el.textContent = 'JS Error: ' + msg + ' (line ' + line + ')'; el.style.display = 'block'; }
+  return false;
+};
+
+let db = loadDB();
+initLayout('user-management');
+(function(){
+  var h = location.hash.replace('#','');
+  if (['users','roles','matrix'].indexOf(h) !== -1) switchTab('um-tabs', h);
+})();
+try { renderAll(); } catch(e) { console.error('renderAll failed:', e); }
+
+function renderAll() {
+  populateRoleFilter();
+  renderStats();
+  renderUsersTable();
+  renderInvites();
+  renderRoleCards();
+  populateMatrixSelect();
+}
+
+/* ================================================================
+   MODAL HELPERS
+================================================================ */
+function openModal(id) {
+  const el = document.getElementById(id);
+  el.classList.remove('closing');
+  el.classList.add('show');
+}
+function closeModal(id, cb) {
+  const el = document.getElementById(id);
+  el.classList.add('closing');
+  el.classList.remove('show');
+  setTimeout(() => { el.classList.remove('closing'); if (cb) cb(); }, 200);
+}
+
+/* ================================================================
+   STATS
+================================================================ */
+function renderStats() {
+  const active = db.users.filter(u => u.status === 'active').length;
+  document.getElementById('stat-total').textContent    = db.users.length;
+  document.getElementById('stat-total-sub').textContent = db.users.length + ' registered';
+  document.getElementById('stat-active').textContent   = active;
+  document.getElementById('stat-active-sub').textContent = (db.users.length - active) + ' inactive';
+  document.getElementById('stat-roles').textContent    = db.roles.length;
+  document.getElementById('stat-invites').textContent  = db.pendingInvites.length;
+}
+
+/* ================================================================
+   USERS TABLE
+================================================================ */
+function populateRoleFilter() {
+  const sel = document.getElementById('role-filter');
+  const cur = sel.value;
+  sel.innerHTML = '<option value="">All Roles</option>' +
+    db.roles.map(r => `<option value="${r.id}" ${cur===r.id?'selected':''}>${r.label}</option>`).join('');
+}
+function renderUsersTable() {
+  const search = document.getElementById('user-search').value.toLowerCase();
+  const roleF  = document.getElementById('role-filter').value;
+  const statF  = document.getElementById('status-filter').value;
+  const users  = db.users.filter(u => {
+    if (search && !u.name.toLowerCase().includes(search) && !u.email.toLowerCase().includes(search)) return false;
+    if (roleF && u.role !== roleF) return false;
+    if (statF && u.status !== statF) return false;
+    return true;
+  });
+  document.getElementById('users-tbody').innerHTML = users.map(buildUserRow).join('');
+}
+function buildUserRow(u) {
+  const role = db.roles.find(r => r.id === u.role);
+  const rc   = role ? role.color : '#666';
+  const hasCustom = Object.keys(u.customPermissions || {}).length > 0;
+  const statusBadge = u.status === 'active'
+    ? `<span class="badge badge-green">Active</span>`
+    : `<span class="badge badge-gray">Inactive</span>`;
+  const mfaBadge = u.mfa
+    ? `<span class="badge badge-green" style="font-size:10px;">✓ MFA</span>`
+    : `<span class="badge badge-orange" style="font-size:10px;">No MFA</span>`;
+  return `<tr>
+    <td><input type="checkbox" class="row-cb" data-id="${u.id}" onchange="updateBulkBtn()"></td>
+    <td>
+      <div style="display:flex;align-items:center;gap:10px;">
+        <div class="u-avatar" style="background:${u.avatarColor};">${u.initials}</div>
+        <div>
+          <div style="font-weight:600;font-size:13px;">${u.name}</div>
+          <div style="font-size:11.5px;color:var(--gray-500);">${u.email}</div>
+        </div>
+      </div>
+    </td>
+    <td>
+      <span class="badge" style="background:${rc}20;color:${rc};border:1px solid ${rc}40;">${role ? role.label : u.role}</span>
+      ${hasCustom ? `<span class="badge" style="background:#fff8e1;color:#f57f17;font-size:10px;margin-left:3px;">Custom</span>` : ''}
+    </td>
+    <td>${u.department}</td>
+    <td style="font-size:12.5px;color:var(--gray-600);">${u.title}</td>
+    <td>${statusBadge}</td>
+    <td>${mfaBadge}</td>
+    <td style="font-size:12px;color:var(--gray-500);">${u.lastLogin}</td>
+    <td>
+      <button class="btn btn-outline btn-sm" onclick="openEditPanel('${u.id}')">Edit</button>
+      <button class="btn btn-ghost btn-sm" onclick="toggleUserStatus('${u.id}')">${u.status==='active'?'Deactivate':'Activate'}</button>
+    </td>
+  </tr>`;
+}
+function toggleSelectAll(cb) {
+  document.querySelectorAll('.row-cb').forEach(c => c.checked = cb.checked);
+  updateBulkBtn();
+}
+function updateBulkBtn() {
+  const any = Array.from(document.querySelectorAll('.row-cb')).some(c => c.checked);
+  document.getElementById('bulk-deactivate-btn').style.display = any ? 'inline-flex' : 'none';
+}
+function bulkDeactivate() {
+  const ids = Array.from(document.querySelectorAll('.row-cb:checked')).map(c => c.dataset.id);
+  if (!ids.length) return;
+  if (!confirm(`Deactivate ${ids.length} user(s)?`)) return;
+  ids.forEach(id => { const u = db.users.find(u => u.id === id); if (u) u.status = 'inactive'; });
+  saveDB(); renderUsersTable(); renderStats();
+  showToast(`${ids.length} user(s) deactivated`, 'success');
+}
+function toggleUserStatus(userId) {
+  const u = db.users.find(u => u.id === userId);
+  if (!u) return;
+  const action = u.status === 'active' ? 'deactivate' : 'reactivate';
+  if (!confirm(`${action.charAt(0).toUpperCase()+action.slice(1)} ${u.name}?`)) return;
+  u.status = u.status === 'active' ? 'inactive' : 'active';
+  saveDB(); renderUsersTable(); renderStats();
+  showToast(`${u.name} ${action}d`, 'success');
+}
+
+/* ================================================================
+   PENDING INVITES
+================================================================ */
+function renderInvites() {
+  const sec = document.getElementById('invites-section');
+  if (!db.pendingInvites.length) { sec.innerHTML = ''; return; }
+  sec.innerHTML = `
+    <div class="card-title mb-12">Pending Invites (${db.pendingInvites.length})</div>
+    <table class="data-table">
+      <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Dept</th><th>Invited By</th><th>Sent</th><th>Expires</th><th>Actions</th></tr></thead>
+      <tbody>${db.pendingInvites.map(inv => {
+        const role = db.roles.find(r => r.id === inv.role);
+        return `<tr>
+          <td class="font-semibold">${inv.name}</td>
+          <td style="font-size:12.5px;color:var(--gray-600);">${inv.email}</td>
+          <td><span class="badge badge-gray">${role ? role.label : inv.role}</span></td>
+          <td>${inv.department}</td><td>${inv.invitedBy}</td>
+          <td style="font-size:12px;color:var(--gray-500);">${inv.invitedDate}</td>
+          <td style="font-size:12px;color:var(--coral);">${inv.expiresDate}</td>
+          <td>
+            <button class="btn btn-outline btn-sm" onclick="resendInvite('${inv.id}')">Resend</button>
+            <button class="btn btn-ghost btn-sm" onclick="revokeInvite('${inv.id}')">Revoke</button>
+          </td>
+        </tr>`;
+      }).join('')}</tbody>
+    </table>`;
+}
+function resendInvite(id) {
+  const inv = db.pendingInvites.find(i => i.id === id);
+  if (!inv) return;
+  inv.invitedDate = new Date().toLocaleDateString('en-GB');
+  inv.expiresDate = new Date(Date.now()+7*86400000).toLocaleDateString('en-GB');
+  saveDB(); renderInvites();
+  showToast(`Invite resent to ${inv.email} - expiry extended to ${inv.expiresDate}`, 'success');
+}
+function revokeInvite(id) {
+  if (!confirm('Revoke this invite?')) return;
+  db.pendingInvites = db.pendingInvites.filter(i => i.id !== id);
+  saveDB(); renderInvites(); renderStats();
+  showToast('Invite revoked', 'info');
+}
+
+/* ================================================================
+   SLIDE PANEL
+================================================================ */
+let panelMode = null, panelUserId = null, panelPendingPerms = {};
+
+function openInvitePanel() {
+  panelMode = 'invite'; panelUserId = null; panelPendingPerms = {};
+  document.getElementById('panel-title').textContent    = 'Invite New User';
+  document.getElementById('panel-subtitle').textContent = 'Send email invite with login instructions';
+  document.getElementById('panel-save-btn').textContent = 'Send Invite';
+  document.getElementById('panel-save-btn').onclick     = savePanel;
+  document.getElementById('panel-reset-btn').style.display = 'none';
+  document.getElementById('ptabs-bar').style.display   = 'none';
+  document.getElementById('ptab-profile').innerHTML    = buildInviteForm();
+  document.getElementById('ptab-profile').style.display = '';
+  document.getElementById('ptab-perms').style.display  = 'none';
+  showPanel();
+}
+function openEditPanel(userId) {
+  panelMode = 'edit'; panelUserId = userId; panelPendingPerms = {};
+  const u = db.users.find(u => u.id === userId);
+  if (!u) return;
+  document.getElementById('panel-title').textContent    = 'Edit User';
+  document.getElementById('panel-subtitle').textContent = u.name + ' · ' + u.email;
+  document.getElementById('ptabs-bar').style.display   = 'flex';
+  document.getElementById('ptab-profile').innerHTML    = buildEditForm(u);
+  document.getElementById('ptab-perms').innerHTML      = buildPanelPermMatrix(userId);
+  switchPanelTab('profile');
+  showPanel();
+}
+function switchPanelTab(tab) {
+  ['profile','perms'].forEach(t => {
+    document.getElementById('ptab-' + t).style.display = t === tab ? '' : 'none';
+    const btn = document.getElementById('ptab-btn-' + t);
+    if (btn) btn.classList.toggle('active', t === tab);
+  });
+  if (tab === 'profile') {
+    document.getElementById('panel-save-btn').textContent = 'Save Changes';
+    document.getElementById('panel-save-btn').onclick     = savePanel;
+    document.getElementById('panel-reset-btn').style.display = 'none';
+  } else {
+    document.getElementById('panel-save-btn').textContent = 'Save Permissions';
+    document.getElementById('panel-save-btn').onclick     = savePanelPerms;
+    document.getElementById('panel-reset-btn').style.display = 'inline-flex';
+  }
+}
+function showPanel() {
+  document.getElementById('user-slide-panel').classList.add('open');
+  document.getElementById('panel-overlay').classList.add('show');
+}
+function closePanel() {
+  document.getElementById('user-slide-panel').classList.remove('open');
+  document.getElementById('panel-overlay').classList.remove('show');
+}
+function roleOptions(selected) {
+  return db.roles.map(r => `<option value="${r.id}" ${r.id===selected?'selected':''}>${r.label}</option>`).join('');
+}
+function buildInviteForm() {
+  return `
+    <label class="f-label" style="margin-top:0;">Full Name *</label>
+    <input class="f-input" id="pf-name"  type="text"  placeholder="e.g. Alice Kumar">
+    <label class="f-label">Email Address *</label>
+    <input class="f-input" id="pf-email" type="email" placeholder="alice@southlake.com">
+    <label class="f-label">Role *</label>
+    <select class="f-select" id="pf-role">${roleOptions('accountant')}</select>
+    <label class="f-label">Department</label>
+    <input class="f-input" id="pf-dept"  type="text" placeholder="e.g. Finance">
+    <label class="f-label">Job Title</label>
+    <input class="f-input" id="pf-title" type="text" placeholder="e.g. Staff Accountant">
+    <div class="tog-wrap" style="margin-top:18px;">
+      <label class="tog"><input type="checkbox" id="pf-welc" checked><span class="tog-sl"></span></label>
+      <span style="font-size:13px;color:var(--gray-700);">Send welcome email with login link</span>
+    </div>
+    <div class="tog-wrap">
+      <label class="tog"><input type="checkbox" id="pf-mfa"><span class="tog-sl"></span></label>
+      <span style="font-size:13px;color:var(--gray-700);">Require MFA on first login</span>
+    </div>`;
+}
+function buildEditForm(u) {
+  const customCount = Object.keys(u.customPermissions || {}).length;
+  return `
+    <label class="f-label" style="margin-top:0;">Full Name *</label>
+    <input class="f-input" id="pf-name"  type="text"  value="${u.name}">
+    <label class="f-label">Email Address</label>
+    <input class="f-input" id="pf-email" type="email" value="${u.email}" disabled>
+    <label class="f-label">Role</label>
+    <select class="f-select" id="pf-role">${roleOptions(u.role)}</select>
+    <label class="f-label">Department</label>
+    <input class="f-input" id="pf-dept"  type="text"  value="${u.department}">
+    <label class="f-label">Job Title</label>
+    <input class="f-input" id="pf-title" type="text"  value="${u.title}">
+    <hr class="f-divider">
+    <div class="tog-wrap" style="margin-top:0;">
+      <label class="tog"><input type="checkbox" id="pf-status" ${u.status==='active'?'checked':''}><span class="tog-sl"></span></label>
+      <span style="font-size:13px;color:var(--gray-700);">Account Active</span>
+    </div>
+    <div class="tog-wrap">
+      <label class="tog"><input type="checkbox" id="pf-mfa" ${u.mfa?'checked':''}><span class="tog-sl"></span></label>
+      <span style="font-size:13px;color:var(--gray-700);">Require MFA</span>
+    </div>
+    <hr class="f-divider">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-size:13px;font-weight:600;color:var(--gray-800);">Custom Permissions</div>
+        <div style="font-size:12px;color:var(--gray-500);margin-top:2px;">
+          ${customCount > 0 ? `<span style="color:#e65100;">${customCount} module${customCount!==1?'s':''} overridden</span>` : 'Using role defaults'}
+        </div>
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="openUserPermModal('${u.id}')">Full Editor →</button>
+    </div>`;
+}
+function savePanel() {
+  if (panelMode === 'invite') saveInvite();
+  else saveUserEdit();
+}
+function saveInvite() {
+  const name  = document.getElementById('pf-name').value.trim();
+  const email = document.getElementById('pf-email').value.trim();
+  const role  = document.getElementById('pf-role').value;
+  const dept  = document.getElementById('pf-dept').value.trim();
+  const title = document.getElementById('pf-title').value.trim();
+  const mfa   = document.getElementById('pf-mfa').checked;
+  if (!name)  { showToast('Name is required', 'error'); return; }
+  if (!email) { showToast('Email is required', 'error'); return; }
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { showToast('Invalid email address', 'error'); return; }
+  const n = db.pendingInvites.length + 1;
+  db.pendingInvites.push({
+    id: 'INV-' + String(n).padStart(3,'0'), name, email, role,
+    department: dept || ' - ', invitedBy: 'John Doe',
+    invitedDate: new Date().toLocaleDateString('en-GB'),
+    expiresDate: new Date(Date.now()+7*86400000).toLocaleDateString('en-GB'),
+    status: 'pending', requireMfa: mfa
+  });
+  saveDB(); closePanel(); renderInvites(); renderStats();
+  showToast(`Invite sent to ${email}`, 'success');
+}
+function saveUserEdit() {
+  const u = db.users.find(u => u.id === panelUserId);
+  if (!u) return;
+  const name = document.getElementById('pf-name').value.trim();
+  if (!name) { showToast('Name is required', 'error'); return; }
+  u.name       = name;
+  u.role       = document.getElementById('pf-role').value;
+  u.department = document.getElementById('pf-dept').value.trim() || u.department;
+  u.title      = document.getElementById('pf-title').value.trim() || u.title;
+  u.status     = document.getElementById('pf-status').checked ? 'active' : 'inactive';
+  u.mfa        = document.getElementById('pf-mfa').checked;
+  u.initials   = name.split(' ').map(w=>w[0]).slice(0,2).join('').toUpperCase();
+  saveDB(); closePanel(); renderUsersTable(); renderStats();
+  showToast('User updated successfully', 'success');
+}
+
+/* ================================================================
+   PANEL PERMISSION CHIPS
+================================================================ */
+function buildPanelPermMatrix(userId) {
+  const u = db.users.find(u => u.id === userId);
+  if (!u) return '';
+  const role = db.roles.find(r => r.id === u.role);
+  let html = `
+    <div style="font-size:11.5px;color:var(--gray-500);margin-bottom:10px;line-height:1.5;">
+      Click chips to toggle permissions for <strong>${u.name}</strong>. Yellow rows have custom overrides.
+    </div>`;
+  db.modules.forEach(mod => {
+    const applicable  = [...(db.stdActions||[]), ...(mod.extraActions||[])];
+    const rolePerms   = (role && role.permissions[mod.id]) ? role.permissions[mod.id] : [];
+    const hasCustom   = u.customPermissions && u.customPermissions[mod.id] !== undefined;
+    const effectPerms = hasCustom ? [...u.customPermissions[mod.id]] : [...rolePerms];
+    const chips = applicable.map(a => `
+      <span class="perm-chip ${effectPerms.includes(a)?'on':''}"
+            onclick="togglePanelPerm('${mod.id}','${a}',this)"
+            data-mod="${mod.id}" data-action="${a}">
+        ${ACTION_ICONS[a]||''} ${ACTION_LABELS[a]||a}
+      </span>`).join('');
+    html += `
+      <div class="panel-perm-row ${hasCustom?'custom':''}" id="pprow-${mod.id}">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+          <div style="font-size:12px;font-weight:600;color:var(--gray-800);">${mod.label}</div>
+          <button class="btn btn-ghost btn-sm" style="font-size:10px;padding:2px 6px;" onclick="resetPanelModulePerms('${mod.id}')">Reset</button>
+        </div>
+        <div>${chips}</div>
+      </div>`;
+  });
+  return html;
+}
+function togglePanelPerm(modId, action, chip) {
+  const u = db.users.find(u => u.id === panelUserId);
+  if (!u) return;
+  const role = db.roles.find(r => r.id === u.role);
+  const rolePerms = (role && role.permissions[modId]) ? role.permissions[modId] : [];
+  if (!panelPendingPerms[modId]) {
+    const hasCustom = u.customPermissions && u.customPermissions[modId] !== undefined;
+    panelPendingPerms[modId] = hasCustom ? [...u.customPermissions[modId]] : [...rolePerms];
+  }
+  const isOn = chip.classList.toggle('on');
+  if (isOn) { if (!panelPendingPerms[modId].includes(action)) panelPendingPerms[modId].push(action); }
+  else      { panelPendingPerms[modId] = panelPendingPerms[modId].filter(a => a !== action); }
+  const row = document.getElementById('pprow-' + modId);
+  if (row) row.classList.add('custom');
+}
+function resetPanelModulePerms(modId) {
+  const u = db.users.find(u => u.id === panelUserId);
+  if (!u) return;
+  if (u.customPermissions) delete u.customPermissions[modId];
+  delete panelPendingPerms[modId];
+  saveDB();
+  document.getElementById('ptab-perms').innerHTML = buildPanelPermMatrix(panelUserId);
+  showToast(modId + ' reset to role default', 'info');
+}
+function savePanelPerms() {
+  if (!Object.keys(panelPendingPerms).length) { showToast('No changes to save', 'info'); return; }
+  const u = db.users.find(u => u.id === panelUserId);
+  if (!u) return;
+  if (!u.customPermissions) u.customPermissions = {};
+  Object.assign(u.customPermissions, panelPendingPerms);
+  saveDB(); panelPendingPerms = {};
+  document.getElementById('ptab-perms').innerHTML = buildPanelPermMatrix(panelUserId);
+  renderUsersTable();
+  showToast('Custom permissions saved', 'success');
+}
+function resetAllPanelPerms() {
+  if (!confirm('Reset ALL custom permissions for this user to role defaults?')) return;
+  const u = db.users.find(u => u.id === panelUserId);
+  if (!u) return;
+  u.customPermissions = {}; panelPendingPerms = {};
+  saveDB();
+  document.getElementById('ptab-perms').innerHTML = buildPanelPermMatrix(panelUserId);
+  renderUsersTable();
+  showToast('All permissions reset to role defaults', 'info');
+}
+
+/* ================================================================
+   ROLES TAB
+================================================================ */
+function renderRoleCards() {
+  const countByRole = {};
+  db.users.forEach(u => { countByRole[u.role] = (countByRole[u.role]||0) + 1; });
+  let html = db.roles.map(role => {
+    const count   = countByRole[role.id] || 0;
+    const permTot = Object.values(role.permissions).reduce((s,a) => s+a.length, 0);
+    const modCount= Object.values(role.permissions).filter(a=>a.length>0).length;
+    const topMods = Object.entries(role.permissions)
+      .filter(([,a])=>a.length>0).slice(0,3)
+      .map(([id])=> { const m = db.modules.find(m=>m.id===id); return m?m.label:id; });
+    return `
+      <div class="role-card" style="border-top:3px solid ${role.color};">
+        <div style="display:flex;align-items:center;margin-bottom:8px;">
+          <span class="role-dot" style="background:${role.color};"></span>
+          <span style="font-size:14px;font-weight:700;flex:1;color:var(--gray-900);">${role.label}</span>
+          <span class="badge badge-gray">${count} user${count!==1?'s':''}</span>
+        </div>
+        <div style="font-size:12px;color:var(--gray-500);margin-bottom:10px;line-height:1.55;">${role.description}</div>
+        <div style="font-size:11px;color:var(--gray-400);margin-bottom:6px;">${modCount} modules · ${permTot} permissions</div>
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:12px;">
+          ${topMods.map(m=>`<span style="font-size:10px;background:#f0f4ff;color:var(--navy);border-radius:4px;padding:2px 7px;">${m}</span>`).join('')}
+          ${modCount>3?`<span style="font-size:10px;color:var(--gray-400);">+${modCount-3} more</span>`:''}
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-outline btn-sm" onclick="openRoleModal('${role.id}')">Edit Permissions</button>
+          <button class="btn btn-ghost btn-sm"   onclick="viewRoleUsers('${role.id}')">View Users</button>
+        </div>
+      </div>`;
+  }).join('');
+  html += `
+    <div class="role-card-new" onclick="openRoleModal(null)">
+      <div style="font-size:28px;color:var(--gray-300);margin-bottom:8px;line-height:1;">+</div>
+      <div style="font-size:13px;font-weight:600;color:var(--gray-400);">Create New Role</div>
+      <div style="font-size:11.5px;color:var(--gray-300);margin-top:4px;">Define custom permissions</div>
+    </div>`;
+  document.getElementById('roles-grid').innerHTML = html;
+}
+function viewRoleUsers(roleId) {
+  switchTab('um-tabs', 'users');
+  document.getElementById('role-filter').value = roleId;
+  renderUsersTable();
+}
+
+/* ================================================================
+   ROLE MODAL - IAM STYLE
+================================================================ */
+let currentRoleId = null;
+let iamPerms = {};
+let iamActiveFilter = null;
+
+function openRoleModal(roleId) {
+  currentRoleId = roleId;
+  const role = roleId ? db.roles.find(r => r.id === roleId) : null;
+  document.getElementById('modal-title').textContent    = role ? `Edit Role: ${role.label}` : 'New Role';
+  document.getElementById('modal-subtitle').textContent = role ? role.description : 'Set a name, description and configure permissions below.';
+  document.getElementById('modal-role-name').value = role ? role.label : '';
+  document.getElementById('modal-role-desc').value = role ? role.description : '';
+  document.getElementById('modal-delete-btn').style.display = (role && role.id !== 'admin') ? 'inline-flex' : 'none';
+  iamActiveFilter = null;
+  try { renderRolePermMatrix(role); } catch(e) { console.error('renderRolePermMatrix failed:', e); }
+  openModal('role-modal');
+}
+
+function getAccessLevel(modPerms, applicable) {
+  if (!modPerms || modPerms.length === 0) return 'none';
+  const hasView = modPerms.includes('view');
+  if (modPerms.length === 1 && hasView) return 'read';
+  const allGranted = applicable.every(a => modPerms.includes(a));
+  if (allGranted) return 'full';
+  return 'custom';
+}
+
+function calcSummaryCounts() {
+  const counts = {full:0, custom:0, read:0, none:0};
+  db.modules.forEach(mod => {
+    const applicable = [...(db.stdActions||[]), ...(mod.extraActions||[])];
+    const lvl = getAccessLevel(iamPerms[mod.id]||[], applicable);
+    counts[lvl]++;
+  });
+  return counts;
+}
+
+function renderRolePermMatrix(role) {
+  iamPerms = {};
+  db.modules.forEach(mod => {
+    iamPerms[mod.id] = role ? [...(role.permissions[mod.id]||[])] : [];
+  });
+  const counts = calcSummaryCounts();
+  let html = `
+    <div class="iam-summary" id="iam-summary">
+      ${['full','custom','read','none'].map(lvl => `
+        <div class="iam-sum-card ${lvl}" id="iam-card-${lvl}" onclick="filterIamLevel('${lvl}')">
+          <div style="font-size:26px;font-weight:800;line-height:1;">${counts[lvl]}</div>
+          <div style="font-size:11px;font-weight:600;opacity:.8;margin-top:3px;">${LEVEL_LABELS[lvl]}</div>
+        </div>`).join('')}
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+      <input type="text" id="iam-search" placeholder="Filter modules…" oninput="filterIamRows(this.value)"
+        style="padding:6px 10px;border:1.5px solid var(--border);border-radius:6px;font-size:12.5px;flex:1;min-width:140px;outline:none;">
+      <button class="btn btn-ghost btn-sm" onclick="iamSetAll('full')">All Full</button>
+      <button class="btn btn-ghost btn-sm" onclick="iamSetAll('read')">All Read</button>
+      <button class="btn btn-ghost btn-sm" onclick="iamSetAll('none')">All None</button>
+      <button class="btn btn-ghost btn-sm" id="iam-clear-btn" style="display:none;color:var(--coral);" onclick="clearIamFilter()">✕ Clear</button>
+    </div>
+    <div style="border:1.5px solid var(--border);border-radius:9px;overflow:hidden;">
+      <table style="width:100%;border-collapse:collapse;" id="iam-table">
+        <thead style="background:#f8f9fb;">
+          <tr>
+            <th style="width:36px;padding:8px 12px;"></th>
+            <th style="text-align:left;padding:8px 12px;font-size:10.5px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.4px;">Module</th>
+            <th style="text-align:left;padding:8px 12px;font-size:10.5px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.4px;">Access Level</th>
+            <th style="text-align:left;padding:8px 12px;font-size:10.5px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.4px;">Granted Actions</th>
+            <th style="text-align:center;padding:8px 12px;font-size:10.5px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.4px;">Quick Set</th>
+          </tr>
+        </thead>
+        <tbody id="iam-tbody">
+          ${db.modules.map(mod => buildIamRow(mod)).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  document.getElementById('modal-perm-matrix').innerHTML = html;
+}
+
+function buildIamRow(mod) {
+  const applicable = [...(db.stdActions||[]), ...(mod.extraActions||[])];
+  const modPerms   = iamPerms[mod.id] || [];
+  const level      = getAccessLevel(modPerms, applicable);
+  const chips      = modPerms.filter(a => applicable.includes(a))
+    .map(a => `<span style="font-size:10px;background:#e3f2fd;color:#1565c0;border-radius:4px;padding:1px 7px;margin:1px;display:inline-block;">${ACTION_ICONS[a]||''} ${ACTION_LABELS[a]||a}</span>`)
+    .join('');
+  const actionItems = applicable.map(a => `
+    <div class="iam-action-item ${modPerms.includes(a)?'on':''}"
+         id="iai-${mod.id}-${a}"
+         onclick="iamToggleAction('${mod.id}','${a}',this)">
+      <span style="font-size:18px;line-height:1;">${ACTION_ICONS[a]||'●'}</span>
+      <div style="flex:1;">
+        <div style="font-size:12px;font-weight:600;color:var(--gray-800);">${ACTION_LABELS[a]||a}</div>
+      </div>
+      <span style="font-size:13px;color:#1565c0;font-weight:700;opacity:${modPerms.includes(a)?1:0};" id="icheck-${mod.id}-${a}">✓</span>
+    </div>`).join('');
+  return `
+    <tr class="iam-mod-row" id="iamrow-${mod.id}" data-mod="${mod.id}" data-level="${level}">
+      <td class="iam-mod-row">
+        <button class="iam-expand-btn" id="iamexp-${mod.id}" onclick="toggleIamRow('${mod.id}')">▶</button>
+      </td>
+      <td class="iam-mod-row" style="font-size:13px;font-weight:600;color:var(--gray-800);">${mod.label}</td>
+      <td class="iam-mod-row">
+        <span class="iam-level-badge ${level}" id="iambadge-${mod.id}">${LEVEL_ICONS[level]} ${LEVEL_LABELS[level]}</span>
+      </td>
+      <td class="iam-mod-row" id="iamchips-${mod.id}">${chips||'<span style="font-size:11px;color:var(--gray-300);">No access</span>'}</td>
+      <td class="iam-mod-row" style="text-align:center;">
+        <div style="display:flex;gap:4px;justify-content:center;">
+          <button class="iam-preset full"  onclick="iamSetPreset('${mod.id}','full')">Full</button>
+          <button class="iam-preset read"  onclick="iamSetPreset('${mod.id}','read')">Read</button>
+          <button class="iam-preset none"  onclick="iamSetPreset('${mod.id}','none')">None</button>
+        </div>
+      </td>
+    </tr>
+    <tr class="iam-detail-row" id="iamdetail-${mod.id}">
+      <td colspan="5" style="padding:0;border-bottom:1px solid var(--border);background:#fafbff;">
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px;padding:12px 16px;">
+          ${actionItems}
+        </div>
+      </td>
+    </tr>`;
+}
+
+function toggleIamRow(modId) {
+  const detail = document.getElementById('iamdetail-' + modId);
+  const btn    = document.getElementById('iamexp-' + modId);
+  const isOpen = detail.classList.toggle('open');
+  btn.classList.toggle('open', isOpen);
+}
+function iamToggleAction(modId, action, el) {
+  const isOn = el.classList.toggle('on');
+  const check = document.getElementById('icheck-' + modId + '-' + action);
+  if (check) check.style.opacity = isOn ? '1' : '0';
+  if (isOn) { if (!iamPerms[modId].includes(action)) iamPerms[modId].push(action); }
+  else      { iamPerms[modId] = iamPerms[modId].filter(a => a !== action); }
+  updateIamRowBadge(modId);
+  updateSummaryCards();
+}
+function updateIamRowBadge(modId) {
+  const mod        = db.modules.find(m => m.id === modId);
+  const applicable = [...(db.stdActions||[]), ...(mod.extraActions||[])];
+  const modPerms   = iamPerms[modId] || [];
+  const level      = getAccessLevel(modPerms, applicable);
+  const badge = document.getElementById('iambadge-' + modId);
+  const chips = document.getElementById('iamchips-' + modId);
+  const row   = document.getElementById('iamrow-'   + modId);
+  if (badge) { badge.className = 'iam-level-badge ' + level; badge.textContent = LEVEL_ICONS[level] + ' ' + LEVEL_LABELS[level]; }
+  if (chips) chips.innerHTML = modPerms.filter(a=>applicable.includes(a))
+    .map(a=>`<span style="font-size:10px;background:#e3f2fd;color:#1565c0;border-radius:4px;padding:1px 7px;margin:1px;display:inline-block;">${ACTION_ICONS[a]||''} ${ACTION_LABELS[a]||a}</span>`).join('')
+    || '<span style="font-size:11px;color:var(--gray-300);">No access</span>';
+  if (row) row.dataset.level = level;
+}
+function updateSummaryCards() {
+  const counts = calcSummaryCounts();
+  ['full','custom','read','none'].forEach(lvl => {
+    const card = document.getElementById('iam-card-' + lvl);
+    if (card) card.querySelector('div').textContent = counts[lvl];
+  });
+}
+function iamSetPreset(modId, preset) {
+  const mod        = db.modules.find(m => m.id === modId);
+  const applicable = [...(db.stdActions||[]), ...(mod.extraActions||[])];
+  if (preset === 'full') iamPerms[modId] = [...applicable];
+  else if (preset === 'read') iamPerms[modId] = ['view'];
+  else iamPerms[modId] = [];
+  applicable.forEach(a => {
+    const el = document.getElementById('iai-' + modId + '-' + a);
+    const check = document.getElementById('icheck-' + modId + '-' + a);
+    const isOn = iamPerms[modId].includes(a);
+    if (el) el.classList.toggle('on', isOn);
+    if (check) check.style.opacity = isOn ? '1' : '0';
+  });
+  updateIamRowBadge(modId);
+  updateSummaryCards();
+}
+function iamSetAll(preset) {
+  db.modules.forEach(mod => iamSetPreset(mod.id, preset));
+}
+function filterIamRows(q) {
+  const rows = document.querySelectorAll('#iam-tbody .iam-mod-row');
+  rows.forEach(row => {
+    const mod = row.dataset.mod;
+    const label = db.modules.find(m=>m.id===mod)?.label || mod;
+    const show = !q || label.toLowerCase().includes(q.toLowerCase());
+    row.style.display = show ? '' : 'none';
+    const detail = document.getElementById('iamdetail-' + mod);
+    if (detail && !show) detail.style.display = 'none';
+  });
+  const clearBtn = document.getElementById('iam-clear-btn');
+  if (clearBtn) clearBtn.style.display = q ? 'inline-flex' : 'none';
+}
+function filterIamLevel(level) {
+  if (iamActiveFilter === level) { clearIamFilter(); return; }
+  iamActiveFilter = level;
+  ['full','custom','read','none'].forEach(lvl => {
+    const card = document.getElementById('iam-card-' + lvl);
+    if (card) card.classList.toggle('active-filter', lvl === level);
+  });
+  document.querySelectorAll('#iam-tbody .iam-mod-row').forEach(row => {
+    const show = row.dataset.level === level;
+    row.style.display = show ? '' : 'none';
+    const detail = document.getElementById('iamdetail-' + row.dataset.mod);
+    if (detail && !show) { detail.classList.remove('open'); detail.style.display = ''; }
+  });
+  const clearBtn = document.getElementById('iam-clear-btn');
+  if (clearBtn) clearBtn.style.display = 'inline-flex';
+}
+function clearIamFilter() {
+  iamActiveFilter = null;
+  ['full','custom','read','none'].forEach(lvl => {
+    const card = document.getElementById('iam-card-' + lvl);
+    if (card) card.classList.remove('active-filter');
+  });
+  document.querySelectorAll('#iam-tbody .iam-mod-row').forEach(row => { row.style.display = ''; });
+  const search = document.getElementById('iam-search');
+  if (search) { search.value = ''; filterIamRows(''); }
+  const clearBtn = document.getElementById('iam-clear-btn');
+  if (clearBtn) clearBtn.style.display = 'none';
+}
+function saveRoleModal() {
+  const name = document.getElementById('modal-role-name').value.trim();
+  const desc = document.getElementById('modal-role-desc').value.trim();
+  if (!name) { showToast('Role name is required', 'error'); return; }
+  const perms = {};
+  db.modules.forEach(mod => { perms[mod.id] = [...(iamPerms[mod.id]||[])]; });
+  if (currentRoleId) {
+    const role = db.roles.find(r => r.id === currentRoleId);
+    role.label = name; role.description = desc; role.permissions = perms;
+  } else {
+    const newId = name.toLowerCase().replace(/[^a-z0-9]+/g,'-');
+    if (db.roles.find(r => r.id === newId)) { showToast('A role with this name already exists', 'error'); return; }
+    db.roles.push({ id: newId, label: name, color: '#607d8b', description: desc || name, permissions: perms });
+    populateRoleFilter();
+  }
+  saveDB();
+  closeModal('role-modal', () => { currentRoleId = null; });
+  renderRoleCards();
+  showToast(`Role "${name}" saved`, 'success');
+}
+function deleteRole() {
+  const role = db.roles.find(r => r.id === currentRoleId);
+  if (!role) return;
+  const inUse = db.users.filter(u => u.role === currentRoleId).length;
+  if (inUse > 0) { showToast(`Cannot delete - ${inUse} user(s) assigned this role`, 'error'); return; }
+  if (!confirm(`Delete role "${role.label}"? This cannot be undone.`)) return;
+  db.roles = db.roles.filter(r => r.id !== currentRoleId);
+  saveDB();
+  closeModal('role-modal', () => { currentRoleId = null; });
+  renderRoleCards(); populateRoleFilter();
+  showToast(`Role "${role.label}" deleted`, 'info');
+}
+
+/* ================================================================
+   PER-USER PERMISSION MODAL
+================================================================ */
+let upmUserId = null, upmPending = {};
+
+function openUserPermModal(userId) {
+  upmUserId = userId; upmPending = {};
+  const u    = db.users.find(u => u.id === userId);
+  const role = db.roles.find(r => r.id === u.role);
+  document.getElementById('upm-title').textContent    = 'Permissions: ' + u.name;
+  document.getElementById('upm-subtitle').textContent = 'Role: ' + (role ? role.label : u.role) + ' · Changes override role defaults per module';
+  renderUserPermModal();
+  openModal('user-perm-modal');
+}
+function renderUserPermModal() {
+  const u    = db.users.find(u => u.id === upmUserId);
+  const role = db.roles.find(r => r.id === u.role);
+  let html = `<table class="perm-table"><thead><tr><th class="mod-col">Module</th>`;
+  ALL_ACTIONS.forEach(a => { html += `<th title="${ACTION_LABELS[a]}">${ACTION_ICONS[a]||''}<br><span style="font-size:9px;">${ACTION_LABELS[a]}</span></th>`; });
+  html += `<th>Source</th></tr></thead><tbody>`;
+  db.modules.forEach(mod => {
+    const applicable  = [...(db.stdActions||[]), ...(mod.extraActions||[])];
+    const rolePerms   = (role && role.permissions[mod.id]) ? role.permissions[mod.id] : [];
+    const hasCustom   = u.customPermissions && u.customPermissions[mod.id] !== undefined;
+    const effectPerms = hasCustom ? (upmPending[mod.id] || u.customPermissions[mod.id]) : (upmPending[mod.id] || rolePerms);
+    const rowCls = hasCustom || upmPending[mod.id] ? 'custom-row' : '';
+    html += `<tr class="${rowCls}" id="upmrow-${mod.id}"><td class="mod-col">${mod.label}</td>`;
+    ALL_ACTIONS.forEach(action => {
+      if (!applicable.includes(action)) {
+        html += `<td><span style="color:var(--gray-200);"> - </span></td>`;
+      } else {
+        html += `<td><input type="checkbox" class="perm-cb upm-cb" data-mod="${mod.id}" data-action="${action}"
+          ${effectPerms.includes(action)?'checked':''} onchange="upermCbChange(this)"></td>`;
+      }
+    });
+    if (hasCustom || upmPending[mod.id]) {
+      html += `<td><button class="btn btn-ghost btn-sm" style="font-size:10px;padding:2px 6px;" onclick="resetUpermModule('${mod.id}')">Reset</button></td>`;
+    } else {
+      html += `<td><span style="font-size:11px;color:var(--gray-400);">Role</span></td>`;
+    }
+    html += `</tr>`;
+  });
+  html += `</tbody></table>`;
+  document.getElementById('upm-container').innerHTML = html;
+}
+function upermCbChange(cb) {
+  const modId  = cb.dataset.mod;
+  const action = cb.dataset.action;
+  const u      = db.users.find(u => u.id === upmUserId);
+  const role   = db.roles.find(r => r.id === u.role);
+  const rolePerms = (role && role.permissions[modId]) ? role.permissions[modId] : [];
+  const hasExisting = u.customPermissions && u.customPermissions[modId] !== undefined;
+  if (!upmPending[modId]) {
+    upmPending[modId] = hasExisting ? [...u.customPermissions[modId]] : [...rolePerms];
+  }
+  if (cb.checked) { if (!upmPending[modId].includes(action)) upmPending[modId].push(action); }
+  else            { upmPending[modId] = upmPending[modId].filter(a => a !== action); }
+  const row = document.getElementById('upmrow-' + modId);
+  if (row) row.classList.add('custom-row');
+}
+function resetUpermModule(modId) {
+  const u = db.users.find(u => u.id === upmUserId);
+  if (u.customPermissions) delete u.customPermissions[modId];
+  delete upmPending[modId];
+  saveDB(); renderUserPermModal();
+  showToast(modId + ' reset to role default', 'info');
+}
+function saveUserPermModal() {
+  if (!Object.keys(upmPending).length) { showToast('No changes to save', 'info'); return; }
+  const u = db.users.find(u => u.id === upmUserId);
+  if (!u.customPermissions) u.customPermissions = {};
+  Object.assign(u.customPermissions, upmPending);
+  saveDB(); upmPending = {};
+  renderUserPermModal(); renderUsersTable();
+  if (panelUserId === upmUserId) document.getElementById('ptab-perms').innerHTML = buildPanelPermMatrix(upmUserId);
+  showToast('Custom permissions saved', 'success');
+}
+function resetAllUserPermModal() {
+  if (!confirm('Reset ALL custom permissions for this user?')) return;
+  const u = db.users.find(u => u.id === upmUserId);
+  u.customPermissions = {}; upmPending = {};
+  saveDB(); renderUserPermModal(); renderUsersTable();
+  if (panelUserId === upmUserId) document.getElementById('ptab-perms').innerHTML = buildPanelPermMatrix(upmUserId);
+  showToast('All permissions reset to role defaults', 'info');
+}
+
+/* ================================================================
+   CUSTOM PERMISSION MODAL (click-only catalogue)
+================================================================ */
+let cpmSelectedMod = null, cpmPending = {};
+
+function openCpmModal() {
+  cpmSelectedMod = null;
+  cpmPending = {};
+  const u = db.users.find(u => u.id === upmUserId);
+  if (u) {
+    db.modules.forEach(mod => {
+      const hasCustom = u.customPermissions && u.customPermissions[mod.id] !== undefined;
+      cpmPending[mod.id] = hasCustom ? [...u.customPermissions[mod.id]] :
+        [...((db.roles.find(r=>r.id===u.role)||{permissions:{}}).permissions[mod.id]||[])];
+    });
+  }
+  const modHtml = db.modules.map(mod => `
+    <div class="cpm-mod-item" id="cpm-mod-${mod.id}" onclick="cpmSelectMod('${mod.id}')">${mod.label}</div>`).join('');
+  document.getElementById('cpm-modules').innerHTML = modHtml;
+  document.getElementById('cpm-actions').innerHTML = `<div style="color:var(--gray-400);font-size:12.5px;padding:20px;text-align:center;">Select a module to see available actions</div>`;
+  openModal('custom-perm-modal');
+}
+function cpmSelectMod(modId) {
+  cpmSelectedMod = modId;
+  document.querySelectorAll('.cpm-mod-item').forEach(el => el.classList.remove('active'));
+  const modEl = document.getElementById('cpm-mod-' + modId);
+  if (modEl) modEl.classList.add('active');
+  const current = cpmPending[modId] || [];
+  const html = EXTRA_ACT_CATALOGUE.map(act => `
+    <div class="cpm-act-item ${current.includes(act.id)?'on':''}"
+         id="cpmact-${act.id}"
+         onclick="cpmToggleAct('${act.id}', this)">
+      <span style="font-size:22px;line-height:1;">${act.icon}</span>
+      <div style="flex:1;">
+        <div style="font-size:13px;font-weight:600;color:var(--gray-800);">${act.label}</div>
+        <div style="font-size:11px;color:var(--gray-500);">${act.desc}</div>
+      </div>
+      <span class="cpm-check">✓</span>
+    </div>`).join('');
+  document.getElementById('cpm-actions').innerHTML = html;
+}
+function cpmToggleAct(actId, el) {
+  if (!cpmSelectedMod) return;
+  const isOn = el.classList.toggle('on');
+  if (!cpmPending[cpmSelectedMod]) cpmPending[cpmSelectedMod] = [];
+  if (isOn) { if (!cpmPending[cpmSelectedMod].includes(actId)) cpmPending[cpmSelectedMod].push(actId); }
+  else      { cpmPending[cpmSelectedMod] = cpmPending[cpmSelectedMod].filter(a => a !== actId); }
+}
+function saveCpmModal() {
+  const u = db.users.find(u => u.id === upmUserId);
+  if (!u) { closeModal('custom-perm-modal'); return; }
+  if (!u.customPermissions) u.customPermissions = {};
+  Object.entries(cpmPending).forEach(([modId, actions]) => {
+    if (actions.length > 0) {
+      const existing = u.customPermissions[modId] || [];
+      const merged = [...new Set([...existing, ...actions])];
+      u.customPermissions[modId] = merged;
+      upmPending[modId] = merged;
+    }
+  });
+  saveDB();
+  closeModal('custom-perm-modal');
+  renderUserPermModal();
+  showToast('Custom actions applied', 'success');
+}
+
+/* ================================================================
+   PERMISSIONS MATRIX TAB
+================================================================ */
+let currentMatrixUserId = null, pendingPerms = {};
+
+function populateMatrixSelect() {
+  const sel = document.getElementById('matrix-user-select');
+  sel.innerHTML = db.users.map(u => {
+    const r = db.roles.find(r => r.id === u.role);
+    return `<option value="${u.id}">${u.name} (${r?r.label:u.role})</option>`;
+  }).join('');
+  if (db.users.length) renderPermMatrix(db.users[0].id);
+}
+function renderPermMatrix(userId) {
+  pendingPerms = {}; currentMatrixUserId = userId;
+  const u    = db.users.find(u => u.id === userId);
+  if (!u) return;
+  const role = db.roles.find(r => r.id === u.role);
+  const badge = document.getElementById('matrix-role-badge');
+  badge.innerHTML = role ? `<span class="badge" style="background:${role.color};color:#fff;">${role.label}</span>` : '';
+  let html = `<table class="perm-table"><thead><tr><th class="mod-col">Module</th>`;
+  ALL_ACTIONS.forEach(a => { html += `<th>${ACTION_LABELS[a]}</th>`; });
+  html += `<th>Source</th></tr></thead><tbody>`;
+  db.modules.forEach(mod => {
+    const applicable  = [...(db.stdActions||[]), ...(mod.extraActions||[])];
+    const rolePerms   = (role && role.permissions[mod.id]) ? role.permissions[mod.id] : [];
+    const hasCustom   = u.customPermissions && u.customPermissions[mod.id] !== undefined;
+    const effectPerms = hasCustom ? u.customPermissions[mod.id] : rolePerms;
+    const rowCls      = hasCustom ? 'custom-row' : '';
+    html += `<tr class="${rowCls}" data-mod="${mod.id}"><td class="mod-col">${mod.label}</td>`;
+    ALL_ACTIONS.forEach(action => {
+      if (!applicable.includes(action)) {
+        html += `<td><span style="color:var(--gray-200);font-size:12px;"> - </span></td>`;
+      } else {
+        html += `<td><input type="checkbox" class="perm-cb matrix-cb" data-mod="${mod.id}" data-action="${action}"
+          ${effectPerms.includes(action)?'checked':''} onchange="matrixCbChange(this)"></td>`;
+      }
+    });
+    html += hasCustom
+      ? `<td><button class="btn btn-ghost btn-sm" style="font-size:10.5px;padding:3px 8px;" onclick="resetModulePerms('${mod.id}')">Reset</button></td>`
+      : `<td><span style="font-size:11px;color:var(--gray-400);">Role</span></td>`;
+    html += `</tr>`;
+  });
+  html += `</tbody></table>`;
+  document.getElementById('matrix-container').innerHTML = html;
+  document.getElementById('matrix-actions').style.display = 'flex';
+}
+function matrixCbChange(cb) {
+  const modId  = cb.dataset.mod;
+  const action = cb.dataset.action;
+  const u      = db.users.find(u => u.id === currentMatrixUserId);
+  const role   = db.roles.find(r => r.id === u.role);
+  const rolePerms = (role && role.permissions[modId]) ? role.permissions[modId] : [];
+  if (!pendingPerms[modId]) {
+    const hasExisting = u.customPermissions && u.customPermissions[modId] !== undefined;
+    pendingPerms[modId] = hasExisting ? [...u.customPermissions[modId]] : [...rolePerms];
+  }
+  if (cb.checked) { if (!pendingPerms[modId].includes(action)) pendingPerms[modId].push(action); }
+  else            { pendingPerms[modId] = pendingPerms[modId].filter(a => a !== action); }
+  const row = document.querySelector(`#matrix-container tr[data-mod="${modId}"]`);
+  if (row) row.classList.add('custom-row');
+}
+function resetModulePerms(modId) {
+  const u = db.users.find(u => u.id === currentMatrixUserId);
+  if (u.customPermissions) delete u.customPermissions[modId];
+  delete pendingPerms[modId];
+  saveDB(); renderPermMatrix(currentMatrixUserId);
+  showToast(modId + ' reset to role default', 'info');
+}
+function saveUserPerms() {
+  if (!Object.keys(pendingPerms).length) { showToast('No changes to save', 'info'); return; }
+  const u = db.users.find(u => u.id === currentMatrixUserId);
+  if (!u.customPermissions) u.customPermissions = {};
+  Object.assign(u.customPermissions, pendingPerms);
+  saveDB(); pendingPerms = {}; renderPermMatrix(currentMatrixUserId); renderUsersTable();
+  showToast('Custom permissions saved', 'success');
+}
+function resetAllPerms() {
+  if (!confirm('Reset ALL custom permissions for this user to their role defaults?')) return;
+  const u = db.users.find(u => u.id === currentMatrixUserId);
+  u.customPermissions = {}; pendingPerms = {};
+  saveDB(); renderPermMatrix(currentMatrixUserId); renderUsersTable();
+  showToast('All permissions reset to role defaults', 'info');
+}
+
+/* ================================================================
+   JSON IMPORT / EXPORT
+================================================================ */
+function exportDataJSON() {
+  const blob = new Blob([JSON.stringify(db, null, 2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'southlake-users-' + new Date().toISOString().slice(0,10) + '.json';
+  a.click();
+  showToast('Data exported as JSON', 'success');
+}
+function importJSON(input) {
+  if (!input.files || !input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const imported = JSON.parse(e.target.result);
+      if (!imported.users || !imported.roles || !imported.modules) throw new Error('Invalid structure');
+      if (!confirm(`Import ${imported.users.length} users and ${imported.roles.length} roles? This will replace current data.`)) return;
+      db = imported;
+      saveDB(); renderAll();
+      showToast('Data imported successfully', 'success');
+    } catch(err) { showToast('Import failed - invalid JSON structure', 'error'); }
+  };
+  reader.readAsText(input.files[0]);
+  input.value = '';
+}
+</script>
+</body>
+</html>

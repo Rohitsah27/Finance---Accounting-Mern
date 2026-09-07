@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Setup Wizard — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Administration</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Setup Wizard</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-wand-magic-sparkles" style="color: var(--purple);"></i> Guided Setup Wizard <span class="file-tag">setup-wizard.html</span></h1>
+      <p>
+        A 5-step guided onboarding walkthrough designed to configure a new insurance company, MGA, or broker agency from scratch in less than 15 minutes.
+      </p>
+    </div>
+
+    <div class="module-card">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-purple">Onboarding</span>
+            <span class="badge badge-teal">Quick Setup</span>
+          </div>
+          <h2 class="module-title">The 5 Setup Steps</h2>
+        </div>
+        <a href="../setup-wizard.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Setup Wizard</a>
+      </div>
+
+      <div class="flow-steps">
+        <div class="flow-step-item">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <strong>Company Profile &amp; Entity Type</strong>
+            <span>Select Carrier, MGA, or Broker model, enter legal name, FEIN, and corporate domicile state.</span>
+          </div>
+        </div>
+        <div class="flow-step-item">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <strong>Chart of Accounts Template</strong>
+            <span>Choose from pre-built Insurance COA, Surplus Lines Broker COA, or General Business COA.</span>
+          </div>
+        </div>
+        <div class="flow-step-item">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <strong>Bank Accounts Setup</strong>
+            <span>Link Operating Account (Chase `****4821`) and Fiduciary Premium Trust Account (Wells Fargo `****5502`).</span>
+          </div>
+        </div>
+        <div class="flow-step-item">
+          <div class="step-num">4</div>
+          <div class="step-content">
+            <strong>Lines of Business &amp; State Nexus</strong>
+            <span>Select active lines (Commercial Auto, General Liability, Cargo) and operating states (TX, CA, FL, NY).</span>
+          </div>
+        </div>
+        <div class="flow-step-item">
+          <div class="step-num">5</div>
+          <div class="step-content">
+            <strong>Opening Balances &amp; Go-Live</strong>
+            <span>Input or upload opening trial balance journals to initialize ledger equity and cash.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="admin-config-center.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">Configuration Centre</span>
+      </a>
+      <a href="excel-onboarding.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Submodule &rarr;</span>
+        <span class="nav-page-title">Excel Onboarding</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('setup-wizard');
+</script>
+</body>
+</html>

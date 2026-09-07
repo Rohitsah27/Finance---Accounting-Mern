@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Configuration Centre — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Administration</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Configuration Centre</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-sliders" style="color: var(--brand);"></i> Configuration Centre <span class="file-tag">admin-config-center.html</span></h1>
+      <p>
+        The central administration console for configuring global tenant parameters, currency formats, fiscal year calendars, multi-dimensional tracking codes, and automated numbering sequences.
+      </p>
+    </div>
+
+    <div class="module-card">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-blue">Admin Console</span>
+            <span class="badge badge-teal">System Settings</span>
+          </div>
+          <h2 class="module-title">Global Configuration Controls</h2>
+        </div>
+        <a href="../admin-config-center.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Config Centre</a>
+      </div>
+
+      <div class="grid-2">
+        <div class="info-card">
+          <h4>Fiscal Year &amp; Period Setup</h4>
+          <p>Configure fiscal calendars (Calendar Year / 4-4-5 Retail), opening period balances, and automatic closing dates.</p>
+        </div>
+        <div class="info-card">
+          <h4>Document Numbering Sequences</h4>
+          <p>Define custom prefixes and serialization formats for Policies (`POL-`), Invoices (`INV-`), and Journals (`JE-`).</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="audit-trail.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">Audit Trail</span>
+      </a>
+      <a href="setup-wizard.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Submodule &rarr;</span>
+        <span class="nav-page-title">Setup Wizard</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('admin-config-center');
+</script>
+</body>
+</html>

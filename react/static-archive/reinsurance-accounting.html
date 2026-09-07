@@ -1,0 +1,1162 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reinsurance — Treaties & Cessions | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/layout.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    /* ── RI Module Top-Nav ── */
+    .ri-topnav {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      background: white;
+      border-radius: var(--radius) var(--radius) 0 0;
+      border-bottom: 1px solid var(--gray-200);
+      padding: 0 20px;
+      margin-bottom: 0;
+    }
+    .ri-tab-strip { display: flex; }
+    .ri-tab {
+      display: flex; align-items: center; gap: 7px;
+      padding: 14px 20px;
+      font-size: 13px; font-weight: 500; color: var(--gray-500);
+      cursor: pointer; border-bottom: 2px solid transparent;
+      margin-bottom: -1px; transition: all 0.15s; white-space: nowrap;
+    }
+    .ri-tab:hover { color: var(--gray-900); }
+    .ri-tab.active { color: var(--navy); border-bottom-color: var(--navy); font-weight: 700; }
+    .ri-tab svg { flex-shrink: 0; }
+
+    .ri-refresh-area {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 11.5px; color: var(--gray-400);
+    }
+    .ri-refresh-btn {
+      display: flex; align-items: center; gap: 5px;
+      padding: 6px 12px; font-size: 12px; font-weight: 600;
+      background: var(--navy); color: white; border: none;
+      border-radius: 6px; cursor: pointer; transition: 0.15s;
+    }
+    .ri-refresh-btn:hover { background: var(--navy-hover); }
+
+    .ri-tab-panel { display: none; }
+    .ri-tab-panel.active { display: block; }
+
+    /* ── Stats Row 6 ── */
+    .stats-row-6 {
+      display: grid;
+      grid-template-columns: repeat(6, 1fr);
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+    .stat-card-ri {
+      background: white; border-radius: var(--radius);
+      padding: 16px 18px; box-shadow: var(--shadow-sm);
+      border: 1px solid rgba(0,0,0,0.04);
+    }
+    .stat-card-ri .ri-stat-label {
+      font-size: 10px; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.6px; color: var(--gray-500); margin-bottom: 8px;
+    }
+    .stat-card-ri .ri-stat-value {
+      font-size: 20px; font-weight: 800; color: var(--gray-900); line-height: 1.2;
+    }
+    .stat-card-ri .ri-stat-sub {
+      font-size: 11px; margin-top: 4px;
+    }
+
+    /* ── Section Headers ── */
+    .ri-section-hdr {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px; border-bottom: 1px solid var(--gray-100);
+    }
+    .ri-section-title {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 14px; font-weight: 800; color: var(--gray-900);
+    }
+    .ri-section-title span { font-size: 13px; color: var(--gray-400); font-weight: 500; }
+    .ri-section-actions { display: flex; gap: 8px; align-items: center; }
+
+    /* ── Treaty Type Badges ── */
+    .badge-quota  { background: #e8f0fe; color: #1a56db; }
+    .badge-risk   { background: #fef3c7; color: #92400e; }
+    .badge-cat    { background: #fce7f3; color: #9d174d; }
+    .badge-surplus{ background: #f0fdf4; color: #166534; }
+    .badge-stoploss{ background: #ede9fe; color: #5b21b6; }
+
+    /* ── Aging Profile Bar ── */
+    .aging-bar { display: flex; height: 10px; border-radius: 5px; overflow: hidden; gap: 1px; }
+    .aging-seg { height: 100%; }
+
+    /* ── Program Tower ── */
+    .program-tower {
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .tower-layer {
+      border-radius: 8px; padding: 14px 16px;
+      display: flex; align-items: center; gap: 12px;
+      border: 2px solid transparent;
+    }
+    .tower-layer-icon {
+      width: 36px; height: 36px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; flex-shrink: 0;
+    }
+    .tower-layer-info { flex: 1; }
+    .tower-layer-name { font-size: 13px; font-weight: 700; }
+    .tower-layer-sub  { font-size: 11px; margin-top: 2px; opacity: 0.75; }
+    .tower-layer-id   { font-size: 12px; font-weight: 700; opacity: 0.7; }
+
+    .tl-cat    { background: #fef2f2; border-color: #fca5a5; color: #991b1b; }
+    .tl-risk   { background: #fffbeb; border-color: #fcd34d; color: #92400e; }
+    .tl-surplus{ background: #f5f3ff; border-color: #c4b5fd; color: #5b21b6; }
+    .tl-qs     { background: #eff6ff; border-color: #93c5fd; color: #1e40af; }
+    .tl-net    { background: var(--gray-100); border-color: var(--gray-300); color: var(--gray-700); }
+
+    .tower-axis-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 0.8px;
+      color: var(--gray-400); text-transform: uppercase;
+      text-align: center; padding: 6px 0;
+    }
+
+    /* ── Form sections ── */
+    .ri-form-section {
+      background: white; border-radius: var(--radius);
+      box-shadow: var(--shadow-sm); border: 1px solid rgba(0,0,0,0.04);
+      margin-bottom: 16px; overflow: hidden;
+    }
+    .ri-form-section-hdr {
+      padding: 14px 20px;
+      font-size: 13px; font-weight: 700; color: var(--gray-900);
+      border-bottom: 1px solid var(--gray-100);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .ri-form-section-body { padding: 20px; }
+    .ri-form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .ri-form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+    .ri-field label { display:block; font-size:11.5px; font-weight:600; color:var(--gray-600); margin-bottom:5px; }
+    .ri-field input, .ri-field select, .ri-field textarea {
+      width:100%; padding:8px 12px; border:1px solid var(--gray-200);
+      border-radius:6px; font-size:12.5px; color:var(--gray-700);
+      background:var(--gray-50); outline:none; transition:all 0.15s;
+    }
+    .ri-field input:focus, .ri-field select:focus { border-color:var(--navy); background:white; }
+    .ri-field select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236b7280' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 9px center; padding-right:28px; cursor:pointer; }
+
+    /* ── Multi-select ── */
+    .ri-field select[multiple] {
+      height: 80px; padding: 4px 8px; background-image: none;
+    }
+    .ri-exclusions-box {
+      width:100%; padding:8px 12px;
+      border:1px solid var(--red-bg); border-radius:6px;
+      font-size:12px; color:var(--red);
+      background: var(--red-bg); min-height:36px;
+    }
+
+    /* ── Pipeline log event type badges ── */
+    .badge-premium  { background:#dbeafe; color:#1d4ed8; }
+    .badge-loss     { background:#fee2e2; color:#991b1b; }
+    .badge-system   { background:#f3f4f6; color:#374151; }
+
+    /* ── Pipeline result badges ── */
+    .badge-posted   { background:#dcfce7; color:#166534; display:inline-flex; align-items:center; gap:4px; }
+    .badge-below-ret{ background:#fef3c7; color:#92400e; }
+    .badge-balanced { background:#e0e7ff; color:#3730a3; display:inline-flex; align-items:center; gap:4px; }
+
+    /* ── Mode badges ── */
+    .badge-auto   { background:#dbeafe; color:#1d4ed8; display:inline-flex; align-items:center; gap:3px; }
+    .badge-manual { background:#f3f4f6; color:#374151; display:inline-flex; align-items:center; gap:3px; }
+
+    /* ── Program Summary box ── */
+    .prog-summary {
+      background: var(--gray-50); border-radius: 8px;
+      border: 1px solid var(--gray-200); padding: 16px 18px;
+      margin-top: 16px;
+    }
+    .prog-summary-title { font-size:13px; font-weight:700; color:var(--gray-900); margin-bottom:12px; }
+    .prog-summary-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px 16px; }
+    .prog-summary-item { font-size:11.5px; color:var(--gray-600); }
+    .prog-summary-item strong { color:var(--gray-900); display:block; margin-top:1px; }
+
+    /* ── Table footnote ── */
+    .table-footnote {
+      padding:8px 16px; font-size:10.5px; color:var(--gray-400);
+      border-top:1px solid var(--gray-100);
+    }
+
+    /* ── Pipeline status indicator ── */
+    .pipeline-ok {
+      display:inline-flex; align-items:center; gap:5px;
+      font-size:12px; font-weight:600; color:var(--green);
+    }
+    .pipeline-ok-dot {
+      width:8px; height:8px; border-radius:50%; background:var(--green);
+    }
+  </style>
+</head>
+<body>
+  <main class="main-content" id="main-content">
+
+    <!-- Module Top Nav -->
+    <div class="ri-topnav">
+      <div class="ri-tab-strip">
+        <div class="ri-tab active" onclick="switchRiTab('treaty-console')" id="ri-tab-treaty-console">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 6h6M5 9h4M5 12h2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+          Treaty Console
+        </div>
+        <div class="ri-tab" onclick="switchRiTab('treaty-builder')" id="ri-tab-treaty-builder">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M3 14v-1.5a3 3 0 0 1 3-3h4a3 3 0 0 1 3 3V14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/><circle cx="8" cy="5.5" r="2.5" stroke="currentColor" stroke-width="1.5"/></svg>
+          Treaty Builder
+        </div>
+        <div class="ri-tab" onclick="switchRiTab('allocation-engine')" id="ri-tab-allocation-engine">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2" stroke="currentColor" stroke-width="1.5"/><path d="M8 2v1.5M8 12.5V14M2 8h1.5M12.5 8H14M3.5 3.5l1.1 1.1M11.4 11.4l1.1 1.1M3.5 12.5l1.1-1.1M11.4 4.6l1.1-1.1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>
+          Allocation Engine
+        </div>
+      </div>
+      <div class="ri-refresh-area">
+        <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v3l2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <span id="ri-refresh-time">Refreshed: May 22, 2025 · 9:18 AM</span>
+        <button class="ri-refresh-btn" onclick="refreshRI()">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M2 8a6 6 0 1 1 1.5 4" stroke="white" stroke-width="1.8" stroke-linecap="round"/><path d="M2 12V8h4" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Refresh
+        </button>
+      </div>
+    </div>
+
+    <!-- ══════════════════════════════════════════
+         TAB 1 - Treaty Console
+    ══════════════════════════════════════════ -->
+    <div class="ri-tab-panel active" id="ri-panel-treaty-console">
+
+      <!-- 6 Stats -->
+      <div class="stats-row-6" style="margin-top:20px;">
+        <div class="stat-card-ri">
+          <div class="ri-stat-label">Active Treaties</div>
+          <div class="ri-stat-value" style="color:var(--navy);">5</div>
+          <div class="ri-stat-sub" style="color:var(--orange);">1 expiring</div>
+        </div>
+        <div class="stat-card-ri">
+          <div class="ri-stat-label">Total Ceded Prem.</div>
+          <div class="ri-stat-value">$27.7M</div>
+          <div class="ri-stat-sub" style="color:var(--gray-400);">YTD 2025</div>
+        </div>
+        <div class="stat-card-ri">
+          <div class="ri-stat-label">Total Recovered</div>
+          <div class="ri-stat-value" style="color:var(--green);">$7.9M</div>
+          <div class="ri-stat-sub" style="color:var(--gray-400);">Collections YTD</div>
+        </div>
+        <div class="stat-card-ri">
+          <div class="ri-stat-label">Outstanding Recov.</div>
+          <div class="ri-stat-value" style="color:var(--orange);">$5.8M</div>
+          <div class="ri-stat-sub" style="color:var(--gray-400);">Pending collection</div>
+        </div>
+        <div class="stat-card-ri">
+          <div class="ri-stat-label">Aged &gt; 60 Days</div>
+          <div class="ri-stat-value" style="color:var(--red);">$1.3M</div>
+          <div class="ri-stat-sub" style="color:var(--red);">Requires follow-up</div>
+        </div>
+        <div class="stat-card-ri">
+          <div class="ri-stat-label">Ceding Commission</div>
+          <div class="ri-stat-value">$3.2M</div>
+          <div class="ri-stat-sub" style="color:var(--gray-400);">Earned YTD</div>
+        </div>
+      </div>
+
+      <!-- §9.1.1 Treaty Management Directory -->
+      <div class="form-card" style="margin-bottom:16px;">
+        <div class="ri-section-hdr">
+          <div class="ri-section-title">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="2" width="12" height="12" rx="1.5" stroke="#0d1b4b" stroke-width="1.5"/><path d="M5 6h6M5 9h4M5 12h2" stroke="#0d1b4b" stroke-width="1.3" stroke-linecap="round"/></svg>
+            §9.1.1 Treaty Management Directory
+          </div>
+          <div class="ri-section-actions">
+            <select class="filter-select" id="tc-type-filter" onchange="renderTreatiesTable()">
+              <option value="">All Types</option>
+              <option value="Quota Share">Quota Share</option>
+              <option value="Risk XoL">Risk XoL</option>
+              <option value="Cat XoL">Cat XoL</option>
+              <option value="Surplus">Surplus</option>
+              <option value="Stop Loss">Stop Loss</option>
+            </select>
+            <select class="filter-select" id="tc-status-filter" onchange="renderTreatiesTable()">
+              <option value="">All Status</option>
+              <option value="Active">Active</option>
+              <option value="Expiring">Expiring</option>
+              <option value="Expired">Expired</option>
+            </select>
+            <button class="btn btn-primary btn-sm" onclick="openNewTreaty()">+ New Treaty</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="data-table" id="treaties-table">
+            <thead>
+              <tr>
+                <th>Treaty #</th>
+                <th>Treaty Name</th>
+                <th>Type</th>
+                <th>Reinsurer</th>
+                <th>Effective</th>
+                <th>Expiry</th>
+                <th class="text-right">Limit</th>
+                <th class="text-right">Retention / Attach.</th>
+                <th class="text-right">Share %</th>
+                <th class="text-right">Ceded Premium</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="treaties-tbody"></tbody>
+          </table>
+        </div>
+        <div class="table-footnote">Last modified: 2025-05-21 09:00 AM by treaty_engine · Click row to view full details</div>
+      </div>
+
+      <!-- §9.1.2 + §9.1.3 Grid -->
+      <div class="grid-2">
+
+        <!-- §9.1.2 Recoverable Tracking Matrix -->
+        <div class="form-card">
+          <div class="ri-section-hdr" style="padding:14px 18px;">
+            <div class="ri-section-title" style="font-size:13px;">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><path d="M2 12l4-4 3 3 5-6" stroke="#2e7d32" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              §9.1.2 Recoverable Tracking Matrix
+            </div>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="data-table" id="recoverables-table">
+              <thead>
+                <tr>
+                  <th>Treaty</th>
+                  <th>Reinsurer</th>
+                  <th class="text-right">Total Recov.</th>
+                  <th class="text-right">Recovered</th>
+                  <th class="text-right">Outstanding</th>
+                  <th>Aging Profile</th>
+                </tr>
+              </thead>
+              <tbody id="recoverables-tbody">
+                <tr>
+                  <td class="cell-link">TRT-2025-001</td><td>Swiss Re</td>
+                  <td class="text-right">$7.2M</td>
+                  <td class="text-right" style="color:var(--green);font-weight:600;">$4.1M</td>
+                  <td class="text-right" style="color:var(--orange);font-weight:600;">$3.1M</td>
+                  <td>
+                    <div class="aging-bar" style="width:120px;">
+                      <div class="aging-seg" style="width:48%;background:#2e7d32;"></div>
+                      <div class="aging-seg" style="width:22%;background:#f57c00;"></div>
+                      <div class="aging-seg" style="width:16%;background:#e65100;"></div>
+                      <div class="aging-seg" style="width:14%;background:#c62828;"></div>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="cell-link">TRT-2025-002</td><td>Munich Re</td>
+                  <td class="text-right">$1.1M</td>
+                  <td class="text-right" style="color:var(--green);font-weight:600;">$800,000</td>
+                  <td class="text-right" style="color:var(--orange);font-weight:600;">$300,000</td>
+                  <td>
+                    <div class="aging-bar" style="width:120px;">
+                      <div class="aging-seg" style="width:65%;background:#2e7d32;"></div>
+                      <div class="aging-seg" style="width:26%;background:#f57c00;"></div>
+                      <div class="aging-seg" style="width:9%;background:#e65100;"></div>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="cell-link">TRT-2025-004</td><td>Hannover Re</td>
+                  <td class="text-right">$4.8M</td>
+                  <td class="text-right" style="color:var(--green);font-weight:600;">$2.6M</td>
+                  <td class="text-right" style="color:var(--orange);font-weight:600;">$2.2M</td>
+                  <td>
+                    <div class="aging-bar" style="width:120px;">
+                      <div class="aging-seg" style="width:42%;background:#2e7d32;"></div>
+                      <div class="aging-seg" style="width:24%;background:#f57c00;"></div>
+                      <div class="aging-seg" style="width:20%;background:#e65100;"></div>
+                      <div class="aging-seg" style="width:14%;background:#c62828;"></div>
+                    </div>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="cell-link">TRT-2024-005</td><td>Gen Re</td>
+                  <td class="text-right">$600,000</td>
+                  <td class="text-right" style="color:var(--green);font-weight:600;">$400,000</td>
+                  <td class="text-right" style="color:var(--orange);font-weight:600;">$200,000</td>
+                  <td>
+                    <div class="aging-bar" style="width:120px;">
+                      <div class="aging-seg" style="width:60%;background:#2e7d32;"></div>
+                      <div class="aging-seg" style="width:30%;background:#f57c00;"></div>
+                      <div class="aging-seg" style="width:10%;background:#e65100;"></div>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <div class="table-footnote">
+            §9.1.3 Aging colors:
+            <span style="display:inline-flex;align-items:center;gap:3px;margin-right:6px;"><span style="width:10px;height:10px;background:#2e7d32;border-radius:2px;display:inline-block;"></span> 0-30d</span>
+            <span style="display:inline-flex;align-items:center;gap:3px;margin-right:6px;"><span style="width:10px;height:10px;background:#f57c00;border-radius:2px;display:inline-block;"></span> 31-60d</span>
+            <span style="display:inline-flex;align-items:center;gap:3px;margin-right:6px;"><span style="width:10px;height:10px;background:#e65100;border-radius:2px;display:inline-block;"></span> 61-90d</span>
+            <span style="display:inline-flex;align-items:center;gap:3px;"><span style="width:10px;height:10px;background:#c62828;border-radius:2px;display:inline-block;"></span> 90+d</span>
+          </div>
+        </div>
+
+        <!-- §9.1.3 Recovery Aging Dashboard -->
+        <div class="form-card">
+          <div class="ri-section-hdr" style="padding:14px 18px;">
+            <div class="ri-section-title" style="font-size:13px;">
+              <svg width="14" height="14" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="#e65100" stroke-width="1.5"/><path d="M8 5v3l2 2" stroke="#e65100" stroke-width="1.5" stroke-linecap="round"/></svg>
+              §9.1.3 Recovery Aging Dashboard
+            </div>
+          </div>
+          <div style="padding:14px 18px 6px;">
+            <div style="font-size:11.5px;color:var(--gray-500);margin-bottom:10px;">Outstanding recoverables by aging bucket</div>
+            <div style="position:relative;height:220px;">
+              <canvas id="agingChart"></canvas>
+            </div>
+          </div>
+          <div style="padding:8px 18px 14px;display:flex;flex-wrap:wrap;gap:12px;justify-content:center;">
+            <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--gray-600);"><span style="width:12px;height:12px;background:#2e7d32;border-radius:2px;display:inline-block;"></span>0-30 days</span>
+            <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--gray-600);"><span style="width:12px;height:12px;background:#f57c00;border-radius:2px;display:inline-block;"></span>31-60 days</span>
+            <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--gray-600);"><span style="width:12px;height:12px;background:#e65100;border-radius:2px;display:inline-block;"></span>61-90 days</span>
+            <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;color:var(--gray-600);"><span style="width:12px;height:12px;background:#c62828;border-radius:2px;display:inline-block;"></span>90+ days</span>
+          </div>
+        </div>
+
+      </div><!-- /grid-2 -->
+    </div><!-- /treaty-console panel -->
+
+
+    <!-- ══════════════════════════════════════════
+         TAB 2 - Treaty Builder
+    ══════════════════════════════════════════ -->
+    <div class="ri-tab-panel" id="ri-panel-treaty-builder">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin:20px 0 16px;">
+        <div>
+          <div style="font-size:18px;font-weight:800;color:var(--gray-900);">§9.2 Graphical Treaty Builder</div>
+          <div style="font-size:12px;color:var(--gray-500);margin-top:2px;">Visual multi-layer program structure with real-time preview</div>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-outline" onclick="resetTreatyBuilder()">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M2 8a6 6 0 1 1 1.5 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><path d="M2 12V8h4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Reset
+          </button>
+          <button class="btn btn-primary" onclick="saveTreaty()">
+            <svg width="13" height="13" viewBox="0 0 16 16" fill="none"><path d="M3 9l4 4 6-8" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            Save Treaty
+          </button>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 380px;gap:20px;align-items:start;">
+
+        <!-- Left: Form -->
+        <div>
+          <!-- Treaty Identification -->
+          <div class="ri-form-section">
+            <div class="ri-form-section-hdr">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M9 2H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V6M9 2l4 4M9 2v4h4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Treaty Identification
+            </div>
+            <div class="ri-form-section-body">
+              <div class="ri-form-grid-2">
+                <div class="ri-field"><label>Treaty ID</label><input type="text" id="rb-id" value="TRT-2025-007" placeholder="Auto-generated"></div>
+                <div class="ri-field"><label>Treaty Name</label><input type="text" id="rb-name" placeholder="e.g. Property QS 35%"></div>
+                <div class="ri-field">
+                  <label>Treaty Type</label>
+                  <select id="rb-type" onchange="updateProgramTower()">
+                    <option>Proportional (Quota Share / Surplus)</option>
+                    <option>Non-Proportional (XoL)</option>
+                    <option>Catastrophe XoL</option>
+                    <option>Stop Loss</option>
+                  </select>
+                </div>
+                <div class="ri-field">
+                  <label>Reinsurer</label>
+                  <select id="rb-reinsurer">
+                    <option>Swiss Re</option>
+                    <option>Munich Re</option>
+                    <option>Hannover Re</option>
+                    <option>Lloyd's Synd. 2003</option>
+                    <option>Gen Re</option>
+                    <option>RGA Re</option>
+                  </select>
+                </div>
+                <div class="ri-field"><label>Effective Date</label><input type="date" id="rb-eff" value="2025-07-01"></div>
+                <div class="ri-field"><label>Expiration Date</label><input type="date" id="rb-exp" value="2026-06-30"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Financial Terms -->
+          <div class="ri-form-section">
+            <div class="ri-form-section-hdr">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="10" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 6h1.5M9.5 6H11M5 9h2M9.5 9H11M7.5 6v4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              Financial Terms &amp; Boundaries
+            </div>
+            <div class="ri-form-section-body">
+              <div class="ri-form-grid-2">
+                <div class="ri-field"><label>Retention ($)</label><input type="number" id="rb-retention" value="2000000" placeholder="0"></div>
+                <div class="ri-field"><label>Limit ($)</label><input type="number" id="rb-limit" value="5000000" placeholder="0"></div>
+                <div class="ri-field"><label>Ceded Share (%)</label><input type="number" id="rb-share" value="30" min="0" max="100"></div>
+                <div class="ri-field"><label>Ceding Commission (%)</label><input type="number" id="rb-comm" value="25" min="0" max="100"></div>
+                <div class="ri-field"><label>Attachment Point ($)</label><input type="number" id="rb-attach" value="2000000" placeholder="0"></div>
+                <div class="ri-field"><label>Annual Aggregate Limit ($)</label><input type="number" id="rb-agg" value="15000000" placeholder="0"></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Scope & Exclusions -->
+          <div class="ri-form-section">
+            <div class="ri-form-section-hdr">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M5.5 8l2 2 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Scope &amp; Exclusions
+            </div>
+            <div class="ri-form-section-body">
+              <div class="ri-form-grid-2" style="margin-bottom:12px;">
+                <div class="ri-field">
+                  <label>Lines of Business</label>
+                  <select multiple style="height:90px;">
+                    <option selected>Commercial Property</option>
+                    <option>Commercial Auto</option>
+                    <option selected>General Liability</option>
+                    <option>Workers Comp</option>
+                    <option>Marine</option>
+                    <option>Professional Liability</option>
+                  </select>
+                </div>
+                <div class="ri-field">
+                  <label>Territories</label>
+                  <select multiple style="height:90px;">
+                    <option selected>TX</option>
+                    <option selected>OK</option>
+                    <option selected>NM</option>
+                    <option selected>CO</option>
+                    <option>CA</option>
+                    <option>FL</option>
+                    <option>NY</option>
+                  </select>
+                </div>
+              </div>
+              <div class="ri-field">
+                <label>Exclusions</label>
+                <div class="ri-exclusions-box">War, Terrorism, Nuclear, Communicable Disease, Cyber (standalone)</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Operational & Legal Clauses -->
+          <div class="ri-form-section">
+            <div class="ri-form-section-hdr">
+              <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h8M2 12h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+              Operational &amp; Legal Clauses
+            </div>
+            <div class="ri-form-section-body">
+              <div class="ri-form-grid-3">
+                <div class="ri-field"><label>Reporting Frequency</label><select><option>Quarterly</option><option>Monthly</option><option>Annually</option></select></div>
+                <div class="ri-field"><label>Remittance (days)</label><input type="number" value="45"></div>
+                <div class="ri-field"><label>Termination Notice</label><select><option>60 days</option><option>30 days</option><option>90 days</option></select></div>
+                <div class="ri-field"><label>Governing Law</label><select><option>New York</option><option>London</option><option>Delaware</option></select></div>
+                <div class="ri-field"><label>Arbitration</label><select><option>ARIAS Rules</option><option>AAA Rules</option><option>ICC Rules</option></select></div>
+                <div class="ri-field"><label>Insolvency Clause</label><select><option>NY Insurance Law §1308</option><option>Standard</option><option>Custom</option></select></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Program Tower + Summary -->
+        <div>
+          <div class="form-card" style="padding:18px;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="none"><path d="M10 2L2 6v6c0 4.4 3.4 8.5 8 9.5 4.6-1 8-5.1 8-9.5V6l-8-4z" stroke="#0d1b4b" stroke-width="1.5" stroke-linejoin="round"/></svg>
+              <div style="font-size:14px;font-weight:800;color:var(--navy);">Reinsurance Program Tower</div>
+            </div>
+            <div style="font-size:11.5px;color:var(--gray-500);margin-bottom:14px;">Visual representation of current treaty layers</div>
+
+            <div class="tower-axis-label" style="color:var(--gray-400);">↑ HIGHER ATTACHMENT / CATASTROPHE LAYERS</div>
+
+            <div class="program-tower" id="program-tower">
+              <div class="tower-layer tl-cat">
+                <div class="tower-layer-icon" style="background:rgba(153,27,27,0.12);">⚡</div>
+                <div class="tower-layer-info">
+                  <div class="tower-layer-name">Cat XoL Layer</div>
+                  <div class="tower-layer-sub">Lloyd's · Attaches at $5.0M · Limit $10.0M</div>
+                </div>
+                <div class="tower-layer-id">TRT-003</div>
+              </div>
+              <div class="tower-layer tl-risk">
+                <div class="tower-layer-icon" style="background:rgba(146,64,14,0.12);">📦</div>
+                <div class="tower-layer-info">
+                  <div class="tower-layer-name">Risk XoL Layer</div>
+                  <div class="tower-layer-sub">Munich Re · Attaches at $2.0M · Limit $5.0M</div>
+                </div>
+                <div class="tower-layer-id">TRT-002</div>
+              </div>
+              <div class="tower-layer tl-surplus">
+                <div class="tower-layer-icon" style="background:rgba(91,33,182,0.12);">%</div>
+                <div class="tower-layer-info">
+                  <div class="tower-layer-name">Surplus Share 20%</div>
+                  <div class="tower-layer-sub">Hannover Re · Limit $8.0M</div>
+                </div>
+                <div class="tower-layer-id">TRT-004</div>
+              </div>
+              <div class="tower-layer tl-qs">
+                <div class="tower-layer-icon" style="background:rgba(30,64,175,0.12);">🏢</div>
+                <div class="tower-layer-info">
+                  <div class="tower-layer-name">Property QS 30%</div>
+                  <div class="tower-layer-sub">Swiss Re · Limit $15.0M</div>
+                </div>
+                <div class="tower-layer-id">TRT-001</div>
+              </div>
+              <div class="tower-layer tl-net">
+                <div class="tower-layer-icon" style="background:rgba(0,0,0,0.06);">🛡</div>
+                <div class="tower-layer-info">
+                  <div class="tower-layer-name">Net Retention</div>
+                  <div class="tower-layer-sub">Veridex's retained risk after all cessions</div>
+                </div>
+              </div>
+            </div>
+
+            <div class="tower-axis-label" style="color:var(--gray-400);margin-top:0;">↓ GROUND-UP / RETAINED RISK</div>
+
+            <div class="prog-summary">
+              <div class="prog-summary-title">Program Summary</div>
+              <div class="prog-summary-grid">
+                <div class="prog-summary-item">Total Ceded Premium<strong>$27.8M</strong></div>
+                <div class="prog-summary-item">Active Treaties<strong>5</strong></div>
+                <div class="prog-summary-item">Proportional Layers<strong>3</strong></div>
+                <div class="prog-summary-item">XoL / Cat Layers<strong>2</strong></div>
+                <div class="prog-summary-item">Max Limit (Cat)<strong>$10.0M</strong></div>
+                <div class="prog-summary-item">Stop Loss<strong>$20.0M at 90% LR</strong></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /builder grid -->
+    </div><!-- /treaty-builder panel -->
+
+
+    <!-- ══════════════════════════════════════════
+         TAB 3 - Allocation Engine
+    ══════════════════════════════════════════ -->
+    <div class="ri-tab-panel" id="ri-panel-allocation-engine">
+
+      <!-- 5 Stats -->
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-top:20px;margin-bottom:20px;">
+        <div class="stat-card-ri">
+          <div class="ri-stat-label">Active Rules</div>
+          <div class="ri-stat-value" style="color:var(--navy);">7</div>
+          <div class="ri-stat-sub" style="color:var(--gray-400);">6 auto · 1 manual</div>
+        </div>
+        <div class="stat-card-ri">
+          <div class="ri-stat-label">Allocations Today</div>
+          <div class="ri-stat-value" style="color:var(--green);">12</div>
+          <div class="ri-stat-sub" style="color:var(--gray-400);">All posted successfully</div>
+        </div>
+        <div class="stat-card-ri">
+          <div class="ri-stat-label">Premium Ceded Today</div>
+          <div class="ri-stat-value">$654K</div>
+          <div class="ri-stat-sub" style="color:var(--gray-400);">Via auto-ceding rules</div>
+        </div>
+        <div class="stat-card-ri">
+          <div class="ri-stat-label">Losses Apportioned</div>
+          <div class="ri-stat-value">$29.4K</div>
+          <div class="ri-stat-sub" style="color:var(--gray-400);">Today's claims cession</div>
+        </div>
+        <div class="stat-card-ri">
+          <div class="ri-stat-label">Pipeline Status</div>
+          <div class="ri-stat-value" style="font-size:16px;margin-top:4px;">
+            <span class="pipeline-ok"><span class="pipeline-ok-dot"></span> Healthy</span>
+          </div>
+          <div class="ri-stat-sub" style="color:var(--green);">All systems healthy</div>
+        </div>
+      </div>
+
+      <!-- §9.3.1 Allocation Rule Base -->
+      <div class="form-card" style="margin-bottom:16px;">
+        <div class="ri-section-hdr">
+          <div class="ri-section-title">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2" stroke="#0d1b4b" stroke-width="1.5"/><path d="M8 2v1.5M8 12.5V14M2 8h1.5M12.5 8H14M3.5 3.5l1.1 1.1M11.4 11.4l1.1 1.1M3.5 12.5l1.1-1.1M11.4 4.6l1.1-1.1" stroke="#0d1b4b" stroke-width="1.3" stroke-linecap="round"/></svg>
+            §9.3.1 Allocation Rule Base
+          </div>
+          <div class="ri-section-actions">
+            <button class="btn btn-primary btn-sm" onclick="addNewAllocationRule()">+ New Rule</button>
+            <button class="btn btn-sm" style="background:#2e7d32;color:white;" onclick="runAllRules(this)">
+              <svg width="11" height="11" viewBox="0 0 16 16" fill="none"><path d="M5 3l8 5-8 5V3z" fill="white"/></svg>
+              Run All Rules
+            </button>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="data-table" id="alloc-rules-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Rule Name</th>
+                <th>Treaty</th>
+                <th>Trigger Event</th>
+                <th>LOBs</th>
+                <th>Calculation Formula</th>
+                <th>Mode</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="alloc-rules-tbody">
+              <tr>
+                <td>1</td>
+                <td style="font-weight:600;">QS Premium Ceding 30%</td>
+                <td class="cell-link">TRT-2025-001</td>
+                <td>Policy Written</td>
+                <td>Comm. Property</td>
+                <td><code style="background:var(--blue-bg);color:var(--blue);padding:2px 6px;border-radius:4px;font-size:11px;">Written × 30%</code></td>
+                <td><span class="badge badge-auto">⚡ Auto</span></td>
+                <td><span class="badge badge-green">Active</span></td>
+                <td><button class="btn btn-icon btn-outline" onclick="runRule(this,'QS Premium Ceding 30%','TRT-2025-001','Premium','$540,000','$162,000')" title="Run"><svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M5 3l8 5-8 5V3z" fill="currentColor"/></svg></button></td>
+              </tr>
+              <tr>
+                <td>2</td>
+                <td style="font-weight:600;">QS Loss Ceding 30%</td>
+                <td class="cell-link">TRT-2025-001</td>
+                <td>Claim Payment</td>
+                <td>Comm. Property</td>
+                <td><code style="background:var(--blue-bg);color:var(--blue);padding:2px 6px;border-radius:4px;font-size:11px;">Paid × 30%</code></td>
+                <td><span class="badge badge-auto">⚡ Auto</span></td>
+                <td><span class="badge badge-green">Active</span></td>
+                <td><button class="btn btn-icon btn-outline" onclick="runRule(this,'QS Loss Ceding 30%','TRT-2025-001','Loss','$38,400','$11,520')" title="Run"><svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M5 3l8 5-8 5V3z" fill="currentColor"/></svg></button></td>
+              </tr>
+              <tr>
+                <td>3</td>
+                <td style="font-weight:600;">XoL Layer Trigger</td>
+                <td class="cell-link">TRT-2025-002</td>
+                <td>Per-risk loss &gt; $2M</td>
+                <td>All Casualty</td>
+                <td><code style="background:var(--blue-bg);color:var(--blue);padding:2px 6px;border-radius:4px;font-size:11px;">Min(Loss−$2M, $5M)</code></td>
+                <td><span class="badge badge-auto">⚡ Auto</span></td>
+                <td><span class="badge badge-green">Active</span></td>
+                <td><button class="btn btn-icon btn-outline" onclick="runRule(this,'XoL Layer Trigger','TRT-2025-002','Loss','$2,850,000','$850,000')" title="Run"><svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M5 3l8 5-8 5V3z" fill="currentColor"/></svg></button></td>
+              </tr>
+              <tr>
+                <td>4</td>
+                <td style="font-weight:600;">Cat Event Aggregation</td>
+                <td class="cell-link">TRT-2025-003</td>
+                <td>Cat declaration</td>
+                <td>All Lines</td>
+                <td><code style="background:var(--blue-bg);color:var(--blue);padding:2px 6px;border-radius:4px;font-size:11px;">Min(AggLoss−$5M, $10M)</code></td>
+                <td><span class="badge badge-manual">🖐 Manual</span></td>
+                <td><span class="badge badge-green">Active</span></td>
+                <td><button class="btn btn-icon btn-outline" onclick="runRule(this,'Cat Event Aggregation','TRT-2025-003','Loss','$6,200,000','$1,200,000')" title="Run"><svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M5 3l8 5-8 5V3z" fill="currentColor"/></svg></button></td>
+              </tr>
+              <tr>
+                <td>5</td>
+                <td style="font-weight:600;">Surplus Share 20%</td>
+                <td class="cell-link">TRT-2025-004</td>
+                <td>Policy &gt; retention</td>
+                <td>All Lines</td>
+                <td><code style="background:var(--blue-bg);color:var(--blue);padding:2px 6px;border-radius:4px;font-size:11px;">Excess × 20%</code></td>
+                <td><span class="badge badge-auto">⚡ Auto</span></td>
+                <td><span class="badge badge-green">Active</span></td>
+                <td><button class="btn btn-icon btn-outline" onclick="runRule(this,'Surplus Share 20%','TRT-2025-004','Premium','$210,000','$42,000')" title="Run"><svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M5 3l8 5-8 5V3z" fill="currentColor"/></svg></button></td>
+              </tr>
+              <tr>
+                <td>6</td>
+                <td style="font-weight:600;">WC QS Ceding 25%</td>
+                <td class="cell-link">TRT-2024-005</td>
+                <td>Policy Written</td>
+                <td>Workers Comp</td>
+                <td><code style="background:var(--blue-bg);color:var(--blue);padding:2px 6px;border-radius:4px;font-size:11px;">Written × 25%</code></td>
+                <td><span class="badge badge-auto">⚡ Auto</span></td>
+                <td><span class="badge badge-orange">Expiring</span></td>
+                <td><button class="btn btn-icon btn-outline" onclick="runRule(this,'WC QS Ceding 25%','TRT-2024-005','Premium','$156,000','$39,000')" title="Run"><svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M5 3l8 5-8 5V3z" fill="currentColor"/></svg></button></td>
+              </tr>
+              <tr>
+                <td>7</td>
+                <td style="font-weight:600;">Stop Loss Trigger</td>
+                <td class="cell-link">TRT-2025-006</td>
+                <td>LR exceeds 90%</td>
+                <td>All Lines</td>
+                <td><code style="background:var(--blue-bg);color:var(--blue);padding:2px 6px;border-radius:4px;font-size:11px;">Min(AggLoss−90%×EP, $20M)</code></td>
+                <td><span class="badge badge-manual">🖐 Manual</span></td>
+                <td><span class="badge badge-green">Active</span></td>
+                <td><button class="btn btn-icon btn-outline" onclick="runRule(this,'Stop Loss Trigger','TRT-2025-006','Loss','$1,400,000','$400,000')" title="Run"><svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M5 3l8 5-8 5V3z" fill="currentColor"/></svg></button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="table-footnote">Auto rules execute in real-time via ingestion pipeline. Manual rules require operator trigger. Last modified: 2025-05-21 09:00 AM</div>
+      </div>
+
+      <!-- §9.3.2 Real-Time Allocation Pipeline Log -->
+      <div class="form-card">
+        <div class="ri-section-hdr">
+          <div class="ri-section-title">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h12M2 12h8" stroke="#2e7d32" stroke-width="1.5" stroke-linecap="round"/></svg>
+            §9.3.2 Real-Time Allocation Pipeline Log
+          </div>
+          <div class="ri-section-actions">
+            <select class="filter-select" id="log-event-filter" onchange="renderPipelineLog()">
+              <option value="">All Events</option>
+              <option value="Premium">Premium</option>
+              <option value="Loss">Loss</option>
+              <option value="System">System</option>
+            </select>
+            <button class="btn btn-outline btn-sm" onclick="exportTableCSV('pipeline-log-table','pipeline-log.csv')">
+              <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><path d="M8 2v8M5 7l3 3 3-3M3 12h10" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Export
+            </button>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="data-table" id="pipeline-log-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Source Ref</th>
+                <th>Event Type</th>
+                <th class="text-right">Original Amt</th>
+                <th>Rule / Treaty</th>
+                <th class="text-right">Ceded Amt</th>
+                <th>Mode</th>
+                <th>Result</th>
+              </tr>
+            </thead>
+            <tbody id="pipeline-log-tbody">
+            </tbody>
+          </table>
+        </div>
+        <div class="table-footnote">Showing last 8 pipeline events. Auto-refreshes every 60 seconds.</div>
+      </div>
+
+    </div><!-- /allocation-engine panel -->
+
+  </main>
+
+  <script src="js/app.js"></script>
+  <script src="js/reports-utils.js"></script>
+  <script>
+    /* ── Detect active tab from hash ── */
+    const _hash = location.hash.replace('#', '');
+    const _validTabs = ['treaty-console', 'treaty-builder', 'allocation-engine'];
+    const _initTab = _validTabs.includes(_hash) ? _hash : 'treaty-console';
+    initLayout(_initTab);
+
+    /* ── Treaties Data ── */
+    const TREATIES = [
+      { id:'TRT-2025-001', name:'Property Quota Share 30%',        type:'Quota Share', reinsurer:'Swiss Re',          eff:'01/01/2025', exp:'12/31/2025', limit:'$15.0M', retention:'$10.0M', share:'30%',  ceded:'$12.8M',  status:'Active'   },
+      { id:'TRT-2025-002', name:'Casualty Per-Risk XoL $5M xs $2M',type:'Risk XoL',    reinsurer:'Munich Re',          eff:'01/01/2025', exp:'12/31/2025', limit:'$5.0M',  retention:'$2.0M',  share:' - ',    ceded:'$2.4M',   status:'Active'   },
+      { id:'TRT-2025-003', name:'Cat XoL $10M xs $5M',             type:'Cat XoL',     reinsurer:"Lloyd's Synd. 2003", eff:'04/01/2025', exp:'03/31/2026', limit:'$10.0M', retention:'$5.0M',  share:' - ',    ceded:'$1.8M',   status:'Active'   },
+      { id:'TRT-2025-004', name:'Surplus Share 20%',               type:'Surplus',     reinsurer:'Hannover Re',        eff:'01/01/2025', exp:'12/31/2025', limit:'$8.0M',  retention:'$5.0M',  share:'20%',  ceded:'$8.5M',   status:'Active'   },
+      { id:'TRT-2024-005', name:'Workers Comp QS 25%',             type:'Quota Share', reinsurer:'Gen Re',             eff:'07/01/2024', exp:'06/30/2025', limit:'$6.0M',  retention:'$4.5M',  share:'25%',  ceded:'$1.4M',   status:'Expiring' },
+      { id:'TRT-2025-006', name:'Aggregate Stop Loss',             type:'Stop Loss',   reinsurer:'RGA Re',             eff:'01/01/2025', exp:'12/31/2025', limit:'$20.0M', retention:' - ',       share:' - ',    ceded:'$900,000',status:'Active'   },
+    ];
+
+    const TYPE_BADGE = {
+      'Quota Share': 'badge-quota',
+      'Risk XoL':    'badge-risk',
+      'Cat XoL':     'badge-cat',
+      'Surplus':     'badge-surplus',
+      'Stop Loss':   'badge-stoploss',
+    };
+    const STATUS_BADGE = { Active:'badge-green', Expiring:'badge-orange', Expired:'badge-gray' };
+
+    function renderTreatiesTable() {
+      const typeF   = document.getElementById('tc-type-filter')?.value   || '';
+      const statusF = document.getElementById('tc-status-filter')?.value || '';
+      const rows = TREATIES.filter(t => {
+        if (typeF   && t.type   !== typeF)   return false;
+        if (statusF && t.status !== statusF) return false;
+        return true;
+      });
+      document.getElementById('treaties-tbody').innerHTML = rows.map(t => `
+        <tr style="cursor:pointer;" onclick="toggleTreatyDetail('${t.id}')">
+          <td class="cell-link">${t.id}</td>
+          <td>${t.name}</td>
+          <td><span class="badge ${TYPE_BADGE[t.type]||'badge-gray'}">${t.type}</span></td>
+          <td>${t.reinsurer}</td>
+          <td>${t.eff}</td>
+          <td>${t.exp}</td>
+          <td class="text-right">${t.limit}</td>
+          <td class="text-right">${t.retention}</td>
+          <td class="text-right font-semibold">${t.share}</td>
+          <td class="text-right font-semibold">${t.ceded}</td>
+          <td><span class="badge ${STATUS_BADGE[t.status]||'badge-gray'}">${t.status}</span></td>
+          <td><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();toggleTreatyDetail('${t.id}')">View</button></td>
+        </tr>
+        <tr class="treaty-detail-row" id="detail-${t.id}" style="display:none;">
+          <td colspan="12" style="background:var(--gray-50);padding:14px 20px;">
+            <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;font-size:12px;">
+              <div><span style="color:var(--gray-500);">Reinsurer</span><div class="font-semibold">${t.reinsurer}</div></div>
+              <div><span style="color:var(--gray-500);">Type</span><div class="font-semibold">${t.type}</div></div>
+              <div><span style="color:var(--gray-500);">Term</span><div class="font-semibold">${t.eff} – ${t.exp}</div></div>
+              <div><span style="color:var(--gray-500);">Status</span><div class="font-semibold">${t.status}</div></div>
+              <div><span style="color:var(--gray-500);">Limit</span><div class="font-semibold">${t.limit}</div></div>
+              <div><span style="color:var(--gray-500);">Retention / Attach.</span><div class="font-semibold">${t.retention}</div></div>
+              <div><span style="color:var(--gray-500);">Share %</span><div class="font-semibold">${t.share}</div></div>
+              <div><span style="color:var(--gray-500);">Ceded Premium</span><div class="font-semibold">${t.ceded}</div></div>
+            </div>
+          </td>
+        </tr>`).join('');
+    }
+
+    function toggleTreatyDetail(id) {
+      document.querySelectorAll('.treaty-detail-row').forEach(row => {
+        if (row.id !== 'detail-' + id) row.style.display = 'none';
+      });
+      const row = document.getElementById('detail-' + id);
+      if (!row) return;
+      row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
+    }
+
+    /* ── Pipeline Log Data ── */
+    const PIPELINE_LOG = [
+      { ts:'2025-05-21 09:14', ref:'POL-2025-011', type:'Premium', origAmt:'$180,000', ruleTreaty:'QS Prem 30% / TRT-001', cedAmt:'$54,000',  mode:'Auto',   result:'Posted' },
+      { ts:'2025-05-21 08:47', ref:'CLM-2025-0009',type:'Loss',    origAmt:'$45,200',  ruleTreaty:'QS Loss 30% / TRT-001', cedAmt:'$13,560',  mode:'Auto',   result:'Posted' },
+      { ts:'2025-05-20 16:30', ref:'POL-2025-010', type:'Premium', origAmt:'$178,000', ruleTreaty:'Surplus 20% / TRT-004', cedAmt:'$35,600',  mode:'Auto',   result:'Posted' },
+      { ts:'2025-05-20 14:15', ref:'CLM-2025-0008',type:'Loss',    origAmt:'$52,800',  ruleTreaty:'QS Loss 30% / TRT-001', cedAmt:'$15,840',  mode:'Auto',   result:'Posted' },
+      { ts:'2025-05-20 11:20', ref:'POL-2025-009', type:'Premium', origAmt:'$245,000', ruleTreaty:'WC QS 25% / TRT-005',  cedAmt:'$61,250',  mode:'Auto',   result:'Posted' },
+      { ts:'2025-05-19 15:45', ref:'CLM-2025-0007',type:'Loss',    origAmt:'$34,200',  ruleTreaty:'No treaty triggered',  cedAmt:' - ',        mode:' - ',      result:'Below Ret.' },
+      { ts:'2025-05-19 10:30', ref:'BATCH-MAY-W3', type:'Premium', origAmt:'$1.2M',    ruleTreaty:'QS/Surplus / TRT-001,004', cedAmt:'$487,200',mode:'Auto', result:'Posted' },
+      { ts:'2025-05-18 09:00', ref:'MONTHLY-RECON',type:'System',  origAmt:' - ',        ruleTreaty:'All treaties reconciled',cedAmt:' - ',       mode:'System', result:'Balanced' },
+    ];
+
+    const EVT_BADGE = { Premium:'badge-premium', Loss:'badge-loss', System:'badge-system' };
+    const RES_BADGE = { Posted:'badge-posted', 'Below Ret.':'badge-below-ret', Balanced:'badge-balanced' };
+    const RES_LABEL = { Posted:'✓ Posted', 'Below Ret.':' - Below Ret.', Balanced:'⚖ Balanced' };
+
+    function renderPipelineLog() {
+      const evtF = document.getElementById('log-event-filter')?.value || '';
+      const rows = PIPELINE_LOG.filter(r => !evtF || r.type === evtF);
+      document.getElementById('pipeline-log-tbody').innerHTML = rows.map(r => `
+        <tr>
+          <td style="font-size:11.5px;color:var(--gray-500);">${r.ts}</td>
+          <td class="cell-link">${r.ref}</td>
+          <td><span class="badge ${EVT_BADGE[r.type]||'badge-gray'}">${r.type}</span></td>
+          <td class="text-right">${r.origAmt}</td>
+          <td style="font-size:12px;">${r.ruleTreaty}</td>
+          <td class="text-right" style="color:var(--green);font-weight:600;">${r.cedAmt}</td>
+          <td style="font-size:11.5px;color:var(--gray-500);">${r.mode}</td>
+          <td><span class="badge ${RES_BADGE[r.result]||'badge-gray'}">${RES_LABEL[r.result]||r.result}</span></td>
+        </tr>`).join('');
+    }
+
+    /* ── Tab Switching ── */
+    function switchRiTab(tabId) {
+      document.querySelectorAll('.ri-tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.ri-tab-panel').forEach(p => p.classList.remove('active'));
+      document.getElementById('ri-tab-' + tabId)?.classList.add('active');
+      document.getElementById('ri-panel-' + tabId)?.classList.add('active');
+      history.replaceState(null, '', tabId === 'treaty-console' ? location.pathname : '#' + tabId);
+      if (tabId === 'treaty-console') buildAgingChart();
+    }
+
+    /* ── Recovery Aging Chart ── */
+    let agingChart;
+    function buildAgingChart() {
+      const ctx = document.getElementById('agingChart');
+      if (!ctx) return;
+      if (agingChart) agingChart.destroy();
+      agingChart = new Chart(ctx.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: ['Swiss Re', 'Munich Re', 'Hannover Re', 'Gen Re'],
+          datasets: [
+            { label: '0-30 days',   data: [1.5,  0.15, 1.0,  0.10], backgroundColor: '#2e7d32', borderRadius: 0 },
+            { label: '31-60 days',  data: [0.60, 0.10, 0.60, 0.05], backgroundColor: '#f57c00', borderRadius: 0 },
+            { label: '61-90 days',  data: [0.50, 0.04, 0.40, 0.05], backgroundColor: '#e65100', borderRadius: 0 },
+            { label: '90+ days',    data: [0.50, 0.01, 0.20, 0.00], backgroundColor: '#c62828', borderRadius: 4 },
+          ]
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { callbacks: { label: ctx => ' $' + ctx.parsed.y.toFixed(2) + 'M' } }
+          },
+          scales: {
+            x: { stacked: true, grid: { display: false }, ticks: { font: { size: 11 } } },
+            y: {
+              stacked: true,
+              grid: { color: 'rgba(0,0,0,0.05)' },
+              ticks: { font: { size: 11 }, callback: v => '$' + v + 'M' }
+            }
+          }
+        }
+      });
+    }
+
+    /* ── Refresh ── */
+    function refreshRI() {
+      const now = new Date();
+      const fmt = now.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' }) +
+                  ' · ' + now.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit' });
+      document.getElementById('ri-refresh-time').textContent = 'Refreshed: ' + fmt;
+      showToast('Data refreshed', 'success');
+    }
+
+    /* ── Treaty Builder: Reset ── */
+    const RB_DEFAULTS = {
+      'rb-id': 'TRT-2025-007', 'rb-name': '', 'rb-type': 0, 'rb-reinsurer': 0,
+      'rb-eff': '2025-07-01', 'rb-exp': '2026-06-30',
+      'rb-retention': 2000000, 'rb-limit': 5000000, 'rb-share': 30, 'rb-comm': 25,
+      'rb-attach': 2000000, 'rb-agg': 15000000
+    };
+    function resetTreatyBuilder() {
+      Object.entries(RB_DEFAULTS).forEach(([id, val]) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        if (el.tagName === 'SELECT') el.selectedIndex = val;
+        else el.value = val;
+      });
+      updateProgramTower();
+      showToast('Treaty builder reset', 'info');
+    }
+
+    /* ── Program Tower: update on type change ── */
+    const TOWER_TYPE_MAP = {
+      'Proportional (Quota Share / Surplus)': ['tl-qs', 'tl-surplus'],
+      'Non-Proportional (XoL)': ['tl-risk'],
+      'Catastrophe XoL': ['tl-cat'],
+      'Stop Loss': ['tl-net']
+    };
+    function updateProgramTower() {
+      const type = document.getElementById('rb-type')?.value;
+      const highlightClasses = TOWER_TYPE_MAP[type] || [];
+      document.querySelectorAll('#program-tower .tower-layer').forEach(layer => {
+        const match = highlightClasses.some(c => layer.classList.contains(c));
+        layer.style.boxShadow = match ? '0 0 0 2px var(--navy)' : 'none';
+      });
+      showToast('Program tower highlighted for ' + type, 'info');
+    }
+
+    /* ── New Treaty: jump to builder with a blank form ── */
+    function openNewTreaty() {
+      switchRiTab('treaty-builder');
+      resetTreatyBuilder();
+      const nextId = 'TRT-2025-0' + (TREATIES.length + 8);
+      const idField = document.getElementById('rb-id');
+      if (idField) idField.value = nextId;
+      document.getElementById('rb-name')?.focus();
+      showToast('New treaty draft ' + nextId + ' - fill in the form and Save', 'info');
+    }
+
+    /* ── Save Treaty: append to console + table ── */
+    function saveTreaty() {
+      const id = document.getElementById('rb-id')?.value.trim() || ('TRT-2025-0' + (TREATIES.length + 8));
+      const name = document.getElementById('rb-name')?.value.trim();
+      if (!name) {
+        showToast('Enter a Treaty Name before saving', 'warning');
+        document.getElementById('rb-name')?.focus();
+        return;
+      }
+      const typeSel = document.getElementById('rb-type');
+      const typeLabel = typeSel?.options[typeSel.selectedIndex]?.text || '';
+      const typeMap = {
+        'Proportional (Quota Share / Surplus)': 'Quota Share',
+        'Non-Proportional (XoL)': 'Risk XoL',
+        'Catastrophe XoL': 'Cat XoL',
+        'Stop Loss': 'Stop Loss'
+      };
+      const reinsurerSel = document.getElementById('rb-reinsurer');
+      const reinsurer = reinsurerSel?.options[reinsurerSel.selectedIndex]?.text || '';
+      const eff = document.getElementById('rb-eff')?.value;
+      const exp = document.getElementById('rb-exp')?.value;
+      const limit = Number(document.getElementById('rb-limit')?.value || 0);
+      const retention = Number(document.getElementById('rb-retention')?.value || 0);
+      const share = document.getElementById('rb-share')?.value;
+
+      TREATIES.push({
+        id, name, type: typeMap[typeLabel] || 'Quota Share', reinsurer,
+        eff: eff ? new Date(eff).toLocaleDateString('en-US') : today(),
+        exp: exp ? new Date(exp).toLocaleDateString('en-US') : today(),
+        limit: '$' + (limit / 1e6).toFixed(1) + 'M',
+        retention: '$' + (retention / 1e6).toFixed(1) + 'M',
+        share: share + '%', ceded: '$0', status: 'Active'
+      });
+      renderTreatiesTable();
+      switchRiTab('treaty-console');
+      showToast('Treaty ' + id + ' saved and added to Treaty Console', 'success');
+    }
+
+    /* ── Allocation Rules: add draft rule ── */
+    let allocRuleSeq = 8;
+    function addNewAllocationRule() {
+      const tbody = document.getElementById('alloc-rules-tbody');
+      const n = allocRuleSeq++;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${n}</td>` +
+        `<td style="font-weight:600;outline:1.5px dashed var(--v-teal);" contenteditable="true">New Rule Draft</td>` +
+        `<td class="cell-link">TBD</td><td>TBD</td><td>TBD</td>` +
+        `<td><code style="background:var(--blue-bg);color:var(--blue);padding:2px 6px;border-radius:4px;font-size:11px;">TBD</code></td>` +
+        `<td><span class="badge badge-manual">🖐 Manual</span></td><td><span class="badge badge-gray">Draft</span></td>` +
+        `<td><button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="this.closest('tr').remove();showToast('Draft rule discarded','info')">Discard</button></td>`;
+      tbody.appendChild(tr);
+      showToast('Draft allocation rule added - edit and configure before activating', 'success');
+    }
+
+    /* ── Allocation Rules: run a single rule, log to pipeline ── */
+    function logRuleRun(ruleName, treatyId, eventType, origAmt, cedAmt, mode) {
+      PIPELINE_LOG.unshift({
+        ts: new Date().toISOString().slice(0, 16).replace('T', ' '),
+        ref: 'MANUAL-' + Math.floor(1000 + Math.random() * 9000),
+        type: eventType, origAmt, ruleTreaty: ruleName + ' / ' + treatyId,
+        cedAmt, mode, result: 'Posted'
+      });
+      if (PIPELINE_LOG.length > 8) PIPELINE_LOG.length = 8;
+      renderPipelineLog();
+    }
+
+    function runRule(btn, ruleName, treatyId, eventType, origAmt, cedAmt) {
+      const row = btn.closest('tr');
+      const mode = row.querySelector('.badge-auto') ? 'Auto' : 'Manual';
+      row.style.background = '#e8f5e9';
+      setTimeout(() => { row.style.background = ''; }, 900);
+      logRuleRun(ruleName, treatyId, eventType, origAmt, cedAmt, mode);
+      showToast(ruleName + ' run - ' + cedAmt + ' ceded, logged to pipeline', 'success');
+    }
+
+    function runAllRules(btn) {
+      btn.disabled = true;
+      const original = btn.innerHTML;
+      btn.textContent = 'Running…';
+      let ran = 0;
+      document.querySelectorAll('#alloc-rules-tbody tr').forEach(row => {
+        const runBtn = row.querySelector('button[onclick^="runRule("]');
+        if (runBtn && row.querySelector('.badge-green')) {
+          row.style.background = '#e8f5e9';
+          setTimeout(() => { row.style.background = ''; }, 1200);
+          ran++;
+        }
+      });
+      logRuleRun('Batch Run - All Active Rules', 'Multiple', 'System', ' - ', ' - ', 'System');
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.innerHTML = original;
+        showToast(ran + ' active rule(s) run - pipeline log updated', 'success');
+      }, 900);
+    }
+
+    /* ── Init ── */
+    document.addEventListener('DOMContentLoaded', () => {
+      renderTreatiesTable();
+      renderPipelineLog();
+      if (_initTab === 'treaty-console') buildAgingChart();
+      if (_initTab !== 'treaty-console') switchRiTab(_initTab);
+    });
+
+    /* ── Hash change (sidebar navigation while already on page) ── */
+    window.addEventListener('hashchange', () => {
+      const h = location.hash.replace('#', '');
+      const tab = _validTabs.includes(h) ? h : 'treaty-console';
+      switchRiTab(tab);
+    });
+  </script>
+</body>
+</html>

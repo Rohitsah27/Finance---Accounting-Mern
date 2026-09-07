@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Invoices & Billing Plans — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Billing &amp; Invoicing</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Invoices &amp; Plans</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-calendar-days" style="color: var(--brand);"></i> Invoices &amp; Billing Plans <span class="file-tag">billing-invoicing.html</span></h1>
+      <p>
+        The Invoices &amp; Billing Plans module structures how policyholders pay their commercial insurance premium over the term of the policy (Annual, Quarterly, Monthly 10-Pay, or PFC Financing).
+      </p>
+    </div>
+
+    <div class="module-card">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-blue">Installment Schedules</span>
+            <span class="badge badge-green">Flexible Terms</span>
+          </div>
+          <h2 class="module-title">Supported Payment Plans</h2>
+        </div>
+        <a href="../billing-invoicing.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Billing Plans</a>
+      </div>
+
+      <div class="grid-2">
+        <div class="info-card">
+          <h4>Annual Full Advance</h4>
+          <p>100% of premium due at policy inception. No installment fees.</p>
+        </div>
+        <div class="info-card">
+          <h4>Quarterly 4-Pay (25% x 4)</h4>
+          <p>25% down payment + 3 quarterly payments with $15 installment service fees.</p>
+        </div>
+        <div class="info-card">
+          <h4>Monthly 10-Pay</h4>
+          <p>20% down payment upon bind + 9 monthly installments.</p>
+        </div>
+        <div class="info-card">
+          <h4>Premium Finance Company (PFC)</h4>
+          <p>Financed through external lending partner with automated notice of assignment.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="ar-statements.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">Customer Statements</span>
+      </a>
+      <a href="ap-all-invoices.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Submodule &rarr;</span>
+        <span class="nav-page-title">AP All Invoices</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('invoices-billing-plans');
+</script>
+</body>
+</html>

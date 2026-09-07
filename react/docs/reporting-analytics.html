@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reporting & Analytics — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Tax &amp; Analytics</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Reporting &amp; Analytics</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-chart-pie" style="color: var(--brand);"></i> Reporting, Custom Query Builder &amp; Analytics</h1>
+      <p>
+        Veridex includes an enterprise financial reporting suite with 20+ standard insurance reports, a multi-dimensional custom query builder, real-time KPI aggregations, and rolling 12-month budget vs. actual variance analysis.
+      </p>
+    </div>
+
+    <div class="module-card" id="standard-reports">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-blue">20+ Reports</span>
+            <span class="badge badge-purple">Insurance Analytics</span>
+          </div>
+          <h2 class="module-title">Standard Financial &amp; Underwriting Reports (`reporting-analytics.html`)</h2>
+        </div>
+        <a href="../reporting-analytics.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Reporting Hub</a>
+      </div>
+
+      <div class="grid-2">
+        <div class="info-card">
+          <h4>Financial Ledgers</h4>
+          <p>Trial Balance, GL Detail Ledger, Profit &amp; Loss (Income Statement), Balance Sheet, Statement of Cash Flows.</p>
+        </div>
+        <div class="info-card">
+          <h4>Insurance Operations</h4>
+          <p>Premium Register, Producer Commission Report, Tax Liability Report, AR Aging, AP Aging, Claims Loss Triangles.</p>
+        </div>
+        <div class="info-card">
+          <h4>Actuarial Key Ratios</h4>
+          <p>Loss Ratio (Claims / Earned Premium), Expense Ratio (Acquisition + Overheads / GWP), and Combined Ratio (Target &lt; 100%).</p>
+        </div>
+        <div class="info-card">
+          <h4>Custom Query Builder</h4>
+          <p>Select metrics (GWP, Net Settlement, Commission), group by Dimensions (Carrier, MGA, Broker, State, LOB), and export to Excel/CSV.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="tax-engine.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">Tax Engine</span>
+      </a>
+      <a href="workflow-approvals.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Module &rarr;</span>
+        <span class="nav-page-title">Workflow &amp; Approvals</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('reporting-analytics');
+</script>
+</body>
+</html>

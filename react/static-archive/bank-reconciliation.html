@@ -1,0 +1,1970 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bank Reconciliation — Cash Hub | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/gl-engine.js"></script>
+  <script src="js/insurance-ops.js"></script>
+  <script src="js/layout.js"></script>
+  <script src="js/reports-utils.js"></script>
+  <style>
+    /* ── Top tab bar ──-------------*/
+    .hub-tabbar{display:flex;align-items:center;gap:0;background:#ffffff;border:1.5px solid var(--border);border-radius:10px 10px 0 0;overflow:hidden;}
+    .hub-tab{padding:12px 20px;font-size:13px;font-weight:600;color:var(--gray-500);cursor:pointer;border-bottom:2.5px solid transparent;white-space:nowrap;display:flex;align-items:center;gap:6px;transition:all .15s;border-right:1px solid var(--border);}
+    .hub-tab:last-child{border-right:none;}
+    .hub-tab.active{color:var(--navy);border-bottom-color:var(--navy);background:#f8f9fb;}
+    .hub-tab:hover:not(.active){color:var(--gray-700);background:var(--gray-50);}
+    .hub-tab-badge{background:var(--red);color:#fff;border-radius:9px;font-size:10px;font-weight:700;padding:1px 6px;min-width:16px;text-align:center;}
+    .hub-panel{display:none;padding:20px;background:#ffffff;border:1.5px solid var(--border);border-top:none;border-radius:0 0 10px 10px;}
+    .hub-panel.active{display:block;}
+
+    /* ── Sub-tabs ── */
+    .sub-tabbar{display:flex;gap:2px;background:var(--gray-100);border-radius:7px;padding:3px;margin-bottom:18px;width:fit-content;}
+    .sub-tab{padding:6px 16px;font-size:12px;font-weight:600;border-radius:5px;cursor:pointer;color:var(--gray-500);border:none;background:transparent;transition:all .15s;}
+    .sub-tab.active{background:#fff;color:var(--navy);box-shadow:0 1px 4px rgba(0,0,0,.1);}
+
+    /* ── Form row ── */
+    .form-strip{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:18px;padding:14px;background:#f8f9fb;border:1.5px solid var(--border);border-radius:8px;}
+    .form-field{display:flex;flex-direction:column;gap:4px;}
+    .form-label{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);}
+    .form-ctrl{padding:7px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:6px;background:#fff;color:var(--gray-800);outline:none;min-width:160px;}
+    .form-ctrl:focus{border-color:var(--navy);}
+    .form-ctrl-sm{min-width:110px;}
+
+    /* ── KPI strip ── */
+    .kpi-strip{display:grid;gap:12px;margin-bottom:20px;}
+    .kpi-strip-4{grid-template-columns:repeat(4,1fr);}
+    .kpi-strip-5{grid-template-columns:repeat(5,1fr);}
+    @media(max-width:900px){.kpi-strip-4,.kpi-strip-5{grid-template-columns:repeat(2,1fr);}}
+    .kpi-tile{background:#fff;border:1.5px solid var(--border);border-radius:9px;padding:14px 16px;}
+    .kpi-tile-lbl{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);}
+    .kpi-tile-val{font-size:22px;font-weight:800;color:var(--navy);margin:4px 0 2px;}
+    .kpi-tile-sub{font-size:11px;color:var(--gray-400);}
+    .kpi-tile-sub.up{color:#2e7d32;} .kpi-tile-sub.warn{color:#e65100;}
+
+    /* ── Pipeline ── */
+    .pipeline{display:flex;align-items:stretch;gap:0;margin-bottom:20px;border:1.5px solid var(--border);border-radius:9px;overflow:hidden;}
+    .pipe-step{flex:1;padding:14px 12px;text-align:center;position:relative;background:#fff;}
+    .pipe-step+.pipe-step::before{content:'›';position:absolute;left:-10px;top:50%;transform:translateY(-50%);font-size:20px;color:var(--gray-300);font-weight:700;}
+    .pipe-step-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);margin-bottom:6px;}
+    .pipe-step-val{font-size:18px;font-weight:800;color:var(--navy);}
+    .pipe-step-amt{font-size:11px;color:var(--gray-400);margin-top:2px;}
+    .pipe-step.active-pipe{background:#f0f4ff;}
+    .pipe-step.done-pipe{background:#f0faf3;}
+    .pipe-step.warn-pipe{background:#fff8f0;}
+
+    /* ── Table helpers ── */
+    .tbl-wrap{border:1.5px solid var(--border);border-radius:9px;overflow:hidden;}
+    .tbl-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f8f9fb;border-bottom:1.5px solid var(--border);}
+    .tbl-hdr-title{font-size:13px;font-weight:700;color:var(--navy);}
+    .tbl-wrap table{width:100%;border-collapse:collapse;}
+    .tbl-wrap th{background:#f8f9fb;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-500);padding:8px 12px;border-bottom:1.5px solid var(--border);white-space:nowrap;}
+    .tbl-wrap td{font-size:12.5px;color:var(--gray-700);padding:9px 12px;border-bottom:1px solid var(--gray-100);vertical-align:middle;}
+    .tbl-wrap tr:last-child td{border-bottom:none;}
+    .tbl-wrap tr:hover td{background:#fafbff;}
+    .amt-dep{color:#2e7d32;font-weight:600;} .amt-wd{color:#c62828;font-weight:600;}
+    .chip{display:inline-block;font-size:10px;font-weight:700;border-radius:4px;padding:2px 8px;text-transform:uppercase;}
+    .chip-green{background:#e8f5e9;color:#2e7d32;}
+    .chip-blue{background:#e3f2fd;color:#1565c0;}
+    .chip-orange{background:#fff3e0;color:#e65100;}
+    .chip-red{background:#ffebee;color:#c62828;}
+    .chip-gray{background:#f5f5f5;color:#616161;}
+    .chip-purple{background:#f3e5f5;color:#6a1b9a;}
+
+    /* ── Enrichment queue ── */
+    .enrich-filters{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+    .enrich-filters label{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--gray-600);cursor:pointer;}
+    .enrich-cb{width:14px;height:14px;accent-color:var(--navy);}
+
+    /* ── AP/AR two-col ── */
+    .two-col-layout{display:grid;grid-template-columns:1fr 340px;gap:16px;align-items:start;}
+    @media(max-width:1000px){.two-col-layout{grid-template-columns:1fr;}}
+
+    /* ── Approval chain panel ── */
+    .chain-panel{background:#fff;border:1.5px solid var(--border);border-radius:9px;padding:16px;}
+    .chain-level{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--gray-100);}
+    .chain-level:last-child{border-bottom:none;}
+    .chain-lvl-badge{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+    .chain-lvl-badge.l1{background:#e3f2fd;color:#1565c0;}
+    .chain-lvl-badge.l2{background:#fff3e0;color:#e65100;}
+    .chain-lvl-badge.l3{background:#f3e5f5;color:#6a1b9a;}
+
+    /* ── Vendor/Customer search bar ── */
+    .vc-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px;}
+    .vc-search{flex:1;min-width:200px;padding:8px 12px;font-size:13px;border:1.5px solid var(--border);border-radius:6px;outline:none;}
+    .vc-search:focus{border-color:var(--navy);}
+    .vc-toggle{display:flex;gap:2px;background:var(--gray-100);border-radius:6px;padding:2px;}
+    .vc-btn{padding:5px 14px;font-size:12px;font-weight:600;border:none;background:transparent;border-radius:5px;cursor:pointer;color:var(--gray-500);}
+    .vc-btn.active{background:#fff;color:var(--navy);box-shadow:0 1px 3px rgba(0,0,0,.1);}
+
+    /* ── Month closing ── */
+    .close-step{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--gray-100);}
+    .close-step:last-child{border-bottom:none;}
+    .close-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:15px;}
+    .close-icon.done{background:#e8f5e9;}
+    .close-icon.pend{background:#fff3e0;}
+    .close-icon.warn{background:#ffebee;}
+
+    /* AR donut */
+    .ar-bottom{display:grid;grid-template-columns:1fr 280px;gap:16px;align-items:start;}
+    @media(max-width:900px){.ar-bottom{grid-template-columns:1fr;}}
+    .donut-wrap{background:#fff;border:1.5px solid var(--border);border-radius:9px;padding:16px;text-align:center;}
+    .donut-legend{display:flex;flex-direction:column;gap:8px;margin-top:12px;text-align:left;}
+    .donut-leg-row{display:flex;align-items:center;gap:8px;font-size:12px;}
+    .donut-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+
+    /* ── Detail view pill filters ── */
+    .dtl-pill{padding:4px 12px;font-size:12px;font-weight:600;border-radius:20px;border:1.5px solid var(--border);background:#fff;cursor:pointer;display:inline-flex;align-items:center;gap:5px;color:var(--gray-500);transition:all .15s;}
+    .dtl-pill.active.dtl-pill-pending{background:#fff8f0;border-color:#e65100;color:#e65100;}
+    .dtl-pill.active.dtl-pill-posted{background:#e8f5e9;border-color:#2e7d32;color:#2e7d32;}
+    .dtl-pill.active.dtl-pill-excluded{background:#f3e5f5;border-color:#6a1b9a;color:#6a1b9a;}
+    .dtl-pill-ct{font-size:10.5px;font-weight:800;min-width:18px;height:18px;border-radius:9px;background:currentColor;display:inline-flex;align-items:center;justify-content:center;}
+    .dtl-pill-ct{color:inherit;background:rgba(0,0,0,.08);}
+    .dtl-search{padding:7px 11px;font-size:12px;border:1.5px solid var(--border);border-radius:6px;outline:none;width:200px;}
+    .dtl-search:focus{border-color:var(--navy);}
+
+    /* ── Detail table row ── */
+    .dtl-row{border-bottom:1px solid var(--gray-100);transition:background .1s;}
+    .dtl-row:hover{background:#fafbff;}
+    .dtl-row td{padding:9px 10px;vertical-align:middle;}
+    .dtl-row td.dtl-desc{max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px;color:var(--gray-800);}
+    .dtl-row td.dtl-amt{text-align:right;font-variant-numeric:tabular-nums;font-size:12.5px;font-weight:600;}
+    .dtl-status{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;text-transform:uppercase;letter-spacing:.3px;}
+    .dtl-status.pending{background:#fff8f0;color:#e65100;}
+    .dtl-status.posted{background:#e8f5e9;color:#2e7d32;}
+    .dtl-status.excluded{background:#f3e5f5;color:#6a1b9a;}
+    .dtl-match-select{padding:5px 22px 5px 8px;font-size:11.5px;border:1.5px solid var(--border);border-radius:5px;background:#fff url("data:image/svg+xml,%3Csvg width='8' height='5' viewBox='0 0 8 5' fill='none'%3E%3Cpath d='M1 1l3 3 3-3' stroke='%239ca3af' stroke-width='1.2' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 6px center;appearance:none;outline:none;min-width:110px;cursor:pointer;}
+    .dtl-match-select:focus{border-color:var(--navy);}
+    .dtl-btn-match{padding:4px 10px;font-size:11.5px;font-weight:700;background:var(--navy);color:#fff;border:none;border-radius:5px;cursor:pointer;white-space:nowrap;}
+    .dtl-btn-match:hover{background:#162553;}
+    .dtl-btn-cat{padding:4px 8px;font-size:11.5px;font-weight:600;background:transparent;color:#1565c0;border:none;cursor:pointer;text-decoration:underline;}
+    .dtl-btn-split{padding:3px 8px;font-size:11px;font-weight:600;background:#e3f2fd;color:#1565c0;border:1px solid #90caf9;border-radius:4px;cursor:pointer;white-space:nowrap;}
+    .dtl-btn-split:hover{background:#bbdefb;}
+    .dtl-icon-btn{background:transparent;border:none;cursor:pointer;color:var(--gray-400);padding:2px 4px;border-radius:4px;}
+    .dtl-icon-btn:hover{color:var(--navy);background:var(--gray-100);}
+
+    /* Split modal line */
+    .split-line{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;}
+
+    /* AP KPI 6-col responsive */
+    @media(max-width:1200px){.ap-kpi-grid{grid-template-columns:repeat(3,1fr) !important;}}
+    @media(max-width:700px){.ap-kpi-grid{grid-template-columns:repeat(2,1fr) !important;}}
+
+    /* Recon listing subtabs details */
+    .recon-detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+    @media(max-width:800px){.recon-detail-grid{grid-template-columns:1fr;}}
+    .detail-section{background:#f8f9fb;border:1.5px solid var(--border);border-radius:8px;padding:14px;}
+    .detail-section-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);margin-bottom:10px;}
+    .detail-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12.5px;}
+    .detail-row:last-child{border-bottom:none;}
+    .detail-row-label{color:var(--gray-600);}
+    .detail-row-val{font-weight:600;color:var(--navy);}
+  </style>
+</head>
+<body>
+<main class="main-content" id="main-content">
+
+  <div class="page-header" style="margin-bottom:16px;">
+    <div>
+      <div class="page-title">Bank Reconciliation</div>
+      <div class="page-subtitle">Veridex Finance System · Period: May 2026 YTD</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline btn-sm" onclick="exportTableCSV('recon-listing-table','bank-recon.csv')">Export</button>
+      <button class="btn btn-primary btn-sm" id="auto-sync-btn" onclick="autoSyncBank(this)">Auto-Sync</button>
+    </div>
+  </div>
+
+  <!-- ═══════ TOP TABS ═══════ -->
+  <div class="hub-tabbar">
+    <div class="hub-tab active" onclick="switchHub('recon',this)">Bank Recon</div>
+    <div class="hub-tab" onclick="switchHub('approvals',this)">Approvals <span class="hub-tab-badge" id="hub-approvals-badge">5</span></div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       PANEL 1 - BANK RECON
+  ══════════════════════════════════════ -->
+  <div class="hub-panel active" id="panel-recon">
+
+    <!-- Sub-tabs -->
+    <div class="sub-tabbar">
+      <button class="sub-tab active" onclick="switchSub('recon','listing',this)">Listing</button>
+      <button class="sub-tab" onclick="switchSub('recon','details',this)">Details</button>
+      <button class="sub-tab" onclick="switchSub('recon','history',this)">History</button>
+      <button class="sub-tab" onclick="switchSub('recon','closing',this)">Month Closing</button>
+    </div>
+
+    <!-- ─ LISTING ─ -->
+    <div id="recon-listing">
+      <!-- Form strip -->
+      <div class="form-strip">
+        <div class="form-field">
+          <label class="form-label">Bank</label>
+          <select class="form-ctrl" onchange="refreshRecon(this)">
+            <option>100101 - Chase Commercial Operating Account</option>
+            <option>100102 - Wells Fargo Premium Trust Account</option>
+            <option>100103 - SOUTHLAKE Claims Clearing Account</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Account No</label>
+          <input class="form-ctrl form-ctrl-sm" id="recon-account-no" value="****4821" readonly>
+        </div>
+        <div class="form-field">
+          <label class="form-label">G/L Account</label>
+          <select class="form-ctrl form-ctrl-sm" id="recon-gl-acct" onchange="onGlAccountChange()">
+            <option value="1001" selected>1001 - Cash / Bank (Operating)</option>
+            <option value="1010">1010 - Cash &amp; Equivalents</option>
+            <option value="1020">1020 - Premium Trust</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Period Close Date</label>
+          <input type="date" class="form-ctrl form-ctrl-sm" value="2026-05-31">
+        </div>
+        <div class="form-field">
+          <label class="form-label">Status</label>
+          <select class="form-ctrl form-ctrl-sm">
+            <option>All</option>
+            <option>Matched</option>
+            <option>Pending</option>
+            <option>Exception</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" style="align-self:flex-end;" onclick="getTransactions(this)">Get Transactions</button>
+      </div>
+
+      <!-- KPI strip -->
+      <div class="kpi-strip kpi-strip-4" style="margin-bottom:18px;">
+        <div class="kpi-tile">
+          <div class="kpi-tile-lbl">Bank Balance</div>
+          <div class="kpi-tile-val" id="kpi-bank-balance">$4,821,340</div>
+          <div class="kpi-tile-sub">As of May 31, 2026</div>
+        </div>
+        <div class="kpi-tile">
+          <div class="kpi-tile-lbl">GL Balance</div>
+          <div class="kpi-tile-val" id="kpi-gl-balance">$0.00</div>
+          <div class="kpi-tile-sub" id="kpi-gl-balance-sub">Account 1010</div>
+        </div>
+        <div class="kpi-tile">
+          <div class="kpi-tile-lbl">Difference</div>
+          <div class="kpi-tile-val" id="kpi-difference" style="color:#e65100;">$3,440</div>
+          <div class="kpi-tile-sub warn">↑ Needs attention</div>
+        </div>
+        <div class="kpi-tile">
+          <div class="kpi-tile-lbl">Matched Txns</div>
+          <div class="kpi-tile-val" id="matched-txn-count">284</div>
+          <div class="kpi-tile-sub up" id="matched-txn-sub">↑ 92.5% auto-matched</div>
+        </div>
+      </div>
+
+      <!-- Transactions table -->
+      <div class="tbl-wrap">
+        <div class="tbl-hdr">
+          <span class="tbl-hdr-title">Transactions - May 2026</span>
+          <div style="display:flex;gap:8px;">
+            <input class="filter-input" placeholder="Search…" data-filter-input="recon-listing-table" style="width:180px;">
+            <button class="btn btn-outline btn-sm" onclick="exportTableCSV('recon-listing-table','bank-recon.csv')">Export</button>
+          </div>
+        </div>
+        <table class="data-table" id="recon-listing-table">
+          <thead><tr>
+            <th><input type="checkbox" onclick="toggleAllCb(this,'recon-cb')"></th>
+            <th>Date</th><th>Check #</th><th>Payee / Payor</th>
+            <th class="text-right">Deposit</th><th class="text-right">Withdrawal</th>
+            <th>Type</th><th>GL Match</th><th>Status</th><th>Action</th>
+          </tr></thead>
+          <tbody id="recon-listing-tbody">
+            <!-- Rendered dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ─ DETAILS (Auto-Match + Split) ─ -->
+    <div id="recon-details" style="display:none;">
+
+      <!-- Account info bar -->
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:0;border:1.5px solid var(--border);border-radius:9px;overflow:hidden;margin-bottom:14px;">
+        <div style="padding:12px 16px;border-right:1px solid var(--border);">
+          <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--gray-400);">Account</div>
+          <div style="font-size:13.5px;font-weight:800;color:var(--navy);margin-top:3px;" id="dtl-header-account">100101 - Chase Commercial Operating (****4821)</div>
+        </div>
+        <div style="padding:12px 16px;border-right:1px solid var(--border);">
+          <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--gray-400);">Balance</div>
+          <div style="font-size:13.5px;font-weight:800;color:#2e7d32;margin-top:3px;" id="dtl-header-balance">$89,260.00</div>
+        </div>
+        <div style="padding:12px 16px;border-right:1px solid var(--border);">
+          <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--gray-400);">Posted Count</div>
+          <div style="font-size:13.5px;font-weight:800;color:var(--navy);margin-top:3px;" id="dtl-header-posted-count">0</div>
+        </div>
+        <div style="padding:12px 16px;border-right:1px solid var(--border);">
+          <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--gray-400);">Posted Amount</div>
+          <div style="font-size:13.5px;font-weight:800;color:var(--navy);margin-top:3px;" id="dtl-header-posted-amount">$0.00</div>
+        </div>
+        <div style="padding:12px 16px;">
+          <div style="font-size:9.5px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--gray-400);">Updated On</div>
+          <div style="font-size:13.5px;font-weight:800;color:var(--navy);margin-top:3px;" id="dtl-header-updated-on">2026-09-01</div>
+        </div>
+      </div>
+
+      <!-- Status pills + toolbar -->
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px;">
+        <div style="display:flex;gap:6px;">
+          <button class="dtl-pill dtl-pill-all active" onclick="filterDetailRows('all',this)">
+            All <span class="dtl-pill-ct" id="ct-all">0</span>
+          </button>
+          <button class="dtl-pill dtl-pill-posted" onclick="filterDetailRows('posted',this)">
+            Posted <span class="dtl-pill-ct" id="ct-posted">0</span>
+          </button>
+          <button class="dtl-pill dtl-pill-pending" onclick="filterDetailRows('pending',this)">
+            Pending <span class="dtl-pill-ct" id="ct-pending">0</span>
+          </button>
+          <button class="dtl-pill dtl-pill-excluded" onclick="filterDetailRows('excluded',this)">
+            Excluded <span class="dtl-pill-ct" id="ct-excluded">0</span>
+          </button>
+        </div>
+        <div style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <input class="dtl-search" id="dtl-search-input" placeholder="Search transactions…" oninput="searchDetailRows(this.value)">
+          <input type="date" class="form-ctrl form-ctrl-sm" value="2026-05-31" style="min-width:130px;">
+          <select class="form-ctrl form-ctrl-sm" id="dtl-count-sel" onchange="filterDetailRows(this.value,null)">
+            <option value="all">All (0)</option>
+            <option value="posted">Posted (0)</option>
+            <option value="pending">Pending (0)</option>
+            <option value="excluded">Excluded (0)</option>
+          </select>
+          <button class="btn btn-outline btn-sm" onclick="clearDetailFilter()">Clear</button>
+          <button class="btn btn-primary btn-sm" onclick="saveDetailMatches()">Save</button>
+        </div>
+      </div>
+
+      <!-- Auto-match toolbar -->
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:10px 14px;background:#f0f4ff;border:1.5px solid #c7d2fe;border-radius:8px;">
+        <svg width="15" height="15" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M9 5l4 3-4 3" stroke="#3730a3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <span style="font-size:12.5px;font-weight:700;color:#3730a3;">Auto-Match Engine</span>
+        <span style="font-size:12px;color:#4338ca;margin-left:4px;" id="auto-match-notice"> - Live auto-matching active</span>
+        <div style="margin-left:auto;display:flex;gap:8px;">
+          <button class="btn btn-sm" style="background:#3730a3;color:#fff;font-size:12px;" onclick="runAutoMatch()">Run Auto-Match</button>
+          <button class="btn btn-outline btn-sm" style="font-size:12px;" onclick="showToast('Match rules configuration opened','info')">Configure Rules</button>
+        </div>
+      </div>
+
+      <!-- Detail transaction table -->
+      <div class="tbl-wrap">
+        <div class="tbl-hdr">
+          <span class="tbl-hdr-title">Transactions - Match &amp; Categorize</span>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-outline btn-sm" onclick="bulkMatchSelected()">Bulk Match</button>
+            <button class="btn btn-outline btn-sm" onclick="exportTableCSV('dtl-table','detail-transactions.csv')">Export</button>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:12px;" id="dtl-table">
+          <thead>
+            <tr style="background:#f8f9fb;">
+              <th style="padding:8px 10px;border-bottom:1.5px solid var(--border);"><input type="checkbox" id="dtl-all-cb" onclick="toggleAllCb(this,'dtl-row-cb')"></th>
+              <th style="padding:8px 10px;border-bottom:1.5px solid var(--border);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-500);white-space:nowrap;">Date</th>
+              <th style="padding:8px 10px;border-bottom:1.5px solid var(--border);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-500);">Bank Description</th>
+              <th style="padding:8px 10px;border-bottom:1.5px solid var(--border);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-500);text-align:right;">Spent</th>
+              <th style="padding:8px 10px;border-bottom:1.5px solid var(--border);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-500);text-align:right;">Received</th>
+              <th style="padding:8px 10px;border-bottom:1.5px solid var(--border);font-size:10.5px;color:var(--gray-400);text-align:center;" title="Attachment">📎</th>
+              <th style="padding:8px 10px;border-bottom:1.5px solid var(--border);font-size:10.5px;color:var(--gray-400);text-align:center;" title="Note">💬</th>
+              <th style="padding:8px 10px;border-bottom:1.5px solid var(--border);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-500);">Source</th>
+              <th style="padding:8px 10px;border-bottom:1.5px solid var(--border);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-500);">From / To</th>
+              <th style="padding:8px 10px;border-bottom:1.5px solid var(--border);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-500);">Match / Categorize</th>
+              <th style="padding:8px 10px;border-bottom:1.5px solid var(--border);font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-500);">Action</th>
+            </tr>
+          </thead>
+          <tbody id="dtl-tbody">
+            <!-- rows injected by JS -->
+          </tbody>
+        </table>
+        </div>
+      </div>
+
+      <!-- Split modal overlay -->
+      <div id="split-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;display:none;align-items:center;justify-content:center;">
+        <div style="background:#fff;border-radius:12px;width:520px;max-width:95vw;box-shadow:0 20px 60px rgba(0,0,0,.25);overflow:hidden;">
+          <div style="padding:16px 20px;background:var(--navy);color:#fff;display:flex;align-items:center;justify-content:space-between;">
+            <div>
+              <div style="font-size:14px;font-weight:700;">Split Transaction</div>
+              <div style="font-size:11px;opacity:.7;margin-top:2px;" id="split-modal-desc"> - </div>
+            </div>
+            <button onclick="closeSplitModal()" style="background:transparent;border:none;color:#fff;font-size:18px;cursor:pointer;padding:4px;">✕</button>
+          </div>
+          <div style="padding:18px 20px;">
+            <div style="font-size:11.5px;color:var(--gray-500);margin-bottom:12px;">
+              Total: <strong id="split-total-lbl" style="color:var(--navy);">$0.00</strong> - Split into multiple GL lines. Amounts must sum to total.
+            </div>
+            <div id="split-lines" style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;"></div>
+            <button class="btn btn-outline btn-sm" onclick="addSplitLine()" style="margin-bottom:14px;">+ Add Line</button>
+            <div style="display:flex;justify-content:space-between;align-items:center;padding-top:12px;border-top:1px solid var(--gray-100);">
+              <div id="split-remaining" style="font-size:12.5px;font-weight:600;"></div>
+              <div style="display:flex;gap:8px;">
+                <button class="btn btn-outline" onclick="closeSplitModal()">Cancel</button>
+                <button class="btn btn-primary" onclick="saveSplit()">Save Split</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ─ HISTORY ─ -->
+    <div id="recon-history" style="display:none;">
+      <div class="tbl-wrap">
+        <div class="tbl-hdr"><span class="tbl-hdr-title">Reconciliation History</span></div>
+        <table class="data-table">
+          <thead><tr><th>Period</th><th>Account</th><th>Closed By</th><th>Closed Date</th><th class="text-right">Bank Balance</th><th class="text-right">GL Balance</th><th class="text-right">Difference</th><th>Status</th></tr></thead>
+          <tbody id="recon-history-tbody">
+            <!-- Rendered dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ─ MONTH CLOSING ─ -->
+    <div id="recon-closing" style="display:none;">
+      <div style="max-width:600px;">
+        <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:14px;">Month-End Close Checklist - May 2026</div>
+        <div class="close-step"><div class="close-icon done">✅</div><div><div style="font-size:13px;font-weight:600;color:var(--navy);">All deposits matched</div><div style="font-size:11px;color:var(--gray-400);">Completed · James Smith · May 31</div></div></div>
+        <div class="close-step"><div class="close-icon done">✅</div><div><div style="font-size:13px;font-weight:600;color:var(--navy);">Outstanding checks reviewed</div><div style="font-size:11px;color:var(--gray-400);">Completed · James Smith · May 31</div></div></div>
+        <div class="close-step"><div class="close-icon pend">⏳</div><div><div style="font-size:13px;font-weight:600;color:#e65100;">Difference of $3,440 resolved</div><div style="font-size:11px;color:var(--gray-400);">Pending - in-transit deposit from RSA Partners</div></div></div>
+        <div class="close-step" id="close-step-signoff"><div class="close-icon pend">⏳</div><div><div style="font-size:13px;font-weight:600;color:#e65100;">CFO sign-off</div><div style="font-size:11px;color:var(--gray-400);" id="close-step-signoff-sub">Awaiting Sarah Chen approval</div></div></div>
+        <div class="close-step"><div class="close-icon done">✅</div><div><div style="font-size:13px;font-weight:600;color:var(--navy);">Bank fee exceptions coded</div><div style="font-size:11px;color:var(--gray-400);">Completed · Robert Patel · May 30</div></div></div>
+        <div style="margin-top:18px;display:flex;gap:10px;">
+          <button class="btn btn-primary" id="submit-close-btn" onclick="submitForClose(this)">Submit for Close</button>
+          <button class="btn btn-outline" onclick="exportClosingReport(this)">Export Report</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════
+       PANEL 6 - APPROVALS
+  ══════════════════════════════════════ -->
+  <div class="hub-panel" id="panel-approvals">
+    <div class="two-col-layout">
+      <!-- Left: approval queue -->
+      <div>
+        <div class="tbl-wrap">
+          <div class="tbl-hdr">
+            <span class="tbl-hdr-title">Approval Queue <span class="hub-tab-badge" id="table-approvals-badge" style="margin-left:6px;">5</span></span>
+            <div style="display:flex;gap:8px;">
+              <select class="form-ctrl form-ctrl-sm" id="approvals-level-filter" onchange="renderApprovalsQueue()">
+                <option>All Levels</option>
+                <option>L1 - Manager</option>
+                <option>L2 - Finance</option>
+                <option>L3 - CFO</option>
+              </select>
+              <input class="filter-input" placeholder="Search…" data-filter-input="approvals-table" style="width:150px;">
+            </div>
+          </div>
+          <table class="data-table" id="approvals-table">
+            <thead><tr><th>Invoice</th><th>Vendor</th><th class="text-right">Amount</th><th>Level</th><th>Approver</th><th>Date</th><th>Status</th><th>Action</th></tr></thead>
+            <tbody id="approvals-tbody">
+              <!-- Rendered dynamically -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Right: Approval chain config -->
+      <div class="chain-panel">
+        <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:4px;">Approval Chain Configuration</div>
+        <div style="font-size:11px;color:var(--gray-400);margin-bottom:14px;">Thresholds for automatic level escalation</div>
+
+        <div class="chain-level">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="chain-lvl-badge l1">L1</div>
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--navy);">Manager</div>
+              <div style="font-size:11px;color:var(--gray-400);">Up to $50,000</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span style="font-size:12px;color:var(--gray-600);" id="chain-l1-name">James Smith</span>
+            <button class="btn btn-ghost btn-sm" onclick="editChainApprover(this,'chain-l1-name')">✎</button>
+          </div>
+        </div>
+
+        <div class="chain-level">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="chain-lvl-badge l2">L2</div>
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--navy);">Finance Director</div>
+              <div style="font-size:11px;color:var(--gray-400);">$50,001 – $150,000</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span style="font-size:12px;color:var(--gray-600);" id="chain-l2-name">Sarah Chen</span>
+            <button class="btn btn-ghost btn-sm" onclick="editChainApprover(this,'chain-l2-name')">✎</button>
+          </div>
+        </div>
+
+        <div class="chain-level">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="chain-lvl-badge l3">L3</div>
+            <div>
+              <div style="font-size:13px;font-weight:600;color:var(--navy);">CFO</div>
+              <div style="font-size:11px;color:var(--gray-400);">Above $150,000</div>
+            </div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <span style="font-size:12px;color:var(--gray-600);" id="chain-l3-name">Sarah Chen</span>
+            <button class="btn btn-ghost btn-sm" onclick="editChainApprover(this,'chain-l3-name')">✎</button>
+          </div>
+        </div>
+
+        <div style="margin-top:16px;padding-top:14px;border-top:1.5px solid var(--border);">
+          <div style="font-size:11.5px;font-weight:700;color:var(--navy);margin-bottom:8px;">Escalation Rules</div>
+          <div style="font-size:11.5px;color:var(--gray-600);display:flex;flex-direction:column;gap:6px;">
+            <label style="display:flex;align-items:center;gap:7px;"><input type="checkbox" checked style="accent-color:var(--navy);"> Auto-escalate if unapproved > 3 days</label>
+            <label style="display:flex;align-items:center;gap:7px;"><input type="checkbox" checked style="accent-color:var(--navy);"> Email notification on escalation</label>
+            <label style="display:flex;align-items:center;gap:7px;"><input type="checkbox"> Require dual approval above $200K</label>
+          </div>
+        </div>
+
+        <div style="margin-top:14px;">
+          <button class="btn btn-primary btn-sm" style="width:100%;" onclick="saveChainConfig(this)">Save Configuration</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script src="js/app.js"></script>
+<script>
+  initLayout('bank-reconciliation');
+
+  /* ═══════ MGA Payments: real recording + split-matching against invoiced policies ═══════ */
+  let mpActiveLineId = null;
+
+  function mpStatusChip(line) {
+    if (line.status === 'matched') return '<span class="chip chip-green">Matched</span>';
+    if (line.status === 'pending_approval') return '<span class="chip chip-orange">Pending Approval</span>';
+    if (line.status === 'allocated') return '<span class="chip chip-blue">Split, not confirmed</span>';
+    return '<span class="chip chip-red">Unmatched</span>';
+  }
+
+  function renderMgaSelect() {
+    const sel = document.getElementById('mp-mga-select');
+    if (!sel) return;
+    const mgas = getMGAs();
+    sel.innerHTML = mgas.length
+      ? mgas.map(m => `<option value="${m.id}">${m.name}</option>`).join('')
+      : '<option value="">No MGAs on file, add one on MGA Operations</option>';
+  }
+
+  function renderMpQuickScenarioSelect() {
+    const sel = document.getElementById('mp-qs-scenario-select');
+    if (!sel) return;
+    sel.innerHTML = IO_QUICK_SCENARIOS.map(s => `<option value="${s.id}">${s.label}</option>`).join('');
+    renderMpQuickScenarioSummary();
+  }
+  function renderMpQuickScenarioSummary() {
+    const s = getQuickScenario(document.getElementById('mp-qs-scenario-select').value);
+    document.getElementById('mp-qs-scenario-summary').textContent = s.summary;
+  }
+  function onRunMpQuickScenario() {
+    const id = document.getElementById('mp-qs-scenario-select').value;
+    const result = runQuickScenario(id);
+    renderMgaSelect();
+    renderMgaPayLines();
+    showToast(result.mga.name + ' run complete: ' + fmtCurrency(result.invoice.total) + ' invoiced, ' + fmtCurrency(result.bankLine.amount) + ' received. Check Journal Entry or Chart of Accounts to see it.', 'success', 5000);
+  }
+
+  function onRecordIncomingPayment() {
+    const mgaId = document.getElementById('mp-mga-select').value;
+    const amount = document.getElementById('mp-amount').value;
+    if (!mgaId) { showToast('Add an MGA on MGA Operations first', 'warning'); return; }
+    try {
+      const line = recordIncomingPayment(mgaId, amount);
+      document.getElementById('mp-amount').value = '';
+      renderMgaPayLines();
+      showToast('Bank line recorded for ' + fmtCurrency(line.amount), 'success');
+    } catch (e) { showToast(e.message, 'error'); }
+  }
+
+  function renderMgaPayLines() {
+    const tbody = document.getElementById('mp-lines-tbody');
+    if (!tbody) return;
+    const lines = getBankLines();
+    tbody.innerHTML = lines.map(l => {
+      const mga = findMGA(l.mgaId);
+      const glMatch = l.cashJournalEntryId ? (getJournalEntries().find(j => j.id === l.cashJournalEntryId) || {}).number || '-' : '-';
+      return `<tr>
+        <td>${l.date}</td>
+        <td>${mga ? mga.name : ' - '}</td>
+        <td>${fmtCurrency(l.amount)}</td>
+        <td>${mpStatusChip(l)}</td>
+        <td>${glMatch}</td>
+        <td>${l.status === 'matched' ? '' : `<button class="btn btn-ghost btn-sm" onclick="openMatchWorkspace('${l.id}')">Split &amp; Match</button>`}</td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="6" style="text-align:center;color:var(--gray-400);padding:18px;">No MGA payments recorded yet.</td></tr>';
+  }
+
+  function openMatchWorkspace(lineId) {
+    mpActiveLineId = lineId;
+    const line = findBankLine(lineId);
+    const mga = line ? findMGA(line.mgaId) : null;
+    document.getElementById('mp-match-workspace').style.display = '';
+    document.getElementById('mp-match-title').textContent = 'Matching ' + fmtCurrency(line.amount) + ' from ' + (mga ? mga.name : '');
+    renderMatchWorkspace();
+    document.getElementById('mp-match-workspace').scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function renderMatchWorkspace() {
+    const line = findBankLine(mpActiveLineId);
+    if (!line) return;
+    const mga = findMGA(line.mgaId);
+    const openPolicies = invoicedUnpaidPoliciesForMGA(line.mgaId);
+    document.getElementById('mp-match-summary').innerHTML = `<div class="v-lock-note">One bank line: <strong>${fmtCurrency(line.amount)}</strong> from ${mga ? mga.name : ''}. Invoiced and still owed across their open policies: <strong>${fmtCurrency(bankLineInvoicedTotal(line.id))}</strong>.</div>`;
+
+    document.getElementById('mp-alloc-rows').innerHTML = openPolicies.map(p => {
+      const owed = p.premium - (p.paidToDate || 0);
+      const alloc = line.allocations.find(a => a.policyId === p.id);
+      const val = alloc ? alloc.amount : '';
+      return `<tr><td>${p.policyNumber}</td><td>${p.insured}</td><td>${fmtCurrency(owed)}</td>
+        <td><input class="field-input" type="number" step="0.01" style="max-width:130px;" value="${val}" onchange="setBankLineAllocation('${line.id}','${p.id}', this.value); renderMatchWorkspace();"></td></tr>`;
+    }).join('') || '<tr><td colspan="4" style="text-align:center;color:var(--gray-400);">No invoiced, unpaid policies for this MGA.</td></tr>';
+
+    const unappliedAlloc = line.allocations.find(a => a.policyNumber === '(unapplied)');
+    if (unappliedAlloc) {
+      document.getElementById('mp-alloc-rows').innerHTML += `<tr style="background:var(--v-amber-bg);"><td colspan="2"><em>${unappliedAlloc.insured}</em></td><td> - </td><td>${fmtCurrency(unappliedAlloc.amount)}</td></tr>`;
+    }
+
+    const unallocated = unallocatedBankLineAmount(line.id);
+    const invoicedTotal = bankLineInvoicedTotal(line.id);
+    const shortfall = Math.max(0, invoicedTotal - line.amount);
+    const overpay = Math.max(0, line.amount - invoicedTotal);
+    const statusEl = document.getElementById('mp-match-status');
+    if (line.status === 'pending_approval') {
+      statusEl.innerHTML = `<div class="v-lock-note" style="border-left:3px solid var(--v-amber);">The cash-receipt JE for ${fmtCurrency(line.matchedTotal)} is at the approval threshold, sitting in Workflow Approvals.
+        <button class="btn btn-primary btn-sm" style="margin-left:8px;" onclick="onApproveCashJE()">Approve now (as Controller)</button></div>`;
+    } else {
+      statusEl.innerHTML = `<div class="v-lock-note" style="border-left:3px solid ${unallocated > 0.01 ? 'var(--v-amber)' : 'var(--green)'};">
+        Allocated: <strong>${fmtCurrency(line.matchedTotal)}</strong> of ${fmtCurrency(line.amount)} received.
+        ${unallocated > 0.01 ? `<strong style="color:var(--v-amber);">${fmtCurrency(unallocated)} still unallocated.</strong>` : 'Fully allocated.'}</div>`;
+    }
+
+    const varPanel = document.getElementById('mp-variance-panel');
+    if (shortfall > 0.01) {
+      varPanel.innerHTML = `<div class="v-lock-note" style="border-left:3px solid var(--red);background:var(--red-bg);">
+        <strong>Payment shortfall:</strong> ${fmtCurrency(invoicedTotal)} was invoiced but only ${fmtCurrency(line.amount)} came in, leaving <strong>${fmtCurrency(shortfall)}</strong> outstanding. Left open by default.
+        <button class="btn btn-outline btn-sm" style="margin-left:8px;" onclick="onPostShortfall(${shortfall})">Post Balance Adjustment for ${fmtCurrency(shortfall)}</button></div>`;
+    } else if (overpay > 0.01) {
+      varPanel.innerHTML = `<div class="v-lock-note" style="border-left:3px solid var(--v-amber);background:var(--v-amber-bg);">
+        <strong>Overpayment:</strong> ${fmtCurrency(overpay)} more came in than was invoiced.
+        <button class="btn btn-outline btn-sm" style="margin-left:8px;" onclick="onPostOverpayment(${overpay})">Reclassify ${fmtCurrency(overpay)} to Customer Credit Balance</button></div>`;
+    } else {
+      varPanel.innerHTML = '';
+    }
+  }
+
+  function onAutoAllocate() {
+    autoAllocateBankLine(mpActiveLineId);
+    renderMatchWorkspace();
+  }
+
+  function onPostShortfall(amount) {
+    const line = findBankLine(mpActiveLineId);
+    const mga = line ? findMGA(line.mgaId) : null;
+    const result = postShortfallAdjustment(mpActiveLineId, amount, 'Short-pay from ' + (mga ? mga.name : ''));
+    showToast(result.number + ' posted, receivable written down by ' + fmtCurrency(amount), 'success');
+    renderMatchWorkspace();
+  }
+
+  function onPostOverpayment(amount) {
+    const result = postOverpaymentReclass(mpActiveLineId, amount);
+    showToast(result.number + ' posted, ' + fmtCurrency(amount) + ' moved to Customer Credit Balance (2900)', 'success');
+    renderMatchWorkspace();
+  }
+
+  function onConfirmBankMatch() {
+    const line = findBankLine(mpActiveLineId);
+    if (!line || line.matchedTotal <= 0) { showToast('Allocate at least one policy before confirming', 'warning'); return; }
+    if (unallocatedBankLineAmount(line.id) > 0.01) { showToast('There is still unallocated cash', 'warning'); return; }
+    const result = confirmBankLineMatch(line.id);
+    if (result.status === 'pending_approval') {
+      showToast(result.number + ' routed to Workflow Approvals before it posts', 'info');
+      renderMatchWorkspace();
+    } else {
+      showToast(result.number + ' posted, cash applied', 'success');
+      document.getElementById('mp-match-workspace').style.display = 'none';
+    }
+    renderMgaPayLines();
+  }
+
+  function onApproveCashJE() {
+    const line = findBankLine(mpActiveLineId);
+    if (!line || !line.cashJournalEntryId) return;
+    const result = approveJournalEntry(line.cashJournalEntryId);
+    onCashJEApproved(line.id);
+    showToast(result.number + ' approved and posted', 'success');
+    renderMgaPayLines();
+    document.getElementById('mp-match-workspace').style.display = 'none';
+  }
+
+  function initMgaPayPanel() {
+    if (typeof getMGAs !== 'function') return;
+    renderMgaSelect();
+    renderMgaPayLines();
+    renderMpQuickScenarioSelect();
+  }
+  // initMgaPayPanel();
+
+  const HUB_MAP = { enrichment: 'enrichment', vc: 'vc', approvals: 'approvals', recon: 'recon' };
+
+  function activateHub(id) {
+    document.querySelectorAll('.hub-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.hub-panel').forEach(p => p.classList.remove('active'));
+    const panel = document.getElementById('panel-' + id);
+    if (panel) panel.classList.add('active');
+    document.querySelectorAll('.hub-tab').forEach(t => {
+      if (t.getAttribute('onclick')?.includes("'" + id + "'")) t.classList.add('active');
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const hash = location.hash.replace('#','');
+    if (hash && HUB_MAP[hash]) activateHub(HUB_MAP[hash]);
+  });
+
+  window.addEventListener('hashchange', () => {
+    const hash = location.hash.replace('#','');
+    if (hash && HUB_MAP[hash]) activateHub(HUB_MAP[hash]);
+  });
+
+  function switchHub(id, tab) {
+    document.querySelectorAll('.hub-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.hub-panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById('panel-' + id).classList.add('active');
+  }
+
+  function switchSub(group, id, btn) {
+    // Map group → array of known sub-panel IDs to avoid false matches
+    const SUB_IDS = {
+      recon:   ['recon-listing','recon-details','recon-history','recon-closing'],
+      ap:      ['ap-invoices','ap-ach','ap-echecks','ap-aging'],
+    };
+    const ids = SUB_IDS[group] || [];
+    ids.forEach(sid => {
+      const el = document.getElementById(sid);
+      if (el) el.style.display = 'none';
+    });
+    const target = document.getElementById(group + '-' + id);
+    if (target) target.style.display = '';
+    btn.closest('.sub-tabbar').querySelectorAll('.sub-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    if (group === 'recon') {
+      if (id === 'listing') renderListingRows();
+      else if (id === 'details') renderDetailRows(dtlFilter || 'all', '');
+      else if (id === 'history') renderReconHistory();
+      else if (id === 'closing') renderMonthClosing();
+    }
+  }
+
+  // Enrichment queue - code/enrich a single row
+  function enrichRow(btn, glLabel) {
+    const row = btn.closest('tr');
+    const statusChip = row.querySelectorAll('.chip')[row.querySelectorAll('.chip').length - 1];
+    if (statusChip) { statusChip.className = 'chip chip-green'; statusChip.textContent = 'Matched'; }
+    btn.outerHTML = '<button class="btn btn-ghost btn-sm" disabled style="opacity:.6;">View</button>';
+    showToast('Coded to ' + glLabel, 'success');
+  }
+
+  // Enrichment queue - bulk match checked rows
+  function bulkMatchEnrich() {
+    const checked = document.querySelectorAll('#enrich-table tbody .enrich-cb:checked');
+    if (!checked.length) { showToast('Select transactions first', 'warning'); return; }
+    let count = 0;
+    checked.forEach(cb => {
+      const row = cb.closest('tr');
+      const chips = row.querySelectorAll('.chip');
+      const statusChip = chips[chips.length - 1];
+      if (statusChip && statusChip.textContent !== 'Matched') {
+        statusChip.className = 'chip chip-green';
+        statusChip.textContent = 'Matched';
+        const actionCell = row.querySelector('td:last-child');
+        if (actionCell) actionCell.innerHTML = '<button class="btn btn-ghost btn-sm" disabled style="opacity:.6;">View</button>';
+        count++;
+      }
+    });
+    showToast(count + ' transaction(s) matched', 'success');
+  }
+
+  function switchVC(type) {
+    document.getElementById('vc-ap-panel').style.display = type === 'ap' ? '' : 'none';
+    document.getElementById('vc-ar-panel').style.display = type === 'ar' ? '' : 'none';
+    document.getElementById('vc-ap-btn').classList.toggle('active', type === 'ap');
+    document.getElementById('vc-ar-btn').classList.toggle('active', type === 'ar');
+  }
+
+  function toggleAllCb(masterCb, cls) {
+    document.querySelectorAll('.' + cls).forEach(cb => cb.checked = masterCb.checked);
+  }
+
+  // Approvals panel - approve single invoice
+  function approveItem(btn) {
+    const row = btn.closest('tr');
+    const statusCell = row.querySelector('td:nth-child(7)');
+    statusCell.innerHTML = '<span class="chip chip-green">Approved</span>';
+    btn.closest('div').innerHTML = '<button class="btn btn-ghost btn-sm">View</button>';
+    const badge = document.querySelector('.hub-tab-badge');
+    if (badge) {
+      const cur = parseInt(badge.textContent) || 0;
+      if (cur > 1) badge.textContent = cur - 1;
+      else badge.remove();
+    }
+    showToast('Invoice approved successfully', 'success');
+  }
+
+  // Approvals panel - reject single invoice
+  function rejectItem(btn) {
+    const row = btn.closest('tr');
+    const statusCell = row.querySelector('td:nth-child(7)');
+    statusCell.innerHTML = '<span class="chip chip-red">Rejected</span>';
+    btn.closest('div').innerHTML = '<button class="btn btn-ghost btn-sm">View</button>';
+    const badge = document.querySelector('.hub-tab-badge');
+    if (badge) {
+      const cur = parseInt(badge.textContent) || 0;
+      if (cur > 1) badge.textContent = cur - 1;
+      else badge.remove();
+    }
+    showToast('Invoice rejected', 'warning');
+  }
+
+  // Vendor / Customer master list - inline edit of the Terms cell
+  function editEntityTerms(btn) {
+    const row = btn.closest('tr');
+    const termsCell = row.children[4];
+    if (!termsCell) return;
+    if (btn.dataset.editing === '1') {
+      const input = termsCell.querySelector('input');
+      termsCell.textContent = input ? input.value : termsCell.textContent;
+      btn.textContent = '✎';
+      btn.dataset.editing = '0';
+      showToast('Terms updated', 'success');
+      return;
+    }
+    const current = termsCell.textContent.trim();
+    termsCell.innerHTML = `<input class="form-ctrl form-ctrl-sm" style="min-width:70px;padding:3px 6px;font-size:12px;" value="${current}">`;
+    btn.textContent = '✓';
+    btn.dataset.editing = '1';
+  }
+
+  // Vendor / Customer master list - toggle Active/Inactive status
+  function toggleEntityStatus(btn) {
+    const row = btn.closest('tr');
+    const badge = row.querySelector('.badge');
+    if (!badge) return;
+    const isActive = badge.textContent.trim() === 'Active';
+    badge.className = isActive ? 'badge badge-gray' : 'badge badge-green';
+    badge.textContent = isActive ? 'Inactive' : 'Active';
+    showToast((isActive ? 'Deactivated ' : 'Reactivated ') + (row.children[0]?.textContent || 'record'), isActive ? 'warning' : 'success');
+  }
+
+  // Vendor / Customer master list - add a new blank row to whichever list is visible
+  function addEntityRow() {
+    const isAp = document.getElementById('vc-ap-panel').style.display !== 'none';
+    const table = document.getElementById(isAp ? 'vc-table' : 'vc-table-ar');
+    if (!table) return;
+    const tbody = table.querySelector('tbody');
+    const cols = table.querySelectorAll('thead th').length;
+    const tr = document.createElement('tr');
+    const label = isAp ? 'New Vendor' : 'New Customer';
+    tr.innerHTML = `<td class="font-semibold" contenteditable="true">${label}</td>` +
+      Array.from({ length: cols - 3 }).map(() => '<td class="text-muted">-</td>').join('') +
+      `<td><span class="badge badge-orange">Under Review</span></td>` +
+      `<td><button class="btn btn-ghost btn-sm" onclick="editEntityTerms(this)">✎</button><button class="btn btn-ghost btn-sm" onclick="toggleEntityStatus(this)" style="margin-left:4px;">⊘</button></td>`;
+    tbody.appendChild(tr);
+    tr.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    showToast(label + ' added - edit the name and details inline', 'success');
+  }
+
+  // Approval chain config - inline edit of an approver's name
+  function editChainApprover(btn, spanId) {
+    const span = document.getElementById(spanId);
+    if (!span) return;
+    if (btn.dataset.editing === '1') {
+      const input = span.querySelector('input');
+      span.textContent = input ? input.value : span.textContent;
+      btn.textContent = '✎';
+      btn.dataset.editing = '0';
+      showToast('Approver updated to ' + span.textContent, 'success');
+      return;
+    }
+    const current = span.textContent.trim();
+    span.innerHTML = `<input class="form-ctrl form-ctrl-sm" style="min-width:110px;padding:3px 6px;font-size:12px;" value="${current}">`;
+    btn.textContent = '✓';
+    btn.dataset.editing = '1';
+  }
+
+  function saveChainConfig(btn) {
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = '✓ Saved';
+    showToast('Approval chain configuration saved', 'success');
+    setTimeout(() => { btn.disabled = false; btn.textContent = original; }, 1500);
+  }
+
+  function submitForClose(btn) {
+    if (btn.dataset.submitted === '1') return;
+    btn.dataset.submitted = '1';
+    btn.disabled = true;
+    btn.textContent = 'Submitted ✓';
+    const step = document.getElementById('close-step-signoff');
+    const sub = document.getElementById('close-step-signoff-sub');
+    if (step) step.querySelector('.close-icon').textContent = '⏳';
+    if (sub) sub.textContent = 'Submitted to Sarah Chen · ' + today();
+    
+    // Add May 2026 close to history
+    const history = loadReconHistory();
+    if (!history.some(h => h.period === 'May 2026')) {
+      history.unshift({
+        period: 'May 2026',
+        account: '****4821',
+        closedBy: 'Ankit (MGA)',
+        closedDate: today(),
+        bankBalance: 4821340,
+        glBalance: 4817900,
+        status: 'Closed'
+      });
+      localStorage.setItem('v_recon_history', JSON.stringify(history));
+      renderReconHistory();
+    }
+    
+    showToast('Close request submitted for CFO approval', 'success');
+  }
+
+  function exportClosingReport(btn) {
+    const rows = [['Checklist Item','Status','Detail']];
+    document.querySelectorAll('#recon-closing .close-step').forEach(step => {
+      const title = step.querySelector('div > div')?.textContent.trim() || '';
+      const detail = step.querySelectorAll('div > div')[1]?.textContent.trim() || '';
+      const done = step.querySelector('.close-icon').textContent.includes('✅');
+      rows.push([title, done ? 'Complete' : 'Pending', detail]);
+    });
+    const csv = rows.map(r => r.map(c => '"' + c.replace(/"/g,'""') + '"').join(',')).join('\n');
+    downloadCSV('month-close-checklist.csv', csv);
+    showToast('Closing report exported', 'success');
+  }
+
+  // AP Hub - approve single invoice row
+  function approveAPInv(btn) {
+    const row = btn.closest('tr');
+    // Find the status chip (could be 9th or 10th td depending on table)
+    const chips = row.querySelectorAll('.chip');
+    chips.forEach(c => {
+      if (c.textContent.includes('Pending')) {
+        c.className = 'chip chip-green';
+        c.textContent = 'Approved';
+      }
+    });
+    const actionCell = btn.closest('td') || btn.closest('div')?.closest('td');
+    if (actionCell) {
+      actionCell.innerHTML = '<div style="display:flex;gap:3px;"><button class="btn btn-outline btn-sm" style="font-size:11px;" onclick="payAPInv(this)">Pay Now</button><button class="btn btn-ghost btn-sm">View</button></div>';
+    }
+    showToast('Invoice approved - ready for payment', 'success');
+  }
+
+  // AP Hub - pay invoice
+  function payAPInv(btn) {
+    const row = btn.closest('tr');
+    const chips = row.querySelectorAll('.chip');
+    chips.forEach(c => {
+      if (c.textContent === 'Approved') {
+        c.className = 'chip chip-green';
+        c.textContent = 'Paid';
+      }
+    });
+    btn.closest('td').innerHTML = '<div style="display:flex;gap:3px;"><button class="btn btn-ghost btn-sm" style="font-size:11px;">Receipt</button><button class="btn btn-ghost btn-sm">View</button></div>';
+    showToast('Payment scheduled via ACH', 'success');
+  }
+
+  // AP Hub - bulk approve checked invoices
+  function bulkApproveAP() {
+    const checked = document.querySelectorAll('#ap-inv-table tbody .ap-inv-cb:checked');
+    if (checked.length === 0) { showToast('Select invoices first', 'warning'); return; }
+    let count = 0;
+    checked.forEach(cb => {
+      const row = cb.closest('tr');
+      const chips = row.querySelectorAll('.chip');
+      chips.forEach(c => {
+        if (c.textContent === 'Pending Approval') {
+          c.className = 'chip chip-green'; c.textContent = 'Approved'; count++;
+        }
+      });
+    });
+    showToast(count + ' invoice(s) approved', 'success');
+  }
+
+  // AP table status filter
+  function filterAPTable() {
+    // basic visual feedback - full filter wired via data-filter-input for search
+    showToast('Filter applied', 'info');
+  }
+
+  const BANK_ACCOUNT_MAP = {
+    '100101 - Chase Commercial Operating Account': '****4821',
+    '100102 - Wells Fargo Premium Trust Account': '****5502',
+    '100103 - SOUTHLAKE Claims Clearing Account': '****7734',
+    '100101 - First Republic Operating Account': '****2109',
+    '100102 - First Republic Premium Trust Account': '****2110',
+    '100101 - BNY Mellon Premium Clearing Account': '****9901',
+    '100102 - JPMorgan Statutory Reserve Account': '****9902'
+  };
+
+  function syncBankEntityOptions() {
+    const active = typeof getActiveEntity === 'function' ? getActiveEntity() : null;
+    const bType = active ? active.businessType : 'mga';
+    const isBroker = (bType === 'agency' || bType === 'broker');
+    const isCarrier = (bType === 'carrier');
+    
+    const bankSel = document.querySelector('#recon-listing select.form-ctrl');
+    const acctInput = document.getElementById('recon-account-no');
+    if (!bankSel) return;
+    
+    if (isBroker) {
+      bankSel.innerHTML = `
+        <option value="100101 - First Republic Operating Account">100101 - First Republic Operating Account</option>
+        <option value="100102 - First Republic Premium Trust Account">100102 - First Republic Premium Trust Account</option>
+      `;
+      if (acctInput) acctInput.value = '****2109';
+    } else if (isCarrier) {
+      bankSel.innerHTML = `
+        <option value="100101 - BNY Mellon Premium Clearing Account">100101 - BNY Mellon Premium Clearing Account</option>
+        <option value="100102 - JPMorgan Statutory Reserve Account">100102 - JPMorgan Statutory Reserve Account</option>
+      `;
+      if (acctInput) acctInput.value = '****9901';
+    } else {
+      bankSel.innerHTML = `
+        <option value="100101 - Chase Commercial Operating Account">100101 - Chase Commercial Operating Account</option>
+        <option value="100102 - Wells Fargo Premium Trust Account">100102 - Wells Fargo Premium Trust Account</option>
+        <option value="100103 - SOUTHLAKE Claims Clearing Account">100103 - SOUTHLAKE Claims Clearing Account</option>
+      `;
+      if (acctInput) acctInput.value = '****4821';
+    }
+  }
+
+  function refreshRecon(sel) {
+    const acctField = document.getElementById('recon-account-no');
+    if (sel && acctField) acctField.value = BANK_ACCOUNT_MAP[sel.value] || acctField.value;
+    DTL_TRANSACTIONS = loadTransactions();
+    renderListingRows();
+    renderDetailRows(dtlFilter || 'pending', '');
+    showToast('Switched to ' + (sel ? sel.value : 'selected account'), 'info');
+  }
+
+  function getTransactions(btn) {
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Fetching…';
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.textContent = original;
+      DTL_TRANSACTIONS = loadTransactions();
+      renderListingRows();
+      renderDetailRows(dtlFilter || 'pending', '');
+      showToast('Transactions refreshed for ' + (document.getElementById('recon-account-no')?.value || 'account'), 'success');
+    }, 400);
+  }
+
+  function autoSyncBank(btn) {
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Syncing…';
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.textContent = original;
+      DTL_TRANSACTIONS = loadTransactions();
+      renderListingRows();
+      renderDetailRows(dtlFilter || 'pending', '');
+      showToast('Auto-sync complete — Live bank transactions matched', 'success');
+    }, 500);
+  }
+
+  /* ════════════════════════════════════════
+     DETAILS TAB - Transaction Data & Logic
+  ════════════════════════════════════════ */
+  const GL_ACCOUNTS = [
+    'Select Ledger','1001 · Cash / Bank','1100 · Premium Receivable','2200 · Premium Payable',
+    '1010 · Cash & Equivalents','1020 · Premium Trust',
+    '5800 · Claims LAE','6200 · IT Expense','6300 · Professional Fees',
+    '6400 · Legal Fees','6500 · Regulatory','4800 · Interest Income',
+    '5500 · Reinsurance Ceded','7100 · Bank Charges','5000 · Loss Expense',
+  ];
+  const SOURCE_TYPES = ['Vendor','Customer','Bank','GL Transfer','Other'];
+
+  function loadTransactions() {
+    const active = typeof getActiveEntity === 'function' ? getActiveEntity() : null;
+    const bType = active ? active.businessType : 'mga';
+    const activeId = active ? active.id : 'ENT-MINE';
+    const isBroker = (bType === 'agency' || bType === 'broker' || activeId === 'ENT-AGY-01' || activeId === 'ENT-BRK-01');
+    const isCarrier = (bType === 'carrier' || activeId === 'ENT-CAR-01');
+    const isMGA = !isBroker && !isCarrier;
+
+    // 1. Extract ONLY the journal entries belonging to the active entity
+    const activeJEs = (typeof getJournalEntriesForActiveEntity === 'function') 
+      ? getJournalEntriesForActiveEntity() 
+      : [];
+
+    let txns = [];
+
+    // 2. Extract real cash ledger transactions from the active entity's journal entries
+    activeJEs.forEach(je => {
+      if (Array.isArray(je.lines)) {
+        je.lines.forEach((l, lIdx) => {
+          if (l.acct === '1001' || l.acct === '1020' || l.acct === '1010') {
+            const debit = parseFloat(l.debit) || 0;
+            const credit = parseFloat(l.credit) || 0;
+            if (debit > 0 || credit > 0) {
+              const isDeposit = debit > 0;
+              const amt = isDeposit ? debit : credit;
+              const dateVal = je.date || (je.postedAt ? je.postedAt.slice(0, 10) : (je.createdAt ? je.createdAt.slice(0, 10) : '2026-08-20'));
+              
+              // Standardized, crystal-clear Payee / Payor descriptions per entity
+              let payeePayor = l.desc || je.description || '';
+              if (isBroker) {
+                if (isDeposit) payeePayor = 'Customer Premium Receipt — Ayushi';
+                else payeePayor = 'Settlement disburse to MGA: NTA';
+              } else if (isCarrier) {
+                payeePayor = 'MGA premium settlement receipt — NTA';
+              } else {
+                // MGA
+                if (isDeposit) payeePayor = 'Broker premium settlement receipt — HIT';
+                else payeePayor = 'Carrier settlement cash disburse (ACH) — Southlake';
+              }
+
+              // Deduplicate by amount & direction so each financial event produces exactly 1 row
+              const exists = txns.some(t => Math.abs((t.recv || 0) - (isDeposit ? amt : 0)) < 0.01 && 
+                                            Math.abs((t.spent || 0) - (isDeposit ? 0 : amt)) < 0.01);
+              if (!exists) {
+                txns.push({
+                  id: `GL-TXN-${je.id}-${lIdx}`,
+                  date: dateVal,
+                  desc: payeePayor,
+                  spent: isDeposit ? null : amt,
+                  recv: isDeposit ? amt : null,
+                  status: 'posted',
+                  source: isDeposit ? 'Customer' : 'Vendor',
+                  fromto: payeePayor,
+                  ledger: `${l.acct} · ${l.acct === '1020' ? 'Premium Trust' : 'Cash / Bank (Operating)'}`,
+                  hasNote: true,
+                  hasAtt: true,
+                  checkNo: '-',
+                  type: isDeposit ? 'ACH' : (amt >= 10000 ? 'WIRE' : 'ACH'),
+                  glMatch: je.number || je.id
+                });
+              }
+            }
+          }
+        });
+      }
+    });
+
+    // 3. Include any extra manual bank transactions in the isolated bank feed for this active entity
+    const prefix = isCarrier ? 'carrier_' : (isBroker ? 'agency_' : 'mga_');
+    try {
+      const raw = localStorage.getItem(prefix + 'pas_bank_txns');
+      if (raw) {
+        const stored = JSON.parse(raw);
+        stored.forEach((item, idx) => {
+          const itemAmt = item.amount || 0;
+          const isDep = itemAmt > 0 || (item.recv && !item.spent);
+          const val = Math.abs(itemAmt || item.recv || item.spent || 0);
+          
+          const alreadyMatched = txns.some(t => Math.abs((t.recv || 0) - (isDep ? val : 0)) < 0.01 && 
+                                               Math.abs((t.spent || 0) - (isDep ? 0 : val)) < 0.01);
+          if (!alreadyMatched && val > 0) {
+            txns.push({
+              id: 'BANK-CUSTOM-' + idx,
+              date: item.date || '2026-08-20',
+              desc: item.desc || (isDep ? 'Bank Deposit' : 'Bank Wire Disbursement'),
+              spent: isDep ? null : val,
+              recv: isDep ? val : null,
+              status: item.status || 'posted',
+              source: item.source || (isDep ? 'Customer' : 'Vendor'),
+              fromto: item.fromto || (isDep ? 'Customer / Insured' : 'Payee'),
+              ledger: item.ledger || '1001 · Cash / Bank (Operating)',
+              hasNote: false,
+              hasAtt: false,
+              checkNo: item.checkNo || '-',
+              type: item.type || (isDep ? 'ACH' : 'WIRE'),
+              glMatch: item.glMatch || 'JE-SYNC'
+            });
+          }
+        });
+      }
+    } catch(e) {}
+
+    return txns;
+  }
+
+  let DTL_TRANSACTIONS = loadTransactions();
+
+  const DEFAULT_RECON_APPROVALS = [
+    { invoice: 'INV-V8NHT-1', vendor: 'HIT (Broker Commission Remittance)', amount: 2500, level: 'L1', approver: 'Ankit (Controller)', date: '08/20/2026', status: 'Pending' },
+    { invoice: 'SETTLE-TX-849', vendor: 'SOUTHLAKE Insurance Co. (Net Settlement Wire)', amount: 32257, level: 'L2', approver: 'Finance Team', date: '08/20/2026', status: 'Pending' },
+    { invoice: 'TAX-TX-0820', vendor: 'Texas Stamping Office (SLTX Surplus Tax)', amount: 1770, level: 'L1', approver: 'Tax Operations', date: '08/20/2026', status: 'Pending' },
+    { invoice: 'TREATY-2026-Q3', vendor: 'Munich Re (Quarterly Treaty Cession)', amount: 18250, level: 'L3', approver: 'Sarah Chen (CFO)', date: '08/18/2026', status: 'At L3' },
+    { invoice: 'INV-30841', vendor: 'Coastal Risk Advisors (Producer Commission)', amount: 2763, level: 'L1', approver: 'Ankit (Controller)', date: '08/15/2026', status: 'Approved' }
+  ];
+
+  function loadReconApprovals() {
+    const isOnboard = typeof isOnboarded === 'function' ? isOnboarded() : false;
+    if (isOnboard) return [];
+    const stored = localStorage.getItem('v_recon_approvals');
+    if (stored) return JSON.parse(stored);
+    localStorage.setItem('v_recon_approvals', JSON.stringify(DEFAULT_RECON_APPROVALS));
+    return DEFAULT_RECON_APPROVALS;
+  }
+
+  let RECON_APPROVALS = loadReconApprovals();
+
+  function renderApprovalsQueue() {
+    const tbody = document.getElementById('approvals-tbody');
+    if (!tbody) return;
+    
+    const levelFilter = document.getElementById('approvals-level-filter')?.value || 'All Levels';
+    
+    const filtered = RECON_APPROVALS.filter(a => {
+      if (levelFilter === 'All Levels') return true;
+      if (levelFilter === 'L1 - Manager') return a.level === 'L1';
+      if (levelFilter === 'L2 - Finance') return a.level === 'L2';
+      if (levelFilter === 'L3 - CFO') return a.level === 'L3';
+      return true;
+    });
+    
+    const pendingCount = RECON_APPROVALS.filter(a => a.status === 'Pending' || a.status === 'At L3').length;
+    
+    const tabBadge = document.getElementById('hub-approvals-badge');
+    if (tabBadge) {
+      if (pendingCount > 0) {
+        tabBadge.style.display = 'inline-block';
+        tabBadge.textContent = pendingCount;
+      } else {
+        tabBadge.style.display = 'none';
+      }
+    }
+    
+    const tableBadge = document.getElementById('table-approvals-badge');
+    if (tableBadge) {
+      if (pendingCount > 0) {
+        tableBadge.style.display = 'inline-block';
+        tableBadge.textContent = pendingCount;
+      } else {
+        tableBadge.style.display = 'none';
+      }
+    }
+    
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-muted" style="text-align:center;padding:24px;">No matches pending approval.</td></tr>';
+      return;
+    }
+    
+    tbody.innerHTML = filtered.map(a => {
+      let statusClass = 'chip-orange';
+      if (a.status === 'Approved') statusClass = 'chip-green';
+      if (a.status === 'Rejected') statusClass = 'chip-red';
+      if (a.status === 'At L3') statusClass = 'chip-blue';
+      
+      let lvlClass = 'chip-blue';
+      if (a.level === 'L2') lvlClass = 'chip-orange';
+      if (a.level === 'L3') lvlClass = 'chip-purple';
+      
+      let actionHtml = '';
+      if (a.status === 'Pending' || a.status === 'At L3') {
+        actionHtml = `<div style="display:flex;gap:4px;">
+          <button class="btn btn-sm" style="background:#e8f5e9;color:#2e7d32;border:1px solid #2e7d32;" onclick="approveReconItem('${a.invoice}')">✓ Approve</button>
+          <button class="btn btn-ghost btn-sm" onclick="rejectReconItem('${a.invoice}')">✗</button>
+        </div>`;
+      } else {
+        actionHtml = `<button class="btn btn-ghost btn-sm" onclick="showToast('Viewing invoice details for ${a.invoice}','info')">View</button>`;
+      }
+      
+      return `<tr>
+        <td class="font-semibold">${a.invoice}</td>
+        <td>${a.vendor}</td>
+        <td class="text-right">${fmtAmt(a.amount).replace('.00','')}</td>
+        <td><span class="chip ${lvlClass}">${a.level}</span></td>
+        <td>${a.approver}</td>
+        <td>${a.date}</td>
+        <td><span class="chip ${statusClass}">${a.status}</span></td>
+        <td>${actionHtml}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  function approveReconItem(invoice) {
+    const item = RECON_APPROVALS.find(a => a.invoice === invoice);
+    if (!item) return;
+    item.status = 'Approved';
+    localStorage.setItem('v_recon_approvals', JSON.stringify(RECON_APPROVALS));
+    showToast('Invoice approved successfully', 'success');
+    renderApprovalsQueue();
+  }
+
+  function rejectReconItem(invoice) {
+    const item = RECON_APPROVALS.find(a => a.invoice === invoice);
+    if (!item) return;
+    item.status = 'Rejected';
+    localStorage.setItem('v_recon_approvals', JSON.stringify(RECON_APPROVALS));
+    showToast('Invoice rejected', 'warning');
+    renderApprovalsQueue();
+  }
+
+  const DEFAULT_RECON_HISTORY = [
+    { period: 'Apr 2026', account: '****4821', closedBy: 'James Smith', closedDate: '05/05/2026', bankBalance: 4529220, glBalance: 4529220, status: 'Closed' },
+    { period: 'Mar 2026', account: '****4821', closedBy: 'James Smith', closedDate: '04/04/2026', bankBalance: 4201880, glBalance: 4201880, status: 'Closed' },
+    { period: 'Feb 2026', account: '****4821', closedBy: 'Sarah Chen', closedDate: '03/06/2026', bankBalance: 3988420, glBalance: 3988420, status: 'Closed' },
+    { period: 'Jan 2026', account: '****4821', closedBy: 'Sarah Chen', closedDate: '02/05/2026', bankBalance: 3742100, glBalance: 3741640, status: 'Closed' },
+    { period: 'Dec 2025', account: '****4821', closedBy: 'James Smith', closedDate: '01/08/2026', bankBalance: 3560800, glBalance: 3560800, status: 'Closed' }
+  ];
+
+  function loadReconHistory() {
+    let stored = localStorage.getItem('v_recon_history');
+    if (stored) {
+      try {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      } catch(e) {}
+    }
+    localStorage.setItem('v_recon_history', JSON.stringify(DEFAULT_RECON_HISTORY));
+    return DEFAULT_RECON_HISTORY;
+  }
+
+  function renderReconHistory() {
+    const tbody = document.getElementById('recon-history-tbody');
+    if (!tbody) return;
+    const history = loadReconHistory();
+    if (history.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-muted" style="text-align:center;padding:24px;">No reconciliation history found.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = history.map(h => {
+      const diff = h.bankBalance - h.glBalance;
+      const diffColor = Math.abs(diff) < 0.01 ? '#2e7d32' : '#e65100';
+      return `<tr>
+        <td>${h.period}</td>
+        <td>${h.account}</td>
+        <td>${h.closedBy}</td>
+        <td>${h.closedDate}</td>
+        <td class="text-right">${fmtAmt(h.bankBalance).replace('.00','')}</td>
+        <td class="text-right">${fmtAmt(h.glBalance).replace('.00','')}</td>
+        <td class="text-right" style="color:${diffColor};">${fmtAmt(diff).replace('.00','')}</td>
+        <td><span class="chip chip-green">${h.status}</span></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderMonthClosing() {
+    const container = document.getElementById('recon-closing');
+    if (!container) return;
+
+    const user = typeof getCurrentUser === 'function' ? getCurrentUser() : { name: 'Sarah Chen', role: 'Owner' };
+    const dateInput = document.querySelector('#recon-listing input[type="date"]');
+    const periodDate = dateInput ? dateInput.value : '2026-05-31';
+    const d = new Date(periodDate);
+    const mName = !isNaN(d.getTime()) ? d.toLocaleString('en-US', { month: 'long', year: 'numeric' }) : 'May 2026';
+
+    const acctSelect = document.getElementById('recon-gl-acct');
+    const acctCode = acctSelect ? acctSelect.value : '1001';
+    let currentGlBalance = typeof getAccountBalance === 'function' ? getAccountBalance(acctCode).net : 0;
+    
+    let unmatchedDep = 0;
+    let unmatchedWd = 0;
+    let matchedCount = 0;
+    DTL_TRANSACTIONS.forEach(t => {
+      if (t.status === 'posted') {
+        matchedCount++;
+      } else {
+        unmatchedDep += (t.recv || 0);
+        unmatchedWd += (t.spent || 0);
+      }
+    });
+
+    const diff = unmatchedDep - unmatchedWd;
+    const isBalanced = Math.abs(diff) < 0.01;
+
+    container.innerHTML = `
+      <div style="max-width:640px;">
+        <div style="font-size:14px;font-weight:800;color:var(--navy);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;">
+          <span>Month-End Close Checklist — ${mName}</span>
+          <span class="chip ${isBalanced ? 'chip-green' : 'chip-orange'}">${isBalanced ? 'Reconciliation Balanced' : 'Variance Detected'}</span>
+        </div>
+
+        <div class="close-step">
+          <div class="close-icon done">✅</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--navy);">All deposits &amp; premium receipts verified</div>
+            <div style="font-size:11px;color:var(--gray-400);">Completed · ${user.name} (${user.role || 'Controller'}) · ${mName}</div>
+          </div>
+        </div>
+
+        <div class="close-step">
+          <div class="close-icon done">✅</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--navy);">Outstanding checks &amp; carrier wires reviewed</div>
+            <div style="font-size:11px;color:var(--gray-400);">${matchedCount} cash ledger lines confirmed active · ${user.name}</div>
+          </div>
+        </div>
+
+        <div class="close-step">
+          <div class="close-icon ${isBalanced ? 'done' : 'pend'}">${isBalanced ? '✅' : '⏳'}</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:${isBalanced ? '#2e7d32' : '#e65100'};">
+              ${isBalanced ? 'Ledger Difference $0 (100% Balanced)' : `Difference of ${fmtAmt(diff)} in progress`}
+            </div>
+            <div style="font-size:11px;color:var(--gray-400);">
+              ${isBalanced ? 'Subledger bank statement matches GL cash account exactly' : 'Pending clearance of in-transit ACH / Wire entries'}
+            </div>
+          </div>
+        </div>
+
+        <div class="close-step" id="close-step-signoff">
+          <div class="close-icon ${isBalanced ? 'done' : 'pend'}">${isBalanced ? '✅' : '⏳'}</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:${isBalanced ? 'var(--navy)' : '#e65100'};">Executive Sign-Off</div>
+            <div style="font-size:11px;color:var(--gray-400);" id="close-step-signoff-sub">
+              ${isBalanced ? `Approved and verified by ${user.name}` : `Awaiting sign-off by ${user.name}`}
+            </div>
+          </div>
+        </div>
+
+        <div class="close-step">
+          <div class="close-icon done">✅</div>
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--navy);">Bank fee exceptions &amp; interest credit coded</div>
+            <div style="font-size:11px;color:var(--gray-400);">Completed · Verified in General Ledger</div>
+          </div>
+        </div>
+
+        <div style="margin-top:20px;display:flex;gap:10px;">
+          <button class="btn btn-primary" id="submit-close-btn" onclick="submitForClose(this)">Submit for Close</button>
+          <button class="btn btn-outline" onclick="exportClosingReport(this)">Export Closing Report</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function updateReconKpis(totalDeposit, totalWithdrawal) {
+    const totalCount = DTL_TRANSACTIONS.length;
+    const matchedCount = DTL_TRANSACTIONS.filter(t => t.status === 'posted').length;
+    const matchedPct = totalCount > 0 ? Math.round((matchedCount / totalCount) * 100) : 100;
+    
+    let matchedDep = 0;
+    let matchedWd = 0;
+    let unmatchedDep = 0;
+    let unmatchedWd = 0;
+    
+    DTL_TRANSACTIONS.forEach(t => {
+      if (t.status === 'posted') {
+        matchedDep += (t.recv || 0);
+        matchedWd += (t.spent || 0);
+      } else {
+        unmatchedDep += (t.recv || 0);
+        unmatchedWd += (t.spent || 0);
+      }
+    });
+
+    const acctSelect = document.getElementById('recon-gl-acct');
+    const acctCode = acctSelect ? acctSelect.value : '1001';
+    let currentGlBalance = typeof getAccountBalance === 'function' ? getAccountBalance(acctCode).net : 0;
+    if (currentGlBalance === 0 && (matchedDep > 0 || matchedWd > 0)) {
+      currentGlBalance = matchedDep - matchedWd;
+    }
+    const currentBankBalance = currentGlBalance + (unmatchedDep - unmatchedWd);
+    const difference = currentBankBalance - currentGlBalance;
+    
+    const bankValEl = document.getElementById('kpi-bank-balance');
+    if (bankValEl) bankValEl.textContent = fmtAmt(currentBankBalance).replace('.00', '');
+    
+    const glValEl = document.getElementById('kpi-gl-balance');
+    if (glValEl) glValEl.textContent = fmtAmt(currentGlBalance).replace('.00', '');
+    
+    const glSubEl = document.getElementById('kpi-gl-balance-sub');
+    if (glSubEl) glSubEl.textContent = 'Account ' + acctCode;
+    
+    const diffValEl = document.getElementById('kpi-difference');
+    if (diffValEl) {
+      diffValEl.textContent = fmtAmt(difference).replace('.00', '');
+      diffValEl.style.color = Math.abs(difference) < 0.01 ? '#2e7d32' : '#e65100';
+    }
+    
+    const matchedCountEl = document.getElementById('matched-txn-count');
+    if (matchedCountEl) matchedCountEl.textContent = matchedCount;
+    
+    const matchedSubEl = document.getElementById('matched-txn-sub');
+    if (matchedSubEl) matchedSubEl.textContent = `↑ ${matchedPct}% auto-matched`;
+  }
+
+  function onGlAccountChange() {
+    renderListingRows();
+    renderDetailRows(dtlFilter || 'all', '');
+  }
+
+  function renderListingRows() {
+    const tbody = document.getElementById('recon-listing-tbody');
+    if (!tbody) return;
+    
+    if (DTL_TRANSACTIONS.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--gray-400);">No bank transactions recorded yet.</td></tr>';
+      updateReconKpis(0, 0);
+      return;
+    }
+    
+    const sorted = [...DTL_TRANSACTIONS].sort((a,b) => new Date(a.date) - new Date(b.date));
+    let totalDeposit = 0;
+    let totalWithdrawal = 0;
+    
+    let html = sorted.map(t => {
+      const dep = t.recv || 0;
+      const wd = t.spent || 0;
+      totalDeposit += dep;
+      totalWithdrawal += wd;
+      
+      const checkVal = t.checkNo && t.checkNo !== '-' ? t.checkNo : ' - ';
+      const depText = dep > 0 ? fmtAmt(dep).replace('.00','') : ' - ';
+      const wdText = wd > 0 ? fmtAmt(wd).replace('.00','') : ' - ';
+      
+      let typeClass = 'chip-blue';
+      if (t.type === 'CHECK') typeClass = 'chip-gray';
+      if (t.type === 'FEE') typeClass = 'chip-gray';
+      
+      let statusClass = 'chip-green';
+      let statusText = 'Matched';
+      let actionText = 'View';
+      let actionOnClick = `showToast('Viewing matched GL entry ${t.glMatch}','info')`;
+      
+      if (t.status === 'pending') {
+        statusClass = 'chip-orange';
+        statusText = 'Pending';
+        actionText = 'Match';
+        actionOnClick = `switchHub('enrichment',document.querySelectorAll('.hub-tab')[1])`;
+      } else if (t.status === 'excluded') {
+        statusClass = 'chip-red';
+        statusText = 'Exception';
+        actionText = 'Resolve';
+        actionOnClick = `showToast('Resolving bank charge exception','info')`;
+      }
+      
+      const dtParts = t.date.split('-');
+      const formattedDate = dtParts.length === 3 ? `${dtParts[1]}/${dtParts[2]}/${dtParts[0]}` : t.date;
+      
+      return `<tr>
+        <td><input type="checkbox" class="recon-cb"></td>
+        <td>${formattedDate}</td>
+        <td>${checkVal}</td>
+        <td>${t.desc}</td>
+        <td class="text-right ${dep > 0 ? 'amt-dep' : ''}">${depText}</td>
+        <td class="text-right ${wd > 0 ? 'amt-wd' : ''}">${wdText}</td>
+        <td><span class="chip ${typeClass}">${t.type}</span></td>
+        <td>${t.glMatch || ' - '}</td>
+        <td><span class="chip ${statusClass}">${statusText}</span></td>
+        <td><button class="btn btn-ghost btn-sm" onclick="${actionOnClick}">${actionText}</button></td>
+      </tr>`;
+    }).join('');
+    
+    html += `<tr style="font-weight:700;border-top:2px solid var(--border);">
+      <td colspan="4" style="color:var(--navy);">Totals</td>
+      <td class="text-right amt-dep">${fmtAmt(totalDeposit).replace('.00','')}</td>
+      <td class="text-right amt-wd">${fmtAmt(totalWithdrawal).replace('.00','')}</td>
+      <td colspan="4"></td>
+    </tr>`;
+    
+    tbody.innerHTML = html;
+    updateReconKpis(totalDeposit, totalWithdrawal);
+  }
+
+  let dtlFilter = 'all';
+  let splitTxn = null;
+
+  function fmtAmt(v) { return v != null ? '$' + v.toLocaleString('en-US', {minimumFractionDigits:2}) : ' - '; }
+
+  function glOptions(selected='') {
+    return GL_ACCOUNTS.map(g => `<option value="${g}" ${g===selected?'selected':''}>${g}</option>`).join('');
+  }
+  function srcOptions(selected='') {
+    return SOURCE_TYPES.map(s => `<option value="${s}" ${s===selected?'selected':''}>${s}</option>`).join('');
+  }
+
+  function renderDetailRows(filter='all', query='') {
+    const tbody = document.getElementById('dtl-tbody');
+    if (!tbody) return;
+    
+    const totalCount = DTL_TRANSACTIONS.length;
+    const pendingCount = DTL_TRANSACTIONS.filter(t => t.status === 'pending').length;
+    const postedCount = DTL_TRANSACTIONS.filter(t => t.status === 'posted').length;
+    const excludedCount = DTL_TRANSACTIONS.filter(t => t.status === 'excluded').length;
+    
+    // Auto fallback to 'all' if filtering pending with 0 items
+    if (filter === 'pending' && pendingCount === 0 && postedCount > 0) {
+      filter = 'all';
+      dtlFilter = 'all';
+      document.querySelectorAll('.dtl-pill').forEach(p => p.classList.remove('active'));
+      const allPill = document.querySelector('.dtl-pill-all');
+      if (allPill) allPill.classList.add('active');
+    }
+
+    let postedAmount = 0;
+    DTL_TRANSACTIONS.forEach(t => {
+      if (t.status === 'posted') {
+        postedAmount += (t.recv || 0);
+      }
+    });
+    
+    const ctAllEl = document.getElementById('ct-all');
+    if (ctAllEl) ctAllEl.textContent = totalCount;
+    const ctPendingEl = document.getElementById('ct-pending');
+    if (ctPendingEl) ctPendingEl.textContent = pendingCount;
+    const ctPostedEl = document.getElementById('ct-posted');
+    if (ctPostedEl) ctPostedEl.textContent = postedCount;
+    const ctExcludedEl = document.getElementById('ct-excluded');
+    if (ctExcludedEl) ctExcludedEl.textContent = excludedCount;
+    
+    const dtlHeaderAcctEl = document.getElementById('dtl-header-account');
+    if (dtlHeaderAcctEl) {
+      const bankSel = document.querySelector('#recon-listing select.form-ctrl');
+      dtlHeaderAcctEl.textContent = bankSel ? bankSel.value : '100101 - Chase Commercial Operating (****4821)';
+    }
+
+    const dtlHeaderBalanceEl = document.getElementById('dtl-header-balance');
+    if (dtlHeaderBalanceEl) {
+      const acctSelect = document.getElementById('recon-gl-acct');
+      const acctCode = acctSelect ? acctSelect.value : '1001';
+      let currentGlBalance = typeof getAccountBalance === 'function' ? getAccountBalance(acctCode).net : 0;
+      if (currentGlBalance <= 0) currentGlBalance = postedAmount;
+      
+      let unmatchedDep = 0;
+      let unmatchedWd = 0;
+      DTL_TRANSACTIONS.forEach(t => {
+        if (t.status !== 'posted') {
+          unmatchedDep += (t.recv || 0);
+          unmatchedWd += (t.spent || 0);
+        }
+      });
+      const currentBankBalance = currentGlBalance + (unmatchedDep - unmatchedWd);
+      dtlHeaderBalanceEl.textContent = fmtAmt(currentBankBalance);
+    }
+    
+    const dtlHeaderPostedCountEl = document.getElementById('dtl-header-posted-count');
+    if (dtlHeaderPostedCountEl) dtlHeaderPostedCountEl.textContent = postedCount;
+    
+    const dtlHeaderPostedAmountEl = document.getElementById('dtl-header-posted-amount');
+    if (dtlHeaderPostedAmountEl) dtlHeaderPostedAmountEl.textContent = fmtAmt(postedAmount);
+    
+    const dtlHeaderUpdatedOnEl = document.getElementById('dtl-header-updated-on');
+    if (dtlHeaderUpdatedOnEl) {
+      const postedDates = DTL_TRANSACTIONS.map(t => t.date);
+      if (postedDates.length > 0) {
+        postedDates.sort();
+        dtlHeaderUpdatedOnEl.textContent = postedDates[postedDates.length - 1];
+      } else {
+        dtlHeaderUpdatedOnEl.textContent = '2026-09-01';
+      }
+    }
+    
+    const autoMatchNotice = document.getElementById('auto-match-notice');
+    if (autoMatchNotice) {
+      autoMatchNotice.textContent = ` - ${totalCount} transactions live in ledger (${postedCount} matched, ${pendingCount} pending review)`;
+    }
+
+    const countSel = document.getElementById('dtl-count-sel');
+    if (countSel) {
+      countSel.innerHTML = `
+        <option value="all">All (${totalCount})</option>
+        <option value="posted">Posted (${postedCount})</option>
+        <option value="pending">Pending (${pendingCount})</option>
+        <option value="excluded">Excluded (${excludedCount})</option>
+      `;
+      countSel.value = filter;
+    }
+    
+    const rows = DTL_TRANSACTIONS.filter(t => {
+      const statusMatch = filter === 'all' || t.status === filter;
+      const queryMatch  = !query || t.desc.toLowerCase().includes(query) || (t.fromto||'').toLowerCase().includes(query);
+      return statusMatch && queryMatch;
+    });
+    
+    if (rows.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="11" class="text-muted" style="text-align:center;padding:24px;">No matching transactions found.</td></tr>';
+      return;
+    }
+    
+    tbody.innerHTML = rows.map(t => `
+      <tr class="dtl-row" data-id="${t.id}" data-status="${t.status}">
+        <td style="padding:9px 10px;"><input type="checkbox" class="dtl-row-cb"></td>
+        <td style="padding:9px 10px;white-space:nowrap;font-size:12px;color:var(--gray-600);">${t.date}</td>
+        <td class="dtl-desc" style="padding:9px 10px;max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:12.5px;" title="${t.desc}">${t.desc}</td>
+        <td class="dtl-amt" style="padding:9px 10px;text-align:right;${t.spent?'color:#c62828;':''}">${t.spent ? fmtAmt(t.spent) : '<span style="color:var(--gray-300);"> - </span>'}</td>
+        <td class="dtl-amt" style="padding:9px 10px;text-align:right;${t.recv?'color:#2e7d32;':''}">${t.recv ? fmtAmt(t.recv) : '<span style="color:var(--gray-300);"> - </span>'}</td>
+        <td style="text-align:center;padding:9px 6px;">
+          <button class="dtl-icon-btn" onclick="showToast('Attachment view','info')" title="Attachment">${t.hasAtt ? '<span style="color:#1565c0;">📎</span>' : '<span style="color:var(--gray-200);">📎</span>'}</button>
+        </td>
+        <td style="text-align:center;padding:9px 6px;">
+          <button class="dtl-icon-btn" onclick="openNoteFor('${t.id}')" title="Note">${t.hasNote ? '<span style="color:#e65100;">💬</span>' : '<span style="color:var(--gray-200);">💬</span>'}</button>
+        </td>
+        <td style="padding:9px 8px;">
+          <div style="display:flex;align-items:center;gap:4px;">
+            <button class="dtl-btn-split" onclick="openSplitModal('${t.id}')">Split</button>
+            <select class="dtl-match-select" onchange="const x=DTL_TRANSACTIONS.find(it=>it.id==='${t.id}');if(x)x.source=this.value;" style="min-width:90px;">${srcOptions(t.source)}</select>
+          </div>
+        </td>
+        <td style="padding:9px 8px;">
+          <select class="dtl-match-select" onchange="const x=DTL_TRANSACTIONS.find(it=>it.id==='${t.id}');if(x)x.fromto=this.value;" style="min-width:90px;">
+            <option value="">Select</option>
+            <option value="Ayushi (Insured)" ${t.fromto==='Ayushi (Insured)'?'selected':''}>Ayushi (Insured)</option>
+            <option value="SOUTHLAKE Insurance Co." ${t.fromto==='SOUTHLAKE Insurance Co.'?'selected':''}>SOUTHLAKE Insurance Co.</option>
+            <option value="Links Agency (Broker)" ${t.fromto==='Links Agency (Broker)'?'selected':''}>Links Agency (Broker)</option>
+            <option value="Harborview Logistics" ${t.fromto==='Harborview Logistics'?'selected':''}>Harborview Logistics</option>
+            <option value="Texas Comptroller / SLTX" ${t.fromto==='Texas Comptroller / SLTX'?'selected':''}>Texas Comptroller / SLTX</option>
+            <option value="Munich Re" ${t.fromto==='Munich Re'?'selected':''}>Munich Re</option>
+            <option value="Chase Commercial Banking" ${t.fromto==='Chase Commercial Banking'?'selected':''}>Chase Commercial Banking</option>
+          </select>
+        </td>
+        <td style="padding:9px 8px;">
+          <div style="display:flex;align-items:center;gap:4px;flex-wrap:nowrap;">
+            <select class="dtl-match-select" onchange="const x=DTL_TRANSACTIONS.find(it=>it.id==='${t.id}');if(x)x.ledger=this.value;" style="min-width:130px;">${glOptions(t.ledger)}</select>
+            <button class="dtl-btn-match" onclick="matchTxn('${t.id}',this)">Match</button>
+            <button class="dtl-btn-cat" onclick="categorizeTxn('${t.id}')">Categorize</button>
+          </div>
+        </td>
+        <td style="padding:9px 8px;">
+          <span class="dtl-status ${t.status}">${t.status.charAt(0).toUpperCase()+t.status.slice(1)}</span>
+        </td>
+      </tr>`).join('');
+  }
+
+  function filterDetailRows(filter, btn) {
+    dtlFilter = filter;
+    document.querySelectorAll('.dtl-pill').forEach(p => p.classList.remove('active'));
+    if (btn) {
+      btn.classList.add('active');
+    } else {
+      const pill = document.querySelector(`.dtl-pill-${filter}`);
+      if (pill) pill.classList.add('active');
+    }
+    const countSel = document.getElementById('dtl-count-sel');
+    if (countSel) countSel.value = filter;
+    renderDetailRows(filter, document.getElementById('dtl-search-input')?.value.toLowerCase()||'');
+  }
+
+  function searchDetailRows(q) {
+    renderDetailRows(dtlFilter, q.toLowerCase());
+  }
+
+  function clearDetailFilter() {
+    dtlFilter = 'all';
+    document.querySelectorAll('.dtl-pill').forEach(p => p.classList.remove('active'));
+    const allPill = document.querySelector('.dtl-pill-all');
+    if (allPill) allPill.classList.add('active');
+    const inp = document.getElementById('dtl-search-input');
+    if (inp) inp.value = '';
+    renderDetailRows('all','');
+  }
+
+  function matchTxn(id, btn) {
+    const txn = DTL_TRANSACTIONS.find(t => t.id === id);
+    if (!txn) return;
+    if (!txn.ledger || txn.ledger === 'Select Ledger') {
+      showToast('Select a GL account first', 'warning'); return;
+    }
+    txn.status = 'posted';
+    const posted = DTL_TRANSACTIONS.filter(t=>t.status==='posted').length;
+    const pending = DTL_TRANSACTIONS.filter(t=>t.status==='pending').length;
+    document.getElementById('ct-posted').textContent = posted;
+    document.getElementById('ct-pending').textContent = pending;
+    showToast('Transaction matched to ' + txn.ledger, 'success');
+    renderDetailRows(dtlFilter, document.getElementById('dtl-search-input')?.value.toLowerCase()||'');
+    renderListingRows();
+  }
+
+  function categorizeTxn(id) {
+    const row = document.querySelector(`#dtl-tbody tr[data-id="${id}"]`);
+    const select = row?.querySelector('.dtl-match-select');
+    if (select) {
+      select.focus();
+      select.style.borderColor = 'var(--navy)';
+      setTimeout(() => { select.style.borderColor = ''; }, 1200);
+    }
+    const txn = DTL_TRANSACTIONS.find(t=>t.id===id);
+    showToast('Choose a GL account to categorize: ' + (txn?.desc||id), 'info');
+  }
+
+  function openNoteFor(id) {
+    const txn = DTL_TRANSACTIONS.find(t=>t.id===id);
+    if (!txn) return;
+    const note = window.prompt('Note for: ' + txn.desc, txn.note || '');
+    if (note === null) return;
+    txn.note = note;
+    txn.hasNote = note.trim().length > 0;
+    showToast(txn.hasNote ? 'Note saved' : 'Note cleared', 'success');
+    renderDetailRows(dtlFilter, document.getElementById('dtl-search-input')?.value.toLowerCase()||'');
+  }
+
+  function bulkMatchSelected() {
+    const cbs = document.querySelectorAll('#dtl-tbody .dtl-row-cb:checked');
+    if (!cbs.length) { showToast('Select transactions first','warning'); return; }
+    let matched = 0;
+    cbs.forEach(cb => {
+      const row = cb.closest('tr');
+      const id = parseInt(row.dataset.id);
+      const txn = DTL_TRANSACTIONS.find(t=>t.id===id);
+      if (txn && txn.ledger && txn.ledger !== 'Select Ledger') {
+        txn.status = 'posted'; matched++;
+      }
+    });
+    if (matched === 0) { showToast('Assign GL accounts to selected rows first','warning'); return; }
+    const posted = DTL_TRANSACTIONS.filter(t=>t.status==='posted').length;
+    const pending = DTL_TRANSACTIONS.filter(t=>t.status==='pending').length;
+    document.getElementById('ct-posted').textContent = posted;
+    document.getElementById('ct-pending').textContent = pending;
+    showToast(matched + ' transaction(s) matched', 'success');
+    renderDetailRows(dtlFilter, '');
+    renderListingRows();
+  }
+
+  function runAutoMatch() {
+    // Auto-match pending txns that have a recognisable description
+    const autoRules = [
+      { pattern:/Premium/i,     ledger:'1100 · Premium Receivable', fromto:'Customer / Insured' },
+      { pattern:/Settlement/i,  ledger:'2200 · Premium Payable',    fromto:'Carrier' },
+      { pattern:/RSA/i,        ledger:'1020 · Premium Trust',  fromto:'RSA Partners' },
+      { pattern:/LMI/i,        ledger:'1020 · Premium Trust',  fromto:'LMI Associates' },
+      { pattern:/AXIS/i,       ledger:'1020 · Premium Trust',  fromto:'AXIS Direct' },
+      { pattern:/Allied/i,     ledger:'5800 · Claims LAE',     fromto:'Allied Claims' },
+      { pattern:/Westfield/i,  ledger:'5500 · Reinsurance Ceded',fromto:'Westfield Reins.' },
+      { pattern:/Munich/i,     ledger:'5500 · Reinsurance Ceded',fromto:'Munich Re' },
+      { pattern:/Interest/i,   ledger:'4800 · Interest Income', fromto:'Futuristic Bank' },
+      { pattern:/Baker/i,      ledger:'6400 · Legal Fees',     fromto:'Baker McKenzie' },
+      { pattern:/Actuarial/i,  ledger:'6300 · Professional Fees',fromto:'Actuarial Partners' },
+      { pattern:/ISO/i,        ledger:'6500 · Regulatory',     fromto:'ISO Advisory' },
+      { pattern:/Nationwide/i, ledger:'1020 · Premium Trust',  fromto:'Nationwide Partners' },
+      { pattern:/IT Infra/i,   ledger:'6200 · IT Expense',     fromto:'IT Infrastructure' },
+    ];
+    let count = 0;
+    DTL_TRANSACTIONS.forEach(t => {
+      if (t.status !== 'pending') return;
+      const rule = autoRules.find(r => r.pattern.test(t.desc));
+      if (rule) { t.ledger = rule.ledger; t.fromto = rule.fromto; t.status = 'posted'; count++; }
+    });
+    const posted = DTL_TRANSACTIONS.filter(t=>t.status==='posted').length;
+    const pending = DTL_TRANSACTIONS.filter(t=>t.status==='pending').length;
+    document.getElementById('ct-posted').textContent = posted;
+    document.getElementById('ct-pending').textContent = pending;
+    showToast(count + ' transactions auto-matched successfully', 'success');
+    renderDetailRows(dtlFilter, '');
+    renderListingRows();
+  }
+
+  function saveDetailMatches() {
+    const posted = DTL_TRANSACTIONS.filter(t=>t.status==='posted').length;
+    showToast(posted + ' matched transactions saved to GL', 'success');
+    renderListingRows();
+  }
+
+  /* ── Split Modal ── */
+  let splitLines = [];
+
+  function openSplitModal(id) {
+    splitTxn = DTL_TRANSACTIONS.find(t=>t.id===id);
+    if (!splitTxn) return;
+    const total = splitTxn.spent || splitTxn.recv || 0;
+    document.getElementById('split-modal-desc').textContent = splitTxn.desc + ' · ' + fmtAmt(total);
+    document.getElementById('split-total-lbl').textContent = fmtAmt(total);
+    splitLines = [{ ledger:'', note:'', amt: total }];
+    renderSplitLines(total);
+    document.getElementById('split-modal').style.display = 'flex';
+  }
+
+  function closeSplitModal() {
+    document.getElementById('split-modal').style.display = 'none';
+    splitTxn = null; splitLines = [];
+  }
+
+  function renderSplitLines(total) {
+    const used = splitLines.reduce((s,l)=>s+(parseFloat(l.amt)||0),0);
+    const remaining = total - used;
+    document.getElementById('split-remaining').textContent = 'Remaining: ' + fmtAmt(remaining);
+    document.getElementById('split-remaining').style.color = Math.abs(remaining) < 0.01 ? '#2e7d32' : '#e65100';
+    document.getElementById('split-lines').innerHTML = splitLines.map((l,i)=>`
+      <div class="split-line" style="display:grid;grid-template-columns:1fr 120px auto;gap:8px;align-items:center;">
+        <select class="form-ctrl" style="font-size:12px;" onchange="splitLines[${i}].ledger=this.value">${glOptions(l.ledger)}</select>
+        <input type="number" class="form-ctrl" style="font-size:12px;" value="${l.amt||''}" placeholder="Amount"
+          oninput="splitLines[${i}].amt=parseFloat(this.value)||0;renderSplitLines(${total})">
+        ${splitLines.length>1?`<button onclick="removeSplitLine(${i},${total})" style="background:transparent;border:none;color:var(--red);cursor:pointer;font-size:16px;padding:0 4px;">✕</button>`:'<span></span>'}
+      </div>`).join('');
+  }
+
+  function addSplitLine() {
+    if (!splitTxn) return;
+    const total = splitTxn.spent || splitTxn.recv || 0;
+    splitLines.push({ ledger:'', note:'', amt:0 });
+    renderSplitLines(total);
+  }
+
+  function removeSplitLine(i, total) {
+    splitLines.splice(i,1);
+    renderSplitLines(total);
+  }
+
+  function saveSplit() {
+    if (!splitTxn) return;
+    const total = splitTxn.spent || splitTxn.recv || 0;
+    const used = splitLines.reduce((s,l)=>s+(parseFloat(l.amt)||0),0);
+    if (Math.abs(used - total) > 0.01) { showToast('Split amounts must equal total: ' + fmtAmt(total), 'warning'); return; }
+    const invalid = splitLines.some(l=>!l.ledger||l.ledger==='Select Ledger');
+    if (invalid) { showToast('Assign a GL account to each split line', 'warning'); return; }
+    splitTxn.status = 'posted'; splitTxn.ledger = splitLines.map(l=>l.ledger).join(' | ');
+    const posted = DTL_TRANSACTIONS.filter(t=>t.status==='posted').length;
+    const pending = DTL_TRANSACTIONS.filter(t=>t.status==='pending').length;
+    document.getElementById('ct-posted').textContent = posted;
+    document.getElementById('ct-pending').textContent = pending;
+    showToast('Transaction split across ' + splitLines.length + ' GL accounts', 'success');
+    closeSplitModal();
+    renderDetailRows(dtlFilter, '');
+    renderListingRows();
+  }
+
+  // Wire all [data-filter-input] search boxes
+  document.addEventListener('DOMContentLoaded', () => {
+    syncBankEntityOptions();
+    DTL_TRANSACTIONS = loadTransactions();
+    renderListingRows();
+    renderDetailRows('all', '');
+    renderApprovalsQueue();
+    renderReconHistory();
+    renderMonthClosing();
+
+    document.querySelectorAll('[data-filter-input]').forEach(inp => {
+      inp.addEventListener('input', function() {
+        const tableId = this.getAttribute('data-filter-input');
+        const table = document.getElementById(tableId);
+        if (!table) return;
+        const q = this.value.toLowerCase();
+        table.querySelectorAll('tbody tr').forEach(row => {
+          const isTotal = row.style.fontWeight === '700' || row.querySelector('td[colspan]');
+          if (isTotal) return;
+          row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+        });
+      });
+    });
+
+    // Responsive KPI grid
+    const apGrid = document.querySelector('.ap-kpi-grid');
+    if (apGrid && window.innerWidth <= 900) {
+      apGrid.style.gridTemplateColumns = 'repeat(3,1fr)';
+    }
+  });
+</script>
+</body>
+</html>

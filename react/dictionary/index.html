@@ -1,0 +1,1833 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Veridex - Finance & Insurance Dictionary</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+/* ─────────────────────────────────────────
+   DESIGN TOKENS
+───────────────────────────────────────── */
+:root {
+  /* Surface */
+  --bg:        #F5F6FA;
+  --surface-1: #FFFFFF;
+  --surface-2: #F0F2F7;
+  --surface-3: #E6E9F0;
+
+  /* Border */
+  --border-subtle:  rgba(0,0,0,.07);
+  --border-default: rgba(0,0,0,.12);
+  --border-strong:  rgba(0,0,0,.22);
+
+  /* Text */
+  --text-primary:   #0D1117;
+  --text-secondary: #4A5568;
+  --text-tertiary:  #9BA8BB;
+  --text-inverse:   #FFFFFF;
+
+  /* Brand */
+  --brand:       #5B6AFF;
+  --brand-dim:   rgba(91,106,255,.15);
+  --brand-hover: #6B79FF;
+
+  /* Status */
+  --success: #22C55E;
+  --warning: #F59E0B;
+  --error:   #EF4444;
+  --info:    #38BDF8;
+
+  /* Module accents */
+  --m-accounting:   #5B6AFF;
+  --m-claims:       #EF4444;
+  --m-policy:       #A78BFA;
+  --m-rating:       #22D3EE;
+  --m-reinsurance:  #22C55E;
+  --m-mga:          #F59E0B;
+  --m-compliance:   #F472B6;
+  --m-ops:          #94A3B8;
+  --m-tech:         #818CF8;
+
+  /* Radius */
+  --r-sm: 5px;
+  --r-md: 8px;
+  --r-lg: 12px;
+
+  /* Typography */
+  --font: 'Inter', -apple-system, sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+
+  /* Sidebar */
+  --sidebar-w: 240px;
+  --topbar-h: 52px;
+}
+
+/* ─────────────────────────────────────────
+   RESET + BASE
+───────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 14px; }
+body {
+  font-family: var(--font);
+  background: var(--bg);
+  color: var(--text-primary);
+  min-height: 100vh;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+button { font-family: var(--font); cursor: pointer; border: none; background: none; }
+input  { font-family: var(--font); }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 99px; }
+mark {
+  background: rgba(91,106,255,.25);
+  color: #b4bcff;
+  border-radius: 3px;
+  padding: 0 2px;
+}
+
+/* ─────────────────────────────────────────
+   APP SHELL
+───────────────────────────────────────── */
+.shell {
+  display: grid;
+  grid-template-columns: var(--sidebar-w) 1fr;
+  grid-template-rows: var(--topbar-h) 1fr;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ─────────────────────────────────────────
+   TOPBAR
+───────────────────────────────────────── */
+.topbar {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  gap: 0;
+  background: var(--surface-1);
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 0;
+  z-index: 100;
+}
+.topbar-brand {
+  width: var(--sidebar-w);
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 0 18px;
+  border-right: 1px solid var(--border-subtle);
+  height: 100%;
+  flex-shrink: 0;
+}
+.brand-logo {
+  width: 26px; height: 26px;
+  background: var(--brand);
+  border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: #fff;
+  letter-spacing: -.5px;
+  flex-shrink: 0;
+}
+.brand-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -.01em;
+}
+.brand-version {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-tertiary);
+  background: var(--surface-3);
+  padding: 2px 5px;
+  border-radius: var(--r-sm);
+  margin-left: auto;
+}
+.topbar-center {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 12px;
+}
+.search-field {
+  position: relative;
+  flex: 1;
+  max-width: 420px;
+}
+.search-field i {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-tertiary);
+  font-size: 12px;
+  pointer-events: none;
+}
+.search-field input {
+  width: 100%;
+  height: 32px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-md);
+  color: var(--text-primary);
+  font-size: 13px;
+  padding: 0 32px 0 32px;
+  outline: none;
+  transition: border-color .15s, background .15s;
+}
+.search-field input::placeholder { color: var(--text-tertiary); }
+.search-field input:focus {
+  border-color: var(--brand);
+  background: var(--surface-1);
+  box-shadow: 0 0 0 3px var(--brand-dim);
+}
+.search-clear {
+  position: absolute;
+  right: 8px; top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-tertiary);
+  font-size: 11px;
+  display: none;
+  padding: 3px;
+  border-radius: 3px;
+}
+.search-clear:hover { color: var(--text-secondary); }
+
+/* Source filter pills */
+.src-filters {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-md);
+  padding: 3px;
+}
+.src-pill {
+  padding: 3px 10px;
+  border-radius: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+  transition: all .12s;
+  white-space: nowrap;
+}
+.src-pill:hover { color: var(--text-primary); background: var(--surface-3); }
+.src-pill.active {
+  background: var(--surface-1);
+  color: var(--text-primary);
+  box-shadow: 0 1px 3px rgba(0,0,0,.4);
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  border-left: 1px solid var(--border-subtle);
+  height: 100%;
+}
+.icon-btn {
+  width: 30px; height: 30px;
+  border-radius: var(--r-md);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--text-secondary);
+  font-size: 13px;
+  transition: all .12s;
+}
+.icon-btn:hover { background: var(--surface-2); color: var(--text-primary); }
+
+/* ─────────────────────────────────────────
+   SIDEBAR
+───────────────────────────────────────── */
+.sidebar {
+  grid-column: 1;
+  grid-row: 2;
+  background: var(--surface-1);
+  border-right: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.sidebar-section-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 16px 16px 6px;
+}
+.sidebar-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 4px 8px 16px;
+}
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0;
+  padding: 0 8px;
+  height: 34px;
+  border-radius: var(--r-md);
+  color: var(--text-secondary);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all .12s;
+  position: relative;
+  overflow: hidden;
+  border: 1px solid transparent;
+  margin-bottom: 1px;
+}
+.nav-item:hover {
+  color: var(--text-primary);
+  background: var(--surface-2);
+}
+.nav-item.active {
+  color: var(--text-primary);
+  background: var(--surface-2);
+  border-color: var(--border-default);
+}
+/* Heat bar - the signature element */
+.nav-heat {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  border-radius: var(--r-md) 0 0 var(--r-md);
+  width: 3px;
+  opacity: 0;
+  transition: opacity .2s;
+}
+.nav-item.active .nav-heat { opacity: 1; }
+.nav-item:hover .nav-heat { opacity: .4; }
+
+.nav-icon {
+  width: 28px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px;
+  flex-shrink: 0;
+  color: var(--text-tertiary);
+  transition: color .12s;
+}
+.nav-item:hover .nav-icon,
+.nav-item.active .nav-icon { color: inherit; }
+.nav-label { flex: 1; }
+.nav-count {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text-tertiary);
+  font-weight: 400;
+  tabular-nums: initial;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Sidebar stats footer */
+.sidebar-footer {
+  border-top: 1px solid var(--border-subtle);
+  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.stat-chip {
+  background: var(--surface-2);
+  border-radius: var(--r-md);
+  padding: 7px 10px;
+}
+.stat-chip-val {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+}
+.stat-chip-label {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  color: var(--text-tertiary);
+  letter-spacing: .04em;
+  margin-top: 1px;
+}
+
+/* ─────────────────────────────────────────
+   MAIN CONTENT
+───────────────────────────────────────── */
+.main {
+  grid-column: 2;
+  grid-row: 2;
+  overflow-y: auto;
+  background: var(--bg);
+}
+.main-inner {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 28px 32px 64px;
+}
+
+/* Module section header */
+.module-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.module-icon-wrap {
+  width: 36px; height: 36px;
+  border-radius: var(--r-lg);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 14px;
+  flex-shrink: 0;
+}
+.module-title {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -.015em;
+}
+.module-meta {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+  margin-top: 1px;
+}
+.module-section { margin-bottom: 44px; }
+
+/* ─────────────────────────────────────────
+   TERM CARDS
+───────────────────────────────────────── */
+.term-list { display: flex; flex-direction: column; gap: 4px; }
+
+.tc {
+  background: var(--surface-1);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+  transition: border-color .15s;
+}
+.tc:hover { border-color: var(--border-default); }
+.tc.open { border-color: var(--border-default); }
+
+.tc-head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 13px 16px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+.tc-head:hover { background: rgba(255,255,255,.015); }
+
+.tc-name {
+  flex: 1;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -.01em;
+  min-width: 0;
+}
+.tc-badges {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+/* Source badge */
+.badge {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  font-weight: 500;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: .05em;
+  text-transform: uppercase;
+  border: 1px solid;
+}
+.badge-naic     { color: #4ade80; background: rgba(74,222,128,.08); border-color: rgba(74,222,128,.2); }
+.badge-veridex{ color: #93c5fd; background: rgba(147,197,253,.08); border-color: rgba(147,197,253,.2); }
+.badge-both     { color: #fcd34d; background: rgba(252,211,77,.08);  border-color: rgba(252,211,77,.2); }
+.badge-mod {
+  font-size: 10px;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid;
+  letter-spacing: .01em;
+  white-space: nowrap;
+  font-family: var(--font);
+}
+
+.tc-chevron {
+  color: var(--text-tertiary);
+  font-size: 10px;
+  flex-shrink: 0;
+  transition: transform .18s;
+}
+.tc.open .tc-chevron { transform: rotate(90deg); }
+
+.tc-body {
+  display: none;
+  padding: 0 16px 16px;
+  border-top: 1px solid var(--border-subtle);
+}
+.tc.open .tc-body { display: block; }
+
+.tc-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding-top: 12px;
+  margin-bottom: 10px;
+}
+.tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text-tertiary);
+  background: var(--surface-3);
+  border: 1px solid var(--border-subtle);
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: .03em;
+}
+.tc-definition {
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--text-secondary);
+}
+.tc-definition b {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+/* ─────────────────────────────────────────
+   EMPTY STATE
+───────────────────────────────────────── */
+.empty {
+  text-align: center;
+  padding: 80px 24px;
+}
+.empty-icon {
+  width: 48px; height: 48px;
+  background: var(--surface-2);
+  border-radius: var(--r-lg);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  color: var(--text-tertiary);
+  margin: 0 auto 16px;
+}
+.empty h3 {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+.empty p {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 20px;
+}
+.btn-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 14px;
+  background: var(--brand);
+  color: #fff;
+  border-radius: var(--r-md);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background .12s;
+  border: none;
+}
+.btn-reset:hover { background: var(--brand-hover); }
+
+/* ─────────────────────────────────────────
+   INLINE MODULE BADGE (search/all view)
+───────────────────────────────────────── */
+.module-divider {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-tertiary);
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 18px 0 8px;
+}
+.module-divider:first-child { padding-top: 0; }
+
+/* ─────────────────────────────────────────
+   RESULT COUNT BAR
+───────────────────────────────────────── */
+.results-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.results-bar-text {
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.results-bar-text strong {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+/* ─────────────────────────────────────────
+   UTILITIES
+───────────────────────────────────────── */
+@media (max-width: 800px) {
+  .sidebar { display: none; }
+  .shell { grid-template-columns: 1fr; }
+  .main-inner { padding: 16px 16px 48px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition-duration: .001ms !important; }
+}
+
+/* ── ADD TERM MODAL ─────────────────────────────────── */
+.modal-overlay {
+  display: none; position: fixed; inset: 0; z-index: 9000;
+  background: rgba(0,0,0,.65); backdrop-filter: blur(4px);
+  align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; animation: fadeIn .18s ease; }
+@keyframes fadeIn { from{opacity:0} to{opacity:1} }
+
+.modal-box {
+  background: var(--surface-1);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-lg);
+  width: 560px; max-width: 95vw;
+  max-height: 90vh; overflow-y: auto;
+  box-shadow: 0 24px 64px rgba(0,0,0,.5);
+  animation: slideUp .2s ease;
+}
+@keyframes slideUp { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
+
+.modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 24px 16px; border-bottom: 1px solid var(--border-subtle);
+}
+.modal-head h2 { font-size: 15px; font-weight: 600; color: var(--text-primary); display:flex; align-items:center; gap:8px; }
+.modal-head h2 i { color: var(--brand); }
+.modal-close {
+  width: 30px; height: 30px; border-radius: var(--r-sm);
+  background: var(--surface-2); color: var(--text-secondary);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 14px; border: none;
+  transition: background .15s, color .15s;
+}
+.modal-close:hover { background: var(--surface-3); color: var(--text-primary); }
+
+.modal-body { padding: 24px; display: flex; flex-direction: column; gap: 18px; }
+
+.form-row { display: flex; flex-direction: column; gap: 6px; }
+.form-row label {
+  font-size: 11px; font-weight: 600; letter-spacing: .06em;
+  text-transform: uppercase; color: var(--text-secondary);
+}
+.form-row label span { color: var(--error); margin-left: 2px; }
+
+.form-row select,
+.form-row input[type="text"],
+.form-row textarea {
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-sm);
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: 13px;
+  padding: 9px 12px;
+  outline: none;
+  transition: border-color .15s;
+  width: 100%;
+}
+.form-row select:focus,
+.form-row input[type="text"]:focus,
+.form-row textarea:focus { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-dim); }
+.form-row textarea { min-height: 110px; resize: vertical; line-height: 1.6; }
+
+.tag-input-wrap {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-sm);
+  padding: 6px 8px; cursor: text;
+  min-height: 40px; align-items: center;
+  transition: border-color .15s;
+}
+.tag-input-wrap:focus-within { border-color: var(--brand); box-shadow: 0 0 0 3px var(--brand-dim); }
+.tag-pill {
+  display: flex; align-items: center; gap: 4px;
+  background: var(--brand-dim); color: #b4bcff;
+  border-radius: 99px; padding: 2px 8px 2px 10px;
+  font-size: 11px; font-weight: 500;
+}
+.tag-pill button { background:none;border:none;color:#b4bcff;cursor:pointer;font-size:13px;line-height:1;padding:0; }
+.tag-pill button:hover { color:#fff; }
+.tag-input {
+  background: none; border: none; outline: none;
+  color: var(--text-primary); font-size: 13px;
+  font-family: var(--font); min-width: 80px; flex: 1;
+}
+.tag-hint { font-size: 11px; color: var(--text-tertiary); margin-top: 3px; }
+
+.source-row { display: flex; gap: 8px; }
+.src-chip {
+  flex: 1; padding: 8px 10px; border-radius: var(--r-sm);
+  border: 1px solid var(--border-default);
+  background: var(--surface-2); color: var(--text-secondary);
+  font-size: 12px; font-weight: 500; cursor: pointer; text-align: center;
+  transition: all .15s;
+}
+.src-chip:hover { border-color: var(--border-strong); color: var(--text-primary); }
+.src-chip.active { border-color: var(--brand); background: var(--brand-dim); color: #b4bcff; }
+
+.modal-foot {
+  padding: 16px 24px 20px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex; gap: 10px; justify-content: flex-end;
+}
+.btn-cancel {
+  padding: 8px 18px; border-radius: var(--r-sm);
+  background: var(--surface-2); color: var(--text-secondary);
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  border: 1px solid var(--border-default);
+  transition: all .15s;
+}
+.btn-cancel:hover { background: var(--surface-3); color: var(--text-primary); }
+.btn-save {
+  padding: 8px 22px; border-radius: var(--r-sm);
+  background: var(--brand); color: #fff;
+  font-size: 13px; font-weight: 600; cursor: pointer; border: none;
+  transition: background .15s, transform .1s; display: flex; align-items: center; gap: 7px;
+}
+.btn-save:hover { background: var(--brand-hover); }
+.btn-save:active { transform: scale(.97); }
+.btn-save:disabled { opacity:.45; cursor:not-allowed; }
+
+.form-hint { font-size: 11px; color: var(--text-tertiary); margin-top: 3px; }
+
+/* preview strip */
+.preview-strip {
+  display: none; background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-sm); padding: 12px 14px;
+}
+.preview-strip.show { display: block; }
+.preview-strip .ps-name { font-size: 13px; font-weight: 600; color: var(--text-primary); margin-bottom: 4px; }
+.preview-strip .ps-def  { font-size: 12px; color: var(--text-secondary); line-height: 1.6; }
+
+/* Add Term button in topbar */
+.btn-add-term {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--brand); color: #fff;
+  border: none; border-radius: var(--r-sm);
+  padding: 7px 14px; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: background .15s;
+}
+.btn-add-term:hover { background: var(--brand-hover); }
+.btn-add-term i { font-size: 12px; }
+
+/* Toast */
+.toast-wrap { position:fixed; bottom:24px; right:24px; z-index:9999; display:flex; flex-direction:column; gap:8px; }
+.toast {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface-1); border: 1px solid var(--border-default);
+  border-radius: var(--r-md); padding: 12px 16px;
+  font-size: 13px; color: var(--text-primary);
+  box-shadow: 0 8px 24px rgba(0,0,0,.4);
+  animation: slideUp .2s ease;
+}
+.toast i { color: var(--success); font-size: 16px; }
+.toast.err i { color: var(--error); }
+/* export panel */
+.export-panel {
+  display:none; position:fixed; inset:0; z-index:9001;
+  background:rgba(0,0,0,.7); backdrop-filter:blur(4px);
+  align-items:center; justify-content:center;
+}
+.export-panel.open { display:flex; }
+.export-box {
+  background:var(--surface-1); border:1px solid var(--border-default);
+  border-radius:var(--r-lg); width:580px; max-width:96vw;
+  max-height:80vh; display:flex; flex-direction:column;
+  box-shadow:0 24px 64px rgba(0,0,0,.5);
+}
+.export-head { display:flex; align-items:center; justify-content:space-between; padding:16px 20px; border-bottom:1px solid var(--border-subtle); }
+.export-head h2 { font-size:14px; font-weight:600; display:flex; align-items:center; gap:8px; color:var(--text-primary); }
+.export-head h2 i { color:var(--brand); }
+.export-body { padding:16px 20px; flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:12px; }
+.export-note { font-size:12px; color:var(--text-secondary); line-height:1.6; background:var(--surface-2); padding:10px 12px; border-radius:var(--r-sm); border-left:3px solid var(--brand); }
+.export-code {
+  font-family:var(--mono); font-size:11px; color:#a5b4fc;
+  background:var(--surface-3); padding:14px; border-radius:var(--r-sm);
+  white-space:pre-wrap; word-break:break-all; max-height:320px; overflow-y:auto;
+  border:1px solid var(--border-subtle);
+}
+.export-foot { padding:12px 20px; border-top:1px solid var(--border-subtle); display:flex; gap:8px; justify-content:flex-end; }
+
+
+/* ── DELETE TERM ─────────────────────────────────── */
+.tc-body-footer {
+  display: flex; justify-content: flex-end;
+  margin-top: 12px; padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+}
+.btn-delete-term {
+  display: flex; align-items: center; gap: 5px;
+  background: none; border: 1px solid rgba(239,68,68,.3);
+  color: #EF4444; border-radius: var(--r-sm);
+  padding: 5px 12px; font-size: 11px; font-weight: 600;
+  cursor: pointer; transition: all .15s; font-family: var(--font);
+}
+.btn-delete-term:hover { background: rgba(239,68,68,.08); border-color: #EF4444; }
+
+/* Password Modal */
+.pw-overlay {
+  display: none; position: fixed; inset: 0; z-index: 9100;
+  background: rgba(0,0,0,.55); backdrop-filter: blur(4px);
+  align-items: center; justify-content: center;
+}
+.pw-overlay.open { display: flex; animation: fadeIn .18s ease; }
+.pw-box {
+  background: var(--surface-1); border: 1px solid var(--border-default);
+  border-radius: var(--r-lg); width: 380px; max-width: 94vw;
+  box-shadow: 0 24px 64px rgba(0,0,0,.35);
+  animation: slideUp .2s ease; overflow: hidden;
+}
+.pw-head {
+  padding: 18px 20px 14px; border-bottom: 1px solid var(--border-subtle);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.pw-head h2 { font-size: 14px; font-weight: 600; color: var(--text-primary); display:flex; align-items:center; gap:8px; }
+.pw-head h2 i { color: #EF4444; }
+.pw-body { padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+.pw-term-name {
+  background: var(--surface-2); border-radius: var(--r-sm);
+  padding: 8px 12px; font-size: 13px; color: var(--text-primary);
+  border-left: 3px solid #EF4444; font-weight: 500;
+}
+.pw-label { font-size: 11px; font-weight: 600; color: var(--text-secondary); text-transform:uppercase; letter-spacing:.06em; margin-bottom:5px; }
+.pw-input {
+  width: 100%; background: var(--surface-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--r-sm); color: var(--text-primary);
+  font-family: var(--font); font-size: 15px; padding: 10px 12px;
+  outline: none; letter-spacing: 4px; text-align: center;
+  transition: border-color .15s;
+}
+.pw-input:focus { border-color: #EF4444; box-shadow: 0 0 0 3px rgba(239,68,68,.15); }
+.pw-input.shake { animation: shake .35s ease; }
+.pw-error { font-size: 12px; color: #EF4444; text-align: center; min-height: 16px; }
+@keyframes shake {
+  0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)}
+  40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)}
+}
+.pw-foot {
+  padding: 12px 20px 16px; border-top: 1px solid var(--border-subtle);
+  display: flex; gap: 8px; justify-content: flex-end;
+}
+.btn-pw-cancel {
+  padding: 7px 16px; border-radius: var(--r-sm);
+  background: var(--surface-2); color: var(--text-secondary);
+  font-size: 13px; font-weight: 500; cursor: pointer;
+  border: 1px solid var(--border-default); font-family: var(--font);
+  transition: all .15s;
+}
+.btn-pw-cancel:hover { background: var(--surface-3); color: var(--text-primary); }
+.btn-pw-confirm {
+  padding: 7px 18px; border-radius: var(--r-sm);
+  background: #EF4444; color: #fff;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  border: none; font-family: var(--font); transition: background .15s;
+  display: flex; align-items: center; gap: 6px;
+}
+.btn-pw-confirm:hover { background: #DC2626; }
+
+</style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- ── TOPBAR ── -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <div class="brand-logo">SL</div>
+      <span class="brand-name">Dictionary</span>
+      <span class="brand-version">v4.2</span>
+    </div>
+
+    <div class="topbar-center">
+      <div class="search-field">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="searchInput" placeholder="Search terms, definitions, tags…" oninput="onSearch()" autocomplete="off" spellcheck="false">
+        <button class="search-clear" id="clearBtn" onclick="clearSearch()" aria-label="Clear search">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+
+      <div class="src-filters" role="group" aria-label="Filter by source">
+        <button class="src-pill active" id="src-all"       onclick="setSrc('all')">All</button>
+        <button class="src-pill"        id="src-naic"      onclick="setSrc('naic')">NAIC</button>
+        <button class="src-pill"        id="src-veridex" onclick="setSrc('veridex')">Veridex</button>
+        <button class="src-pill"        id="src-both"      onclick="setSrc('both')">Both</button>
+      </div>
+    </div>
+
+    <div class="topbar-actions">
+            <button class="btn-add-term" onclick="openAddTerm()" title="Add a new term to the dictionary" aria-label="Add Term">
+        <i class="fa-solid fa-circle-plus"></i> Add Term
+      </button>
+      <button class="btn-add-term" id="exportBtn" onclick="openExport()" title="Export new terms added this session" aria-label="Export new terms" style="display:none;background:var(--surface-2);color:var(--text-secondary);border:1px solid var(--border-default);">
+        <i class="fa-solid fa-file-export"></i> Export
+      </button>
+
+    </div>
+  </header>
+
+  <!-- ── SIDEBAR ── -->
+  <nav class="sidebar" aria-label="Module navigation">
+    <div class="sidebar-section-label">Modules</div>
+    <div class="sidebar-scroll" id="sidebarNav"></div>
+    <div class="sidebar-footer">
+      <div class="stat-chip">
+        <div class="stat-chip-val" id="statTotal"> - </div>
+        <div class="stat-chip-label">TOTAL TERMS</div>
+      </div>
+      <div class="stat-chip">
+        <div class="stat-chip-val">10</div>
+        <div class="stat-chip-label">MODULES</div>
+      </div>
+      <div class="stat-chip">
+        <div class="stat-chip-val" id="statNaic"> - </div>
+        <div class="stat-chip-label">NAIC STD</div>
+      </div>
+      <div class="stat-chip">
+        <div class="stat-chip-val" id="statSl"> - </div>
+        <div class="stat-chip-label">SL SPEC</div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- ── MAIN ── -->
+  <main class="main" id="mainScroll">
+    <div class="main-inner" id="mainContent"></div>
+  </main>
+
+</div>
+
+<script>
+const MODULES=[
+  {id:"all",                    label:"All Modules",             icon:"fa-layer-group",  color:"#5B6AFF"},
+  {id:"Accounting & Finance",   label:"Accounting & Finance",    icon:"fa-calculator",   color:"#5B6AFF"},
+  {id:"Claims",                 label:"Claims",                  icon:"fa-file-invoice-dollar", color:"#EF4444"},
+  {id:"Policy Management",      label:"Policy Management",       icon:"fa-file-contract",color:"#A78BFA"},
+  {id:"Rating & Underwriting",  label:"Rating & Underwriting",   icon:"fa-chart-line",   color:"#22D3EE"},
+  {id:"Reinsurance",            label:"Reinsurance",             icon:"fa-shield-halved",color:"#22C55E"},
+  {id:"MGA & Distribution",     label:"MGA & Distribution",      icon:"fa-handshake",    color:"#F59E0B"},
+  {id:"Compliance & Regulatory",label:"Compliance & Regulatory", icon:"fa-scale-balanced",color:"#F472B6"},
+  {id:"Operations & Controls",  label:"Operations & Controls",   icon:"fa-gears",        color:"#94A3B8"},
+  {id:"Technology & Systems",   label:"Technology & Systems",    icon:"fa-database",     color:"#818CF8"},
+];
+
+const TERMS=[
+{name:"7-Day Close Checklist",source:"veridex",module:"Accounting & Finance",tags:["Finance","Operations","Close Process"],definition:"Veridex's structured month-end close process. Day 1: Premium recognition. Day 2: Reserve roll-forward. Day 3: Reinsurance cessions. Day 4: MGA settlements and commission accruals. Day 5: Bank reconciliation. Day 6: Intercompany settlements. Day 7: Period lock and publication."},
+{name:"ABR (Adjusted Base Rate)",source:"veridex",module:"Rating & Underwriting",tags:["Rating","Physical Damage"],definition:"Used in Physical Damage (PD) rating. The modified rate per $100 of stated vehicle value. Pulled from the base rate table matching the vehicle value, then multiplied by rating factors such as deductible type, radius of operation, and trailer type. Formula: PD Premium = (Stated Value ÷ 100) × ABR."},
+{name:"Accident",source:"naic",module:"Claims",tags:["Claims","General"],definition:"An unexpected event or circumstance without deliberate intent that results in property damage, bodily injury, or financial loss."},
+{name:"Accident Insurance",source:"naic",module:"Claims",tags:["Claims","Health"],definition:"Insurance providing coverage for unforeseen, accidental bodily injury, medical costs, or associated death."},
+{name:"Accidental Death & Dismemberment (AD&D)",source:"naic",module:"Claims",tags:["Claims","Benefits"],definition:"An insurance contract that pays a stated contract benefit in the event of death and/or dismemberment caused directly by an accident or specific accidental peril."},
+{name:"Accounts Payable (AP)",source:"veridex",module:"Accounting & Finance",tags:["Accounting","ERP Module"],definition:"Money the carrier or MGA owes to others (vendors, reinsurers, claims payees). If cash flows OUT, the transaction posts to the AP sub-ledger. Managed in Veridex's AP module with automated OCR invoice capture, multi-stage approvals, and 1099 compliance tax checking."},
+{name:"Accounts Receivable (AR)",source:"veridex",module:"Accounting & Finance",tags:["Accounting","ERP Module"],definition:"Money owed to Veridex by third parties (brokers, policyholders, or MGAs). Underwriting and binding a policy increases AR; receiving and applying cash receipts decreases AR to zero."},
+{name:"Accrual",source:"veridex",module:"Accounting & Finance",tags:["Accounting","Period Close"],definition:"The practice of recording revenue or expenses in the period they were earned or incurred, regardless of when cash physically moves. Veridex automatically accrues premium taxes, commission expenses, and earned premiums."},
+{name:"Actual Cash Value",source:"naic",module:"Claims",tags:["Claims","Property"],definition:"Repayment value for indemnification due to loss or damage of physical property. Typically calculated as replacement cost minus depreciation based on age, usage, and wear."},
+{name:"Actuarial Excel / Accelerator",source:"veridex",module:"Rating & Underwriting",tags:["Rating","Integration"],definition:"The definitive Excel workbook provided by actuaries defining the rating factors, coefficients, and equations for a specific line. Serves as the master source of truth for the Digital Rater system which must mirror the math cell-by-cell."},
+{name:"Actuarial Report",source:"naic",module:"Compliance & Regulatory",tags:["Legal","Regulatory"],definition:"A formal regulatory document stating the actuary's conclusions, methods, and procedures regarding reserves and liability estimations. Life and health lines call this an Actuarial Memorandum."},
+{name:"Actuary",source:"both",module:"Rating & Underwriting",tags:["SME","Risk Management"],definition:"A professional who analyzes mathematical probabilities of risk, calculates premiums, and projects loss reserves. In Veridex's setup, our actuarial team sets the critical IBNR coefficients and reviews the Digital Rater formulas."},
+{name:"Adjuster",source:"naic",module:"Claims",tags:["Claims","SME"],definition:"An insurance professional who investigates reported claims, verifies policy coverages, and recommends equitable settlement options."},
+{name:"Admitted Assets",source:"naic",module:"Accounting & Finance",tags:["Accounting","Balance Sheet"],definition:"Insurer assets recognized under statutory accounting guidelines that can be included on the official balance sheet to measure solvency."},
+{name:"Admitted Company",source:"naic",module:"Compliance & Regulatory",tags:["Regulatory","Legal"],definition:"An insurance company licensed to write business in a state, conforming to local rate and form filings."},
+{name:"Advance Premiums",source:"naic",module:"Accounting & Finance",tags:["Accounting","Premiums"],definition:"Premiums paid prior to the effective date. Classified as liabilities and excluded from written premiums or unearned premium reserves until coverage goes active."},
+{name:"Adverse Selection",source:"naic",module:"Rating & Underwriting",tags:["Underwriting","General"],definition:"The tendency of individuals with a higher-than-average probability of loss to seek greater levels of insurance coverage than lower-risk insureds."},
+{name:"Agent",source:"both",module:"MGA & Distribution",tags:["MGA","Distribution"],definition:"An individual licensed to sell, service, and negotiate insurance policies. In Veridex's commercial trucking programs, the retail agent is the direct link between the trucking owner-operator and the MGA."},
+{name:"Aggregate",source:"naic",module:"Rating & Underwriting",tags:["Underwriting","Limits"],definition:"The maximum cumulative dollar amount or limit of liability coverage payable during a policy period or across a specific program treaty."},
+{name:"AI Email/PDF Extraction",source:"veridex",module:"Technology & Systems",tags:["Operations","Technology"],definition:"An AI-powered tool that ingests incoming submission emails and PDF files, extracts critical fleet data (VINs, driver histories), and auto-populates quote fields to eliminate manual indexing by CSRs."},
+{name:"ALAE (Allocated Loss Adjustment Expense)",source:"both",module:"Claims",tags:["Claims","Accounting"],definition:"Claims processing costs directly associated with a specific individual claim. Includes legal fees, independent expert witnesses, medical evaluations, and independent adjuster fees. Tracked at the claim level in Edge Claims."},
+{name:"Alien Company",source:"naic",module:"Compliance & Regulatory",tags:["Regulatory","Legal"],definition:"An insurance company formed under the laws of a foreign country but writing business inside a US state under local regulatory oversight."},
+{name:"All-Risk",source:"naic",module:"Policy Management",tags:["Property","Underwriting"],definition:"Also known as open peril coverage. A property policy that covers all losses except those specifically excluded in the policy language."},
+{name:"Allied Lines",source:"naic",module:"Policy Management",tags:["Property","LOB"],definition:"Property coverages written closely alongside standard fire insurance, including windstorm, hail, and water damage."},
+{name:"Annual Statement (Yellow Book)",source:"both",module:"Compliance & Regulatory",tags:["Accounting","Regulatory"],definition:"The comprehensive annual financial report P&C carriers must file with state insurance departments per NAIC standards. Veridex exports Schedule F, P, and T records directly to populate this."},
+{name:"Annuitant",source:"naic",module:"Policy Management",tags:["Health","Benefits"],definition:"The beneficiary designated to receive payments under an active annuity contract."},
+{name:"Annuity",source:"naic",module:"Policy Management",tags:["Health","Financial"],definition:"A contract providing long-term periodic income for a specified period or the duration of a recipient's life."},
+{name:"API Gateway",source:"veridex",module:"Technology & Systems",tags:["Technology","Integration"],definition:"The security and routing layer managing REST APIs and webhooks between Veridex systems, third-party banking platforms, external MGAs, and state reporting authorities."},
+{name:"Application Type (App Type)",source:"veridex",module:"Technology & Systems",tags:["Database","Architecture"],definition:"The fundamental configuration object in Veridex's policy administration system. Defines a unique combination of risk-bearing company, administrative fronting entity, coverage sets, and rating configurations. (e.g. App Type ID 483 = Digital Rater program)."},
+{name:"Appraisal",source:"naic",module:"Claims",tags:["Claims","Property"],definition:"A formal estimation of the value of physical property performed by an authorized appraiser to settle claims or underwrite assets."},
+{name:"Approval Matrix",source:"veridex",module:"Operations & Controls",tags:["Operations","Audit"],definition:"The configurable system-enforced authorization ruleset. Defines approval ceilings for journal entries, premium write-offs, and claims settlements based on user role, amount, LOB, and state."},
+{name:"Arbitration",source:"naic",module:"Claims",tags:["Legal","Claims"],definition:"A binding or non-binding dispute resolution process where an independent third party intercedes to resolve claim valuation or coverage disputes."},
+{name:"Asset",source:"naic",module:"Accounting & Finance",tags:["Accounting","Balance Sheet"],definition:"Probable future economic benefits obtained or controlled by an entity as a result of past business transactions."},
+{name:"Assumed Reinsurance",source:"naic",module:"Reinsurance",tags:["Reinsurance","Underwriting"],definition:"The insurance risk that a reinsurance company accepts from a primary ceding carrier under a reinsurance treaty or contract."},
+{name:"Audit Pack",source:"veridex",module:"Operations & Controls",tags:["Compliance","Audit"],definition:"An automated compilation of balance sheets, general ledger postings, cash reconciliations, and exception logs exported as a secure package for external auditors and state examiners."},
+{name:"Audit Trail",source:"veridex",module:"Operations & Controls",tags:["Technology","Audit"],definition:"An immutable database log recording every user action, including database edits, before-and-after values of quotes, approval records, and logins. This log cannot be modified or bypassed."},
+{name:"Auto Liability (AL) - 20 Series",source:"both",module:"Policy Management",tags:["LOB","Database"],definition:"The core commercial auto coverage protecting fleet operators against legal liabilities for bodily injury or third-party property damage. Represented by 20 Series codes (e.g. Sub-codes 21, 22, 23, 24)."},
+{name:"Auto Physical Damage",source:"naic",module:"Policy Management",tags:["Property","LOB"],definition:"Insurance covering material damage to the policyholder's own insured vehicles, including collision, comprehensive, vandalism, and theft."},
+{name:"Auto-Split Engine",source:"veridex",module:"MGA & Distribution",tags:["Accounting","MGA Settlement"],definition:"An automated utility that ingests bulk MGA settlement payments, parsing them against the corresponding electronic bordereau files to distribute cash allocations to individual policies, installments, and fees."},
+{name:"Balance Sheet",source:"both",module:"Accounting & Finance",tags:["Accounting","Reporting"],definition:"A fundamental financial statement detailing the company's assets, liabilities, and policyholder surplus on a specific date. Veridex's dashboard generates this in real time under both GAAP and Statutory guidelines."},
+{name:"Batch Processing / Scheduled Job",source:"veridex",module:"Technology & Systems",tags:["Technology","Operations"],definition:"The scheduled execution of heavy database workloads, such as automated reserve roll-forwards, unearned premium evaluations, and periodic reporting updates."},
+{name:"Beneficiary",source:"naic",module:"Policy Management",tags:["Benefits","General"],definition:"The designated individual or entity designated to receive the proceeds or benefits of an insurance contract or trust."},
+{name:"Bind / Binding",source:"veridex",module:"Policy Management",tags:["Underwriting","Operations"],definition:"The formal act of putting insurance coverage in force. Transitions a quote to 'Bound Invoiced' status and triggers automated invoice generation, sub-ledger posting, and premium tax accruals."},
+{name:"Bodily Injury",source:"naic",module:"Claims",tags:["Claims","Legal"],definition:"Physical injury, sickness, disease, or death sustained by a person because of covered accident perils."},
+{name:"Bordereau",source:"veridex",module:"MGA & Distribution",tags:["MGA Settlement","Reporting"],definition:"A standardized transaction log uploaded monthly by an MGA. Premium bordereaux detail policies issued and premiums collected; loss bordereaux detail claims filed and payments distributed."},
+{name:"Broker",source:"both",module:"MGA & Distribution",tags:["MGA","Distribution"],definition:"An independent intermediary representing the retail buyer. Unlike captive agents, brokers are not contractually bound to one insurer. In Veridex's accounting, brokers often act as the primary AR sub-ledger party."},
+{name:"Broker Service Fee",source:"veridex",module:"Accounting & Finance",tags:["Accounting","Fees"],definition:"An administrative charge auto-calculated at 3.5% of total written premium (with a $250 floor limit) for new business quotes. Automatically added to the invoice and cannot be manually deleted by users."},
+{name:"Business Interruption",source:"naic",module:"Policy Management",tags:["Property","LOB"],definition:"Insurance protecting against loss of operational income and ongoing fixed business expenses following damage to physical facilities by covered perils."},
+{name:"Cancellation",source:"both",module:"Policy Management",tags:["Underwriting","Accounting"],definition:"The termination of an active policy before its official expiration. Triggers unearned premium calculations (pro-rata or short-rate) and potential return premium. Requires special handling if premium was financed."},
+{name:"Capital and Surplus",source:"naic",module:"Accounting & Finance",tags:["Accounting","Regulatory"],definition:"The margin by which an insurer's admitted assets exceed its liabilities, serving as the financial cushion for absorbing unexpected underwriting losses."},
+{name:"Captive Agent",source:"naic",module:"MGA & Distribution",tags:["Distribution","SME"],definition:"An individual who sells or services insurance contracts exclusively for one specific insurer or fleet of insurers."},
+{name:"Captive Insurer",source:"naic",module:"Policy Management",tags:["Risk Management","Legal"],definition:"An insurance company established by a parent company to exclusively insure the risk exposures of that parent company or its affiliates."},
+{name:"Cargo - 50 Series",source:"veridex",module:"Policy Management",tags:["LOB","Database"],definition:"Commercial trucking coverage protecting the carrier against liabilities for cargo damaged or lost in transit. Represented in our database as 50 Series codes (e.g. Sub-codes 51, 52, 53) and rated using commodity classes."},
+{name:"Case Reserve",source:"both",module:"Claims",tags:["Claims","Accounting"],definition:"The specific dollar reserve set aside by a claims adjuster to cover anticipated payments for a known, reported claim. Recorded as an active liability on the ledger."},
+{name:"Cash Application",source:"veridex",module:"Accounting & Finance",tags:["Accounting","MGA Settlement"],definition:"The process of matching received cash payments against specific outstanding invoices. Applying cash reduces accounts receivable and clears the subledger balance. System rules enforce unique applications to prevent double allocation."},
+{name:"Cash Receipt",source:"veridex",module:"Accounting & Finance",tags:["Accounting","Operations"],definition:"The physical record created upon the arrival of incoming cash. It establishes bank confirmation but does not settle an open invoice until the Cash Application is processed."},
+{name:"Casualty Insurance",source:"naic",module:"Policy Management",tags:["Liability","LOB"],definition:"A broad category of insurance coverage targeting legal liabilities resulting from negligent acts, omissions, or injuries to third parties."},
+{name:"Catastrophe Aggregation (CAT)",source:"both",module:"Reinsurance",tags:["Risk Management","Reinsurance"],definition:"The systematic compilation of risk exposure across geographic areas to manage potential cumulative claims arising from a single natural or human-made disaster."},
+{name:"Catastrophe Bonds",source:"naic",module:"Reinsurance",tags:["Financial","Reinsurance"],definition:"Debt instruments issued by insurers that transfer specific catastrophe risks to investors; payout is contingent on the occurrence of pre-defined event thresholds."},
+{name:"Ceded Premium",source:"both",module:"Reinsurance",tags:["Reinsurance","Accounting"],definition:"The premium portion passed from the primary risk-bearing company to a reinsurer under an active treaty. Net written premium = Gross written premium minus Ceded premium."},
+{name:"Ceding Company",source:"both",module:"Reinsurance",tags:["Reinsurance","Accounting"],definition:"The primary insurance carrier that purchases reinsurance to transfer a portion of its underwriting liabilities. Veridex acts as the ceding company in our treaty arrangements."},
+{name:"Chart of Accounts (COA)",source:"veridex",module:"Accounting & Finance",tags:["Accounting","General Ledger"],definition:"The absolute directory of every financial ledger account. Veridex's multi-dimensional COA dynamically appends state, program, and MGA variables to transactions for granular reporting."},
+{name:"Checker",source:"veridex",module:"Operations & Controls",tags:["Operations","Audit"],definition:"An essential user role within the corporate control workflow. The Checker reviews, verifies, and approves transactions prepared by the Maker, preventing self-authorization."},
+{name:"Claim",source:"both",module:"Claims",tags:["Claims","Operations"],definition:"A formal request submitted by an insured party for indemnification or payment of covered losses matching policy terms."},
+{name:"Claims Adjustment Expenses",source:"naic",module:"Claims",tags:["Claims","Accounting"],definition:"Administrative and operational costs incurred by an insurer during the processing, investigation, and settlement of active insurance claims."},
+{name:"Coinsurance",source:"naic",module:"Policy Management",tags:["Property","Underwriting"],definition:"A policy clause requiring property owners to carry insurance equal to a set percentage of replacement value to recover full loss payouts; otherwise, they share in losses proportionally."},
+{name:"Collective Payment",source:"veridex",module:"MGA & Distribution",tags:["Accounting","MGA Settlement"],definition:"A single consolidated bank transfer made by an MGA that aggregates premiums, taxes, and fees across multiple individual policies and schedules."},
+{name:"Combined Ratio",source:"both",module:"Accounting & Finance",tags:["Accounting","Reporting"],definition:"A primary metric of underwriting profitability. Formula: Combined Ratio = Loss Ratio + Expense Ratio. A combined ratio exceeding 100% indicates an underwriting loss."},
+{name:"Commission",source:"both",module:"MGA & Distribution",tags:["MGA","Accounting"],definition:"The transactional service fee paid to retail brokers or managing general agents, typically structured as a percentage of the gross written premium."},
+{name:"Commission Clawback",source:"veridex",module:"MGA & Distribution",tags:["Accounting","MGA Settlement"],definition:"The automated recovery of previously paid agent commissions following early policy cancellations. Veridex's accounting module automatically calculates the clawback based on the unearned return premium."},
+{name:"Commodity Classification",source:"veridex",module:"Rating & Underwriting",tags:["Rating","Cargo"],definition:"The categorization of cargo commodities (Standard, Hazardous, or Target Hazardous) based on risk profiles. Higher risk classes scale the rating factors used to calculate the Cargo premium."},
+{name:"Commutation",source:"veridex",module:"Reinsurance",tags:["Reinsurance","Operations"],definition:"A mutual reinsurance agreement settling all remaining current and future liabilities under a treaty for a single, negotiated, final lump-sum payment."},
+{name:"Compliance Score",source:"veridex",module:"Compliance & Regulatory",tags:["Compliance","KPI"],definition:"A tracking metric scoring the corporate timely execution and filing of required regulatory reports to NAIC and state regulatory panels."},
+{name:"Conditions",source:"naic",module:"Policy Management",tags:["Underwriting","Legal"],definition:"Specific provisions, duties, and responsibilities written into an insurance contract that both parties must uphold to validate coverages."},
+{name:"Contract Reserves",source:"naic",module:"Accounting & Finance",tags:["Accounting","Reserve"],definition:"Additional regulatory reserve liabilities established when projected future policy benefits exceed expected net premiums over active contracts."},
+{name:"Control Account",source:"veridex",module:"Accounting & Finance",tags:["Accounting","General Ledger"],definition:"A primary general ledger summary account that mirrors and reconciles the detailed transactional totals maintained within a specific subsidiary ledger (e.g. Accounts Receivable)."},
+{name:"Copay",source:"naic",module:"Policy Management",tags:["Health","Benefits"],definition:"A defined, static fee paid by a covered individual at the immediate point of receiving a medical service, with the insurer covering remaining balances."},
+{name:"Coverage",source:"both",module:"Policy Management",tags:["Underwriting","General"],definition:"The designated scope of protection, risk indemnification, and legal defense written and active within a policy contract."},
+{name:"Credit Life Insurance",source:"naic",module:"Policy Management",tags:["Financial","Benefits"],definition:"A specialized term life policy naming a creditor as beneficiary, designed to automatically retire outstanding loan balances upon a borrower's death."},
+{name:"CSR (Customer Service Representative)",source:"veridex",module:"Operations & Controls",tags:["Operations","SME"],definition:"The operational team members who index incoming submission files, validate core inputs, and format candidate risk profiles for underwriting assignment."},
+{name:"Date of Issue",source:"naic",module:"Policy Management",tags:["Underwriting","Legal"],definition:"The official calendar date when a bound insurance policy document is generated, registered, and authorized by the carrier."},
+{name:"Debit / Credit",source:"veridex",module:"Accounting & Finance",tags:["Accounting","General Ledger"],definition:"The absolute standard of double-entry bookkeeping. Every posted Veridex journal entry requires debits to equal credits to preserve ledger balance."},
+{name:"Declarations",source:"naic",module:"Policy Management",tags:["Underwriting","Legal"],definition:"The front portion of an insurance contract listing the key parameters of the risk: premium, limits, named insureds, effective period, and garaging locations."},
+{name:"Deductible",source:"both",module:"Policy Management",tags:["Rating","Claims"],definition:"The preliminary, contractually mandated loss amount the policyholder must personally settle before coverage or insurer payout commences."},
+{name:"Deferred Annuity",source:"naic",module:"Policy Management",tags:["Financial","Benefits"],definition:"An annuity contract designed to accumulate cash value tax-deferred over time, with systematic benefit payouts scheduled to begin at a future date."},
+{name:"Delegated Authority",source:"veridex",module:"MGA & Distribution",tags:["Underwriting","Operations"],definition:"Contractual authorization permitting an MGA to bind and execute risks matching a carrier's rigorous underwriting rules without direct manual referrals."},
+{name:"Digital Rater",source:"veridex",module:"Rating & Underwriting",tags:["Rating","Technology"],definition:"The core rating engine powering the '20/40/50' commercial trucking program. Driven by rate tables 100-122 in the database, it processes vehicle values, cargo commodities, radius of operation, and state rules to calculate premium estimates."},
+{name:"Direct Bill",source:"veridex",module:"Accounting & Finance",tags:["Accounting","Operations"],definition:"A payment method where Veridex directly invoices and collects premium from the policyholder, skipping intermediate MGA or broker collections."},
+{name:"Direct Written Premium",source:"naic",module:"Accounting & Finance",tags:["Accounting","Premiums"],definition:"The absolute premium written over active terms before deducting cessions to reinsurance networks or adding assumed policies."},
+{name:"Disability Income",source:"naic",module:"Policy Management",tags:["LOB","Benefits"],definition:"Insurance coverage replacing a specific portion of normal earnings lost when a covered injury or disease prevents the policyholder from working."},
+{name:"Domestic Insurer",source:"naic",module:"Compliance & Regulatory",tags:["Regulatory","Legal"],definition:"An insurance carrier operating inside the specific state where it is legally incorporated and headquartered."},
+{name:"DOT Number",source:"veridex",module:"Rating & Underwriting",tags:["Rating","Trucking"],definition:"The unique ID assigned by the US Department of Transportation to commercial motor carriers. Enter this ID to query and pull safety and driver metrics via integration APIs."},
+{name:"Drona IM",source:"veridex",module:"Rating & Underwriting",tags:["Rating","Technology"],definition:"A partner dash-cam hardware vendor. Activating account confirmation sets Dash Cam = Yes at the coverage level, applying premium credits on liability."},
+{name:"Duplicate Detection",source:"veridex",module:"Operations & Controls",tags:["Operations","Audit"],definition:"An automated transactional check evaluating incoming payments, invoices, and claims against historical logs to prevent double allocation."},
+{name:"Earned Premium",source:"both",module:"Accounting & Finance",tags:["Accounting","Period Close"],definition:"The portion of written premium recognized as revenue during the elapsed period of coverage. Calculated daily under pro-rata. Formula: Earned Premium = Full Term Premium × (Days Elapsed ÷ Policy Term Days)."},
+{name:"Edge Claims",source:"veridex",module:"Claims",tags:["Claims","ERP Module"],definition:"The specialized claims management module within the Veridex ERP. Manages the full lifecycle of a loss, including reserves, payouts, salvage, subrogation, and automated general ledger integrations."},
+{name:"Effective Date",source:"naic",module:"Policy Management",tags:["Underwriting","Legal"],definition:"The official calendar date and timestamp when an insurance policy's written coverage and liabilities legally commence."},
+{name:"Endorsement",source:"both",module:"Policy Management",tags:["Underwriting","Operations"],definition:"An approved contractual amendment that modifies the active policy's terms, limits, coverages, or risk characteristics mid-term."},
+{name:"Exception",source:"veridex",module:"Operations & Controls",tags:["Operations","Reconciliation"],definition:"Any ledger discrepancy or unresolved balance identified during bank, subledger, or MGA settlement matches that requires manual investigation."},
+{name:"Excess of Loss (XOL) Treaty",source:"both",module:"Reinsurance",tags:["Reinsurance","Underwriting"],definition:"A non-proportional reinsurance structure where the reinsurer assumes claim payments only when a single loss event exceeds the ceding company's retention ceiling."},
+{name:"Excluded",source:"veridex",module:"Operations & Controls",tags:["Accounting","Reporting"],definition:"A reporting transaction status designating items hidden from active dashboard views but permanently stored in database history for audit compliance."},
+{name:"Expense Ratio",source:"both",module:"Accounting & Finance",tags:["Accounting","Reporting"],definition:"A profitability metric reflecting operational overhead. Formula: Operating & Acquisition Expenses divided by Earned Premium, expressed as a percentage."},
+{name:"Exposure",source:"naic",module:"Rating & Underwriting",tags:["Underwriting","General"],definition:"The financial measure or structural unit of risk (e.g. total fleet vehicle count) used by actuaries and rating models to evaluate premium rates."},
+{name:"Facultative Reinsurance",source:"both",module:"Reinsurance",tags:["Reinsurance","Underwriting"],definition:"Reinsurance placed on a policy-by-policy basis rather than under a blanket treaty. Used for unusual risks that don't fit standard treaties. Each placement is negotiated individually."},
+{name:"FAIR Plan",source:"naic",module:"Compliance & Regulatory",tags:["Regulatory","Property"],definition:"Fair Access to Insurance Requirements. State pools providing insurance to property owners who are unable to obtain it through conventional means."},
+{name:"Filing Calendar",source:"veridex",module:"Compliance & Regulatory",tags:["Compliance","Operations"],definition:"A calendar in Veridex showing every NAIC and state filing deadline, color-coded by status. Automated 60/30/15/7-day reminders with escalation to manager on overdue items."},
+{name:"Finance Company First Right to Refund",source:"veridex",module:"Accounting & Finance",tags:["Compliance","Finance"],definition:"When a financed policy is cancelled, the return premium goes to the finance company first - before the broker or insured. The system enforces this automatically. If a finance company and loan number are on file, any refund to another party is blocked."},
+{name:"Financial Statement",source:"naic",module:"Accounting & Finance",tags:["Accounting","Regulatory"],definition:"Balance sheet and profit and loss statement of an insurance company. Used by NAIC and State Insurance Commissioners to regulate an insurance company according to reserve requirements, assets, and liabilities."},
+{name:"Fire",source:"naic",module:"Policy Management",tags:["Property","LOB"],definition:"Coverage protecting the insured against loss to real or personal property from damage caused by fire or lightning, including business interruption and loss of rents."},
+{name:"First Notice of Loss (FNOL)",source:"veridex",module:"Claims",tags:["Claims","Operations"],definition:"The initial notification that a claim has occurred. In Veridex's Edge Claims module, FNOL opens the claim record and starts the lifecycle: FNOL → Open → Reserved → Paid → Recovered → Closed."},
+{name:"Foreign Insurer",source:"naic",module:"Compliance & Regulatory",tags:["Regulatory","Legal"],definition:"An insurance company selling policies in a state other than the state in which they are incorporated or domiciled."},
+{name:"FOTs (Firm Order Terms)",source:"both",module:"Claims",tags:["Reinsurance","Underwriting","Contract"],definition:"In reinsurance, an FOT (Firm Order Terms) is a formal, binding quote or set of terms offered by a reinsurer to an insurance company (the cedant) for a reinsurance contract. It represents a definitive offer that, once accepted, finalizes the coverage, pricing, and conditions of the reinsurance agreement."},
+{name:"Fronting",source:"naic",module:"Reinsurance",tags:["Reinsurance","Legal"],definition:"An arrangement where a primary insurer acts as insurer of record by issuing a policy, but then passes the entire risk to a reinsurer in exchange for a commission."},
+{name:"Full Term Premium (FTP)",source:"veridex",module:"Accounting & Finance",tags:["Accounting","Premiums"],definition:"The total premium for the entire policy period. All other premium calculations start here. Example: 12-month policy, FTP = $1,200. Cancelled after 6 months → Earned = $600, Unearned = $600."},
+{name:"FUT_Map_Endorsement (Table)",source:"veridex",module:"Technology & Systems",tags:["Database","Architecture"],definition:"The system table mapping endorsement transaction fields within the Futuristic policy admin system. Essential for developers debugging mid-term endorsement processes."},
+{name:"Futuristic",source:"veridex",module:"Technology & Systems",tags:["Technology","Architecture"],definition:"The master Policy Administration System (PAS) that acts as the core calculation engine. Stores policy state schemas, processes rating factors, and generates the definitive quote JSON documents."},
+{name:"GAAP (Generally Accepted Accounting Principles)",source:"both",module:"Accounting & Finance",tags:["Accounting","Reporting"],definition:"An aggregate of accounting standards and best practices for preparation of financial statements. Used for investor-facing statements. Veridex supports both GAAP and Statutory accounting with a toggle on every statement and report."},
+{name:"General Ledger (GL)",source:"veridex",module:"Accounting & Finance",tags:["Accounting","ERP Module"],definition:"The master record of all financial transactions for the company. Every journal entry ultimately posts to the GL - the single source of truth for all financial data. All reports, statements, and regulatory filings trace back here."},
+{name:"Goodwill",source:"naic",module:"Accounting & Finance",tags:["Accounting","Asset"],definition:"The difference between the cost of acquiring an entity and the reporting entity's share of the book value of the acquired entity."},
+{name:"Group Health",source:"naic",module:"Policy Management",tags:["Health","Benefits"],definition:"Health insurance issued to employers, associations, trusts, or other groups covering employees or members and/or their dependents."},
+{name:"Guaranty Fund",source:"naic",module:"Compliance & Regulatory",tags:["Regulatory","Legal"],definition:"Funding mechanism employed by states to cover policyholder obligations of insolvent insurance companies."},
+{name:"Hard Close",source:"veridex",module:"Accounting & Finance",tags:["Accounting","Period Close"],definition:"The final, absolute lock on an accounting period. No transactions can be posted. Corrections require Admin approval and create a full audit trail. Once hard-closed, the period is frozen for regulatory and audit purposes."},
+{name:"Hard Market",source:"naic",module:"Rating & Underwriting",tags:["Underwriting","General"],definition:"A market characterized by high demand and low supply of insurance."},
+{name:"Hazard",source:"naic",module:"Rating & Underwriting",tags:["Underwriting","General"],definition:"A circumstance which tends to increase the probability or severity of a loss."},
+{name:"Health Insurance",source:"naic",module:"Policy Management",tags:["Health","LOB"],definition:"A generic term applying to all types of insurance indemnifying or reimbursing for losses caused by bodily injury or illness including related medical expenses."},
+{name:"Hold-Harmless Agreement",source:"naic",module:"Policy Management",tags:["Legal","Contractual"],definition:"A risk transfer mechanism whereby one party assumes the liability of another party by contract."},
+{name:"Homeowners Insurance",source:"naic",module:"Policy Management",tags:["Property","LOB"],definition:"A package policy combining real and personal property coverage with personal liability coverage, applicable to the dwelling, appurtenant structures, unscheduled personal property, and additional living expense."},
+{name:"IBNR (Incurred But Not Reported)",source:"both",module:"Claims",tags:["Claims","Accounting"],definition:"An estimate of claims that have occurred but the insurer has not been notified of them. Calculated by actuaries using loss development methods. Carried as a liability on the balance sheet. Refreshed from the actuarial model at each close cycle in Veridex."},
+{name:"Incurred Losses",source:"naic",module:"Claims",tags:["Claims","Accounting"],definition:"Sustained losses, paid or not, during a specified time period. Typically found by combining losses paid during the period plus unpaid losses sustained minus outstanding losses at the beginning of the period."},
+{name:"Indemnity, Principle of",source:"naic",module:"Claims",tags:["Legal","Claims"],definition:"A general legal principle holding that the individual recovering under an insurance policy should be restored to the approximate financial position they were in prior to the loss."},
+{name:"Independent Agent",source:"naic",module:"MGA & Distribution",tags:["Distribution","SME"],definition:"A representative of multiple insurance companies who sells and services policies, owning their records, under the American Agency System."},
+{name:"Inland Marine",source:"naic",module:"Policy Management",tags:["Property","LOB"],definition:"Coverage for property that may be in transit, held by a bailee, at a fixed location, or a movable good often at different locations."},
+{name:"INS_Endorsements (Table)",source:"veridex",module:"Technology & Systems",tags:["Database","Architecture"],definition:"The primary database transaction table storing endorsement details. To ensure historical compliance, previous data is never updated directly; a new row with its own JSON snapshot is appended."},
+{name:"INS_Quote (Table)",source:"veridex",module:"Technology & Systems",tags:["Database","Architecture"],definition:"The primary database table storing quote header information. Recommended starting point for developers exploring the Digital Rater database."},
+{name:"INS_Quote_JSON_Data",source:"veridex",module:"Technology & Systems",tags:["Database","Architecture"],definition:"The core document-store table holding the complete JSON schema representing all inputs and outputs for quotes and endorsements. This is the ultimate source of truth for the policy state."},
+{name:"Insurable Interest",source:"naic",module:"Policy Management",tags:["Underwriting","Legal"],definition:"A right or relationship in regard to the subject matter of the insured contract such that the insured can suffer a financial loss from damage, loss, or destruction to it."},
+{name:"Insurance",source:"naic",module:"Policy Management",tags:["General","Risk Management"],definition:"An economic device transferring risk from an individual to a company and reducing the uncertainty of risk via pooling."},
+{name:"Insured",source:"both",module:"Policy Management",tags:["Underwriting","General"],definition:"Party(ies) covered by an insurance policy. In the trucking context, typically a trucking company or individual truck owner-operator. Also called the policyholder."},
+{name:"Intercompany / Elimination",source:"veridex",module:"Accounting & Finance",tags:["Accounting","General Ledger"],definition:"Transactions between related legal entities that must be removed from consolidated statements so they don't inflate the combined numbers. Veridex handles intercompany reinsurance postings and prepares elimination entries."},
+{name:"Invoice",source:"veridex",module:"Accounting & Finance",tags:["Accounting","Operations"],definition:"The formal bill listing all amounts owed - premium, broker fee, stamping fee, surplus lines fee. Each component becomes its own accounting transaction. Triggered by policy issuance and money endorsements."},
+{name:"ISO_new_rate_* Tables",source:"veridex",module:"Technology & Systems",tags:["Database","Rating"],definition:"The suite of 100-122 database tables powering Digital Rater dropdowns, factors, and calculations across all coverages. Named with the ISO_new_rate_ prefix. Changes introduced by updating these tables keyed by lock-rate effective date."},
+{name:"ITD / YTD / MTD / QTD",source:"veridex",module:"Accounting & Finance",tags:["Accounting","Reporting"],definition:"Time filter shortcuts throughout Veridex. ITD = Inception to Date. YTD = Year to Date. MTD = Month to Date. QTD = Quarter to Date. Available on every dashboard, report, and filter panel."},
+{name:"Joint Underwriting Association (JUA)",source:"naic",module:"Compliance & Regulatory",tags:["Regulatory","Legal"],definition:"A loss-sharing mechanism combining several insurance companies to provide extra capacity due to type or size of exposure."},
+{name:"Journal Entry (JE)",source:"veridex",module:"Accounting & Finance",tags:["Accounting","General Ledger"],definition:"The fundamental accounting record. Every financial transaction creates at least one JE with two sides - debit and credit - that must always balance. Veridex creates balanced JEs automatically for every business event."},
+{name:"JSON Versioning / Transaction Snapshot",source:"veridex",module:"Technology & Systems",tags:["Technology","Architecture"],definition:"Every transaction creates a new JSON snapshot of the complete policy state. The system never overwrites previous data - historical records are permanently preserved, allowing reconstruction of the policy at any point in time."},
+{name:"Key-Persons Insurance",source:"naic",module:"Policy Management",tags:["Life","Benefits"],definition:"A policy purchased by a business insuring the life or lives of personnel integral to the business operations."},
+{name:"KPI (Key Performance Indicator)",source:"veridex",module:"Operations & Controls",tags:["Operations","Reporting"],definition:"A metric used to measure business performance. Veridex's executive dashboard shows 12+ live KPIs - net premium, loss ratio, expense ratio, MGA performance, claims paid, outstanding reserves, premium tax liability, open exceptions, pending approvals, cash position."},
+{name:"Lapse",source:"naic",module:"Policy Management",tags:["Underwriting","General"],definition:"Termination of a policy due to failure to pay the required renewal premium."},
+{name:"LCM Factor (Cargo)",source:"veridex",module:"Rating & Underwriting",tags:["Rating","Cargo"],definition:"Loss Cost Multiplier used in Cargo rating within the Digital Rater. Currently hardcoded at 1.82. Applied as part of the final cargo premium calculation."},
+{name:"Liability",source:"naic",module:"Accounting & Finance",tags:["Accounting","Balance Sheet"],definition:"A certain or probable future sacrifice of economic benefits arising from present obligations of a particular entity to transfer assets or provide services to other entities in the future as a result of past transactions or events."},
+{name:"Line of Business (LOB)",source:"both",module:"Policy Management",tags:["General","Reporting"],definition:"Classification of insurance business written by insurers - Auto Liability, Property, General Liability, Cargo, Cyber, etc. One of the mandatory dimension tags on every accounting entry, premium record, and claim in Veridex."},
+{name:"Load Percentage",source:"veridex",module:"Rating & Underwriting",tags:["Rating","Cargo"],definition:"For cargo coverage, the percentage of the insured's total business represented by each commodity type. Must sum to exactly 100%. The classification factor is applied proportionally to each commodity's load percentage."},
+{name:"Loan Number",source:"veridex",module:"Accounting & Finance",tags:["Accounting","Operations"],definition:"The reference number assigned by the premium finance company to a financing arrangement. Stored in the system because it directly affects return premium routing - the finance company identified by this loan number gets first right to any return premium on cancellation."},
+{name:"Lock Rate Effective",source:"veridex",module:"Rating & Underwriting",tags:["Rating","Audit"],definition:"An essential system control preventing new rate table deployments from altering existing active quotes. Prior quotes retain original rates; new quotes fetch updated coefficients based on the lock-rate effective date."},
+{name:"Loss",source:"both",module:"Claims",tags:["Claims","General"],definition:"Physical damage to property or bodily injury, including loss of use or loss of income. In accounting, shows up as paid losses and reserved losses in the claims subledger."},
+{name:"Loss Adjustment Expense (LAE)",source:"both",module:"Claims",tags:["Claims","Accounting"],definition:"Expected payments for costs incurred in connection with adjusting and recording losses. Divided into Allocated (ALAE - tied to a specific claim) and Unallocated (ULAE - department overhead). Both are reserved and tracked in Edge Claims."},
+{name:"Loss Bordereau",source:"veridex",module:"Claims",tags:["Claims","Reporting"],definition:"A line-by-line listing of every claim paid and outstanding within the MGA's book of business for a period. Used for reinsurance reporting and carrier oversight."},
+{name:"Loss Development Triangle",source:"both",module:"Claims",tags:["Claims","Accounting"],definition:"A matrix showing how losses evolve over time by accident year. Rows = accident years; columns = cumulative losses at each evaluation date. Used by actuaries to estimate IBNR and project ultimate losses. Veridex generates via Schedule P."},
+{name:"Loss Ratio",source:"both",module:"Accounting & Finance",tags:["Accounting","Reporting"],definition:"The percentage of incurred losses to earned premium. Formula: (Claims Paid + Incurred) ÷ Earned Premium × 100. A ratio above 100% means paying out more than collected in premium."},
+{name:"Loss Reserve",source:"both",module:"Claims",tags:["Claims","Accounting"],definition:"The amount insurers set aside to cover claims incurred but not yet paid. In Veridex: case reserves (set by claims handlers) plus IBNR (actuarial estimate). Recorded as a liability on the balance sheet."},
+{name:"Loss Run",source:"veridex",module:"Claims",tags:["Claims","Reporting"],definition:"A report showing the history of claims on a policy or book of business - what was paid, what is reserved, and when each claim occurred. Underwriters review loss runs when deciding whether to write or renew a risk."},
+{name:"Maker",source:"veridex",module:"Operations & Controls",tags:["Operations","Audit"],definition:"The person who creates, uploads, or enters a transaction in Veridex. The Maker cannot approve their own work - this is enforced by the system in all cases without exception."},
+{name:"Maker & Checker Workflow",source:"veridex",module:"Operations & Controls",tags:["Operations","Audit"],definition:"The fundamental internal control framework in Veridex. One person creates (Maker), another approves (Checker), every transaction. Self-approval is blocked in all cases. Applies to JEs, payments, settlements, treaty changes, period locks, COA changes, role changes - everything."},
+{name:"Managed Care",source:"naic",module:"Policy Management",tags:["Health","Benefits"],definition:"System of health care delivery that attempts to influence the utilization, quality, and cost of services provided."},
+{name:"Market Company",source:"veridex",module:"MGA & Distribution",tags:["Operations","Architecture"],definition:"The entity that manages and distributes the insurance program - handles agency relationships, underwriting decisions, and program management. This is the MGA entity. One market company can work with multiple risk companies, which is why App Types are required."},
+{name:"Medicaid",source:"naic",module:"Policy Management",tags:["Health","Regulatory"],definition:"Policies issued in association with the Federal/State entitlement program created by Title XIX of the Social Security Act, paying for medical assistance for certain low-income individuals and families."},
+{name:"Medicare",source:"naic",module:"Policy Management",tags:["Health","Regulatory"],definition:"A state assistance program providing hospital and medical expense insurance to those over 65 years of age."},
+{name:"Medicare Supplement",source:"naic",module:"Policy Management",tags:["Health","Benefits"],definition:"Insurance coverage sold to help fill the gaps in Medicare protection. Also known as Medigap insurance."},
+{name:"MGA (Managing General Agent)",source:"veridex",module:"MGA & Distribution",tags:["Operations","SME"],definition:"A company authorized by a carrier to underwrite, price, and issue policies on the carrier's behalf. The MGA does not carry the risk itself. Futuristic is the internal MGA; ACCL is an example external MGA, both writing on Veridex's paper."},
+{name:"MGA Settlement",source:"veridex",module:"MGA & Distribution",tags:["Accounting","MGA Settlement"],definition:"The periodic process where the MGA calculates the net amount owed to the carrier and makes payment - collecting premium, deducting commission and fees, remitting the balance. Veridex automates the entire workflow including bordereau upload, auto-split, commission calc, reconciliation, and JE posting."},
+{name:"Minimum Earned Premium (MEP)",source:"veridex",module:"Accounting & Finance",tags:["Underwriting","Accounting"],definition:"The non-refundable floor premium that an insurer retains on a policy regardless of how early it is cancelled. Covers upfront underwriting and administrative costs. Pro-rata returns are blocked from falling below this threshold."},
+{name:"Money Endorsement",source:"veridex",module:"Policy Management",tags:["Underwriting","Accounting"],definition:"An endorsement that changes the premium - either up or down. Adding a vehicle, changing limits, or adding a commodity trigger money endorsements. A new invoice is generated and accounting entries are created."},
+{name:"Moral Hazard",source:"naic",module:"Rating & Underwriting",tags:["Underwriting","Risk"],definition:"Personality characteristics that increase probability of losses - for example, not protecting insured property because the insurer will replace it."},
+{name:"Morbidity",source:"naic",module:"Policy Management",tags:["Health","Risk"],definition:"The frequency or severity of disease or illness within a subset of the population."},
+{name:"Mortality Table",source:"naic",module:"Policy Management",tags:["Life","Risk"],definition:"A chart showing the death rates of a particular population at each age, displayed as the number of deaths per thousand."},
+{name:"Multi-Peril Insurance",source:"naic",module:"Policy Management",tags:["Property","LOB"],definition:"Personal and business property coverage combining several types of property insurance in one policy."},
+{name:"Mutual Insurance Company",source:"naic",module:"Compliance & Regulatory",tags:["Regulatory","Legal"],definition:"A privately held insurer owned by its policyholders, operated as a non-profit."},
+{name:"NAIC (National Association of Insurance Commissioners)",source:"both",module:"Compliance & Regulatory",tags:["Regulatory","General"],definition:"The US standard-setting and regulatory support organization created and governed by the chief insurance regulators from the 50 states, DC, and five US territories. Sets standards for the insurance industry. Veridex generates NAIC-ready schedules directly from the ledger."},
+{name:"Named Insured",source:"naic",module:"Policy Management",tags:["Underwriting","Legal"],definition:"The individual defined as the insured in the policy contract."},
+{name:"Named Peril Coverage",source:"naic",module:"Policy Management",tags:["Property","Underwriting"],definition:"Insurance for losses explicitly defined in the policy contract."},
+{name:"Negligence",source:"naic",module:"Claims",tags:["Legal","Claims"],definition:"Failure to exercise reasonable consideration resulting in loss or damage to oneself or others."},
+{name:"Net Written Premium",source:"both",module:"Accounting & Finance",tags:["Accounting","Premiums"],definition:"The premium the carrier keeps after ceding to reinsurers. Formula: Gross Written Premium − Ceded Premium."},
+{name:"New Business",source:"veridex",module:"Policy Management",tags:["Underwriting","Operations"],definition:"A brand-new policy for a customer who has never had coverage with this company before. Transaction Type ID = 1 in the database. Triggers initial invoicing and full AR/AP setup."},
+{name:"No-Money Endorsement",source:"veridex",module:"Policy Management",tags:["Underwriting","Operations"],definition:"An endorsement that changes policy information but not the premium. Example: updating mailing address. No invoice generated; accounting unaffected."},
+{name:"Nonadmitted Insurer",source:"naic",module:"Compliance & Regulatory",tags:["Regulatory","Legal"],definition:"Insurance company not licensed to do business within a given state."},
+{name:"NTA",source:"veridex",module:"Technology & Systems",tags:["Technology","Integration"],definition:"The front-end user interface application that consumes Futuristic APIs. It displays portals to retail agents and collects quote requests, but does not perform rating calculations itself."},
+{name:"Ocean Marine",source:"naic",module:"Policy Management",tags:["Property","LOB"],definition:"Coverage for ocean and inland water transportation exposures; goods or cargoes; ships or hulls; earnings; and liability."},
+{name:"OCR (Optical Character Recognition)",source:"veridex",module:"Technology & Systems",tags:["Technology","Operations"],definition:"Technology that reads text from scanned documents or images. Veridex uses OCR to ingest invoices, bank statements, and claim documents. AI extraction team uses it for PDF submissions to reduce manual keying."},
+{name:"OFAC / Sanctions Screening",source:"veridex",module:"Operations & Controls",tags:["Operations","Audit"],definition:"Before making payments, Veridex screens vendors against the OFAC sanctions list and other restricted party lists. Ensures the company is not doing business with sanctioned entities. Every screening result is logged."},
+{name:"Open Balance",source:"veridex",module:"Accounting & Finance",tags:["Accounting","Operations"],definition:"The unpaid portion of an invoice. Formula: Open Balance = Invoice Amount − Applied Payments. When it reaches zero, the invoice is fully settled and the customer's AR clears."},
+{name:"Package Factor",source:"veridex",module:"Rating & Underwriting",tags:["Rating","Physical Damage"],definition:"A 5% credit on Physical Damage premium when PD is written together with other coverages (AL or Cargo). Does not apply if PD is selected alone."},
+{name:"Payment Hold",source:"veridex",module:"Operations & Controls",tags:["Operations","Audit"],definition:"A manual block placed on a payment. Common reasons: missing W-9, expired insurance certificate, OFAC screening pending, disputed invoice. Requires the hold-release workflow with full audit trail to unblock."},
+{name:"Peril",source:"naic",module:"Policy Management",tags:["Underwriting","General"],definition:"The cause of property damage or personal injury. Also called 'Cause of Loss.'"},
+{name:"Period Lock (Soft Close / Hard Close)",source:"veridex",module:"Accounting & Finance",tags:["Accounting","Period Close"],definition:"Closing an accounting period so no further entries can be posted. Soft Close: restricted posting; adjustments allowed with approval. Hard Close: period fully sealed; no posting without Admin approval."},
+{name:"Permutation Engine / Dynamic Account Creation",source:"veridex",module:"Accounting & Finance",tags:["Accounting","General Ledger"],definition:"Veridex's feature that automatically creates all required COA accounts when a new state, MGA, LOB, or entity is added. Cross-joins all active dimensions and creates every account combination automatically."},
+{name:"Physical Damage (PD) - 40 Series",source:"veridex",module:"Policy Management",tags:["LOB","Database"],definition:"Coverage for damage to the insured's own trucks and trailers. In the Digital Rater: 40 Series (sub-codes 41, 42, 43, 44). PD premium uses stated vehicle value and an ABR calculation. A 5% package factor applies when written with AL or Cargo."},
+{name:"Policy",source:"both",module:"Policy Management",tags:["Underwriting","General"],definition:"A written contract ratifying the legality of an insurance agreement. In Veridex, every policy creates its own record chain - from quote through endorsements and renewals - with a full JSON snapshot at each transaction."},
+{name:"Policy Period",source:"naic",module:"Policy Management",tags:["Underwriting","Legal"],definition:"The time period during which insurance coverage is in effect."},
+{name:"Policyholder / Insured",source:"both",module:"Policy Management",tags:["Underwriting","General"],definition:"The person or business that purchased insurance and is covered by the policy. In the trucking context, typically a trucking company or individual owner-operator."},
+{name:"Policyholders Surplus",source:"naic",module:"Accounting & Finance",tags:["Accounting","Regulatory"],definition:"Assets in excess of the liabilities of a company."},
+{name:"Positive / Negative List (Commodities)",source:"veridex",module:"Rating & Underwriting",tags:["Underwriting","Cargo"],definition:"Regulatory lists governing cargo commodities. Commodities on the Positive List are approved for hauling by default; those on the Negative List are excluded from default coverage and require an authorized buyback rider (setting the is_buyback flag)."},
+{name:"Posting",source:"veridex",module:"Accounting & Finance",tags:["Accounting","General Ledger"],definition:"The act of writing a journal entry to the general ledger, making it part of the official financial record. After posting, entries can only be corrected via tracked reversals or adjustments - they cannot be deleted."},
+{name:"Pre-Bind vs Post-Bind",source:"veridex",module:"Policy Management",tags:["Underwriting","Operations"],definition:"Pre-bind = everything before a policy is issued: quote creation, rating, underwriting, premium calculation. Post-bind = everything after: endorsements, cancellations, renewals, claims."},
+{name:"Pre-Close Validation",source:"veridex",module:"Accounting & Finance",tags:["Accounting","Period Close"],definition:"System checks that must all pass before a period can be locked: subledger-to-GL ties, no unbalanced JEs, no open exceptions, no missing approvals. If any check fails, the period cannot close."},
+{name:"Premium",source:"both",module:"Accounting & Finance",tags:["Accounting","Premiums"],definition:"Money charged for insurance coverage reflecting expectation of loss. Every premium payment triggers accounting entries in Veridex. Can be paid upfront or financed through a premium finance company."},
+{name:"Premium Bordereau",source:"veridex",module:"MGA & Distribution",tags:["MGA Settlement","Reporting"],definition:"A line-by-line listing of every policy the MGA wrote in a period, with the premium for each. The carrier uses this to reconcile what the MGA collected and what needs to be remitted."},
+{name:"Premium Finance Company",source:"veridex",module:"Accounting & Finance",tags:["Accounting","Operations"],definition:"A third-party company that pays the full insurance premium upfront on behalf of the insured, who repays in monthly installments. AFCO is the example from KT sessions. Finance company, loan number, and agreement must all be stored in the system."},
+{name:"Premium Tax",source:"both",module:"Compliance & Regulatory",tags:["Regulatory","Accounting"],definition:"A tax insurance companies pay to states on the premium they write in that state. Each state has its own rate, rules, and filing deadlines. Veridex accrues automatically when premium is written and manages state-by-state filing calendars."},
+{name:"Pro-rata Reinsurance",source:"naic",module:"Reinsurance",tags:["Reinsurance","Accounting"],definition:"Portion of the losses and premium a reinsurer shares with the ceding entity."},
+{name:"Producer",source:"both",module:"MGA & Distribution",tags:["MGA","Distribution"],definition:"An individual who sells, services, or negotiates insurance policies either on behalf of a company or independently. Also called a retail agent. The first link in the chain between the customer and the MGA."},
+{name:"Profit & Loss (P&L)",source:"veridex",module:"Accounting & Finance",tags:["Accounting","Reporting"],definition:"Financial statement showing revenue, expenses, and net income over a period. Available live in Veridex with LOB, MGA, State, and Entity filters."},
+{name:"Profit Commission (Reinsurance)",source:"veridex",module:"Reinsurance",tags:["Reinsurance","Accounting"],definition:"A bonus paid by the reinsurer back to the carrier when covered business was profitable. The reinsurer shares profit when losses were low. Posted automatically in Veridex per treaty terms."},
+{name:"Program",source:"veridex",module:"Policy Management",tags:["Underwriting","Operations"],definition:"A specific insurance product offering with defined eligibility rules, coverage options, and rates. Tied to Application Types. Examples: Trucking, General Liability, Property programs."},
+{name:"Property",source:"naic",module:"Policy Management",tags:["Property","LOB"],definition:"Coverage protecting the insured against loss or damage to real or personal property from a variety of perils including fire, lightning, business interruption, windstorm, hail, water damage, explosion."},
+{name:"Quota Share Treaty",source:"both",module:"Reinsurance",tags:["Reinsurance","Underwriting"],definition:"A reinsurance arrangement where the reinsurer takes a fixed percentage of every premium and every loss. Example: 30% quota share → reinsurer gets 30% of all premium, pays 30% of all losses."},
+{name:"Quote",source:"veridex",module:"Policy Management",tags:["Underwriting","Operations"],definition:"A preliminary calculation of what a policy would cost. Not binding - it is an estimate. Stored in INS_Quote with a full JSON snapshot of all inputs and outputs."},
+{name:"Rate",source:"naic",module:"Rating & Underwriting",tags:["Underwriting","General"],definition:"Value of insured losses expressed as a cost per unit of insurance."},
+{name:"RBAC (Role-Based Access Control)",source:"veridex",module:"Technology & Systems",tags:["Technology","Audit"],definition:"The system of controlling what each user can see and do based on their assigned role. Module-level, screen-level, field-level, and action-level granularity in Veridex."},
+{name:"Reconciliation",source:"veridex",module:"Accounting & Finance",tags:["Accounting","Operations"],definition:"The process of matching two sets of records to confirm they agree. Veridex reconciles: bank vs GL, subledger vs GL, MGA vs bordereau, treaty vs settlement. Auto-reconciliation runs after every posting cycle. Unmatched items go to exception queues."},
+{name:"Referral",source:"veridex",module:"Rating & Underwriting",tags:["Underwriting","Operations"],definition:"When a quote has characteristics that exceed the underwriter's delegated authority, the system routes it to a senior underwriter or carrier for approval before binding can proceed."},
+{name:"Reinsurance",source:"both",module:"Reinsurance",tags:["Reinsurance","Underwriting"],definition:"A transaction between a primary insurer and reinsurer where the reinsurer agrees to cover all or part of the primary insurer's losses in exchange for a premium."},
+{name:"Reinsurance Recoverable",source:"both",module:"Reinsurance",tags:["Reinsurance","Accounting"],definition:"Money the carrier expects to collect from the reinsurer on claims already paid. Recorded as an asset. Tracked by reinsurer, treaty, and layer with aging buckets in Veridex - feeds Schedule F automatically."},
+{name:"Reinsurer",source:"both",module:"Reinsurance",tags:["Reinsurance","Underwriting"],definition:"A company assuming reinsurance risk from the ceding company in exchange for a portion of the premium."},
+{name:"Renewal",source:"both",module:"Policy Management",tags:["Underwriting","Operations"],definition:"When a policy reaches its expiration date and continues for another term. Coverage continues without interruption. Gets its own policy number and rating."},
+{name:"Reporting Policy",source:"veridex",module:"Policy Management",tags:["Underwriting","Operations"],definition:"A policy where the insured periodically reports changes (like vehicles added or removed). Vehicle added/deleted dates can be manually modified for reporting policies."},
+{name:"Reserve / Case Reserve",source:"both",module:"Claims",tags:["Claims","Accounting"],definition:"Money set aside to cover a specific reported claim not yet fully paid. The insurer's best estimate of what will eventually be owed. Recorded as a liability. See also IBNR for unreported claim estimates."},
+{name:"Retention",source:"both",module:"Reinsurance",tags:["Reinsurance","Underwriting"],definition:"On a reinsurance XOL treaty, the loss threshold below which the carrier pays everything. Also used generally to mean keeping risk internally rather than transferring it to an insurer."},
+{name:"Retrocession",source:"naic",module:"Reinsurance",tags:["Reinsurance","Underwriting"],definition:"The portion of risk that a reinsurance company cedes or chooses not to retain."},
+{name:"Return Premium",source:"veridex",module:"Accounting & Finance",tags:["Accounting","Premiums"],definition:"When a policy cancels early or an endorsement reduces exposure, the customer is owed back the unearned portion. Triggers a refund transaction and credit accounting entries. If the policy is financed, the finance company gets this money first."},
+{name:"Rewrite",source:"veridex",module:"Policy Management",tags:["Underwriting","Operations"],definition:"When an existing policy is cancelled mid-term and a new policy is issued to replace it. NOT a renewal. Original ends; rewrite starts fresh with new effective dates and a new policy number."},
+{name:"Rider",source:"naic",module:"Policy Management",tags:["Underwriting","Legal"],definition:"An amendment to a policy agreement."},
+{name:"Risk",source:"naic",module:"Rating & Underwriting",tags:["Underwriting","General"],definition:"Uncertainty concerning the possibility of loss by a peril for which insurance is pursued."},
+{name:"Risk Company",source:"veridex",module:"MGA & Distribution",tags:["Operations","Architecture"],definition:"The actual insurance carrier that takes on the financial risk and pays claims. Provides the 'paper' - their license and regulatory standing. Veridex acts as the risk company."},
+{name:"Risk-Based Capital (RBC) Ratio",source:"naic",module:"Compliance & Regulatory",tags:["Regulatory","Legal"],definition:"Ratio used to identify insurance companies that are poorly capitalized. Calculated by dividing the company's capital by the minimum amount of capital regulatory authorities have deemed necessary."},
+{name:"Salvage",source:"both",module:"Claims",tags:["Claims","Accounting"],definition:"Value recoverable after a loss. When an insurer pays a claim, it may recover some value from damaged or remaining property. Tracked as a recovery in Veridex's Edge Claims module."},
+{name:"Schedule F",source:"both",module:"Compliance & Regulatory",tags:["Reinsurance","Regulatory"],definition:"The section of the NAIC annual statement showing all reinsurance recoverables, aged by how long outstanding. Veridex generates Schedule F automatically and keeps it current every day."},
+{name:"Schedule P",source:"both",module:"Compliance & Regulatory",tags:["Claims","Regulatory"],definition:"The NAIC annual statement section showing loss development by line of business and accident year. Includes loss development triangles, IBNR estimates, and prior year development. Veridex generates from the ledger automatically."},
+{name:"Schedule T",source:"both",module:"Compliance & Regulatory",tags:["Accounting","Regulatory"],definition:"The NAIC annual statement section showing premium by state, with retaliatory and surplus lines splits. Tells regulators where the company is writing business."},
+{name:"SERFF",source:"veridex",module:"Compliance & Regulatory",tags:["Compliance","Operations"],definition:"System for Electronic Rate and Form Filing. The online system used to file policy forms and rates with state insurance departments. Veridex has integration for form filings via SERFF."},
+{name:"SFTP (Secure File Transfer Protocol)",source:"veridex",module:"Technology & Systems",tags:["Technology","Operations"],definition:"A secure method for bulk file transfers between systems. MGA bordereaux, bank statements, and other bulk data files are often delivered via SFTP when direct API integration is not available."},
+{name:"SLA (Service Level Agreement)",source:"veridex",module:"Operations & Controls",tags:["Operations","Audit"],definition:"The maximum time a transaction should sit at each workflow stage before escalation. Veridex tracks SLA compliance for every approval step, reconciliation queue, and exception item. Breaches trigger alerts and automatic escalation."},
+{name:"Soft Close",source:"veridex",module:"Accounting & Finance",tags:["Accounting","Period Close"],definition:"The first level of period locking. Posting is restricted but authorized users can still post adjustments with approval. Used during the final review and sign-off stage of the month-end close."},
+{name:"Soft Market",source:"naic",module:"Rating & Underwriting",tags:["Underwriting","General"],definition:"A buyer's market characterized by abundant supply of insurance driving premiums down."},
+{name:"Veridex Paper",source:"veridex",module:"MGA & Distribution",tags:["Operations","SME"],definition:"When someone says 'writing on Veridex paper,' the policy is technically issued by Veridex as the carrier (risk-taker), but the MGA handles distribution, underwriting, and customer management."},
+{name:"SSO (Single Sign-On)",source:"veridex",module:"Technology & Systems",tags:["Technology","Operations"],definition:"A login system where one set of credentials gives access to multiple systems. Veridex supports SSO via SAML 2.0, OAuth 2.0, and OIDC."},
+{name:"Stamping Fee",source:"veridex",module:"Accounting & Finance",tags:["Accounting","Fees"],definition:"A fee charged by the surplus lines stamping office when a policy is placed in the surplus lines market. Appears as a separate invoice line item. Paid to the state's surplus lines stamping authority."},
+{name:"State Rule Engine",source:"veridex",module:"Technology & Systems",tags:["Regulatory","Architecture"],definition:"The Veridex module holding all state-specific rules - premium tax rates, surplus lines flags, filing formats, reserve methodologies - as configuration data, not code. Rules can be updated without a software release. Texas is Phase 1."},
+{name:"State Selection Logic",source:"veridex",module:"Rating & Underwriting",tags:["Underwriting","Architecture"],definition:"The state used for rating and regulatory purposes is the risk state - where the property is located or vehicles are garaged - not necessarily the insured's mailing address state."},
+{name:"Statutory Accounting Principles (SAP)",source:"both",module:"Accounting & Finance",tags:["Accounting","Regulatory"],definition:"A set of accounting principles set forth by the NAIC for statutory financial statements. More conservative than GAAP. Veridex supports statutory accounting alongside GAAP with a toggle on every report."},
+{name:"Stored Procedures",source:"veridex",module:"Technology & Systems",tags:["Technology","Architecture"],definition:"Pre-written SQL code in the database used to retrieve data for UI screens. Premium calculation flow and endorsement processing logic use stored procedures. Developers should review these to understand data flow."},
+{name:"Sub-Ledger (in MGA context)",source:"veridex",module:"Accounting & Finance",tags:["Accounting","ERP Module"],definition:"The entity from whom money is expected (AR sub-ledger) or to whom money is owed (AP sub-ledger). Money coming FROM someone → AR sub-ledger. Money going TO someone → AP sub-ledger."},
+{name:"Subledger",source:"veridex",module:"Accounting & Finance",tags:["Accounting","ERP Module"],definition:"A detailed record that feeds into the GL. Veridex has five: Premium, Claims, Reinsurance, AP, and MGA Settlement. Each ties to the GL via control accounts. Daily reconciliation compares subledger balances to GL control accounts."},
+{name:"Subrogation",source:"both",module:"Claims",tags:["Claims","Accounting"],definition:"Where an insurer, on behalf of the insured, has a legal right to pursue a third party who caused the loss to seek reimbursement. Tracked as a recovery in Veridex's Edge Claims module."},
+{name:"Surety Bond",source:"naic",module:"Policy Management",tags:["Legal","Contractual"],definition:"A three-party agreement whereby a guarantor assumes an obligation to pay a second party should the principal debtor become in default."},
+{name:"Surplus",source:"naic",module:"Accounting & Finance",tags:["Accounting","Regulatory"],definition:"Insurance term referring to retained earnings."},
+{name:"Surplus Lines",source:"both",module:"Compliance & Regulatory",tags:["Regulatory","Legal"],definition:"Insurance placed with a non-admitted carrier in the state where the risk is located. Used when the admitted market won't write the risk. Different tax treatment and special filing requirements via surplus lines stamping offices."},
+{name:"Suspense Account",source:"veridex",module:"Accounting & Finance",tags:["Accounting","General Ledger"],definition:"A temporary holding account for transactions that can't be immediately matched or coded. Money arrives but the system can't identify the policy → goes to suspense → routed to exception queue. Must be cleared before period close."},
+{name:"Term Insurance",source:"naic",module:"Policy Management",tags:["Life","Benefits"],definition:"Life insurance payable only if death of insured occurs within a specified time, such as 5 or 10 years, or before a specified age."},
+{name:"Third Party",source:"naic",module:"Claims",tags:["Claims","Legal"],definition:"A person other than the insured or insurer who has incurred losses or is entitled to receive payment due to acts or omissions of the insured."},
+{name:"Title Insurance",source:"naic",module:"Policy Management",tags:["Property","LOB"],definition:"Coverage that guarantees the validity of a title to real and personal property."},
+{name:"Transaction Type ID",source:"veridex",module:"Technology & Systems",tags:["Database","Architecture"],definition:"A numeric code in the database identifying the type of transaction. New Business = 1. Endorsement = 5. Endorsement number = -1 for initial policy issuance; subsequent endorsements get sequential numbers."},
+{name:"Treaty",source:"both",module:"Reinsurance",tags:["Reinsurance","Underwriting"],definition:"A reinsurance agreement between the ceding company and reinsurer defining how much risk the reinsurer takes, for which LOBs and states, and under what conditions. In Veridex, every premium and loss event auto-splits per active treaty rules."},
+{name:"Treaty Assignment Rule",source:"veridex",module:"Reinsurance",tags:["Reinsurance","Audit"],definition:"A fundamental system control assigning a policy to exactly one reinsurance treaty based solely on its effective date. Mid-term endorsements and modifications are locked to this treaty, while a renewal triggers a new treaty evaluation."},
+{name:"Trial Balance",source:"veridex",module:"Accounting & Finance",tags:["Accounting","Reporting"],definition:"A report listing all accounts and their balances. Total debit balances must equal total credit balances. Veridex generates this live with four-level drill-down: Statement → Mapping → Account → Transaction."},
+{name:"TSP / DOT API",source:"veridex",module:"Technology & Systems",tags:["Technology","Integration"],definition:"The API that retrieves commercial trucking company data from the US DOT database. Enter DOT number during quote creation → API returns company name, address, and pre-fill data automatically."},
+{name:"Types of Operation",source:"veridex",module:"Rating & Underwriting",tags:["Rating","Trucking"],definition:"A multi-select field at the insured level contributing to the rating class factor for the trucking program. Different operation types carry different rating implications. Selected during quote creation."},
+{name:"ULAE (Unallocated Loss Adjustment Expense)",source:"both",module:"Claims",tags:["Claims","Accounting"],definition:"Loss adjustment expenses that cannot be tied to a specific claim - general claims department overhead. Reserved and tracked in Veridex's Edge Claims module alongside ALAE."},
+{name:"Umbrella and Excess Liability",source:"naic",module:"Policy Management",tags:["Liability","LOB"],definition:"Liability coverage above a specific amount set forth in a basic policy issued by the primary insurer, or for a self-insurer for losses over a stated amount, or for unknown gaps in basic coverages."},
+{name:"Underinsured Motorist Coverage",source:"naic",module:"Policy Management",tags:["Liability","LOB"],definition:"Policy option for bodily injury or property losses caused by a motorist with coverage insufficient to cover total dollar amount of losses."},
+{name:"Underwriter",source:"both",module:"Rating & Underwriting",tags:["Underwriting","SME"],definition:"A person who identifies, examines, and classifies the degree of risk represented by a proposed insured to determine whether coverage should be provided and at what rate."},
+{name:"Underwriting",source:"both",module:"Rating & Underwriting",tags:["Underwriting","General"],definition:"The process by which an insurance company examines risk and determines whether to accept it, classifies accepted risks, and determines the appropriate rate. In the Digital Rater, rating is largely automated but underwriters can make manual adjustments within defined credit/debit limits."},
+{name:"Underwriting Credits and Debits",source:"veridex",module:"Rating & Underwriting",tags:["Underwriting","Rating"],definition:"Manual premium adjustments made by the underwriter. Credit = reduces premium (risk is better than average). Debit = increases premium (risk is worse than average). All adjustments are logged and tracked."},
+{name:"Unearned Premium",source:"both",module:"Accounting & Finance",tags:["Accounting","Period Close"],definition:"The portion of premium collected but coverage not yet provided - a liability on the balance sheet. Rolls forward automatically in Veridex at every close cycle. Formula: Unearned Premium = FTP − Earned Premium."},
+{name:"Unearned Premium Reserve",source:"both",module:"Accounting & Finance",tags:["Accounting","Regulatory"],definition:"All premiums received for coverage extending beyond the statement date; appears as a liability on the balance sheet. Veridex auto-calculates and rolls this forward at every close cycle."},
+{name:"Valued Policy",source:"naic",module:"Policy Management",tags:["Property","Underwriting"],definition:"An insurance contract for which the value is agreed upon in advance and is not related to the amount of the insured loss."},
+{name:"Variable Annuity",source:"naic",module:"Policy Management",tags:["Financial","Benefits"],definition:"An annuity contract where premium payments are used to purchase stock and the value of each unit is relative to the value of the investment portfolio."},
+{name:"Voided",source:"veridex",module:"Operations & Controls",tags:["Operations","Audit"],definition:"A transaction that has been cancelled/nullified. Permanently retained with full audit trail - cannot be deleted. The void record always exists for auditability."},
+{name:"W-9 / W-8 Form",source:"veridex",module:"Compliance & Regulatory",tags:["Compliance","Operations"],definition:"Tax forms vendors must provide before they can be paid. W-9 for US persons/entities; W-8-BEN for foreign persons. System tracks W-9 status and holds payments if a form is missing or expired."},
+{name:"Wire Transfer",source:"veridex",module:"Accounting & Finance",tags:["Accounting","Operations"],definition:"A faster method of electronic bank transfer, typically used for large or time-sensitive payments. Settles the same day. More expensive than ACH."},
+{name:"Workers' Compensation",source:"naic",module:"Policy Management",tags:["Liability","LOB"],definition:"Insurance covering an employer's liability for injuries, disability or death to persons in their employment, without regard to fault, as prescribed by state or federal workers' compensation laws."},
+{name:"Workflow Status Lifecycle",source:"veridex",module:"Operations & Controls",tags:["Operations","Architecture"],definition:"Every transaction in Veridex moves through: Created → Submitted → Approved → Posted → Reconciled → Closed. Exception states at any stage: Voided, Excluded, Under Review, Reopened, escalated. No transaction skips steps."},
+{name:"Write-Off",source:"veridex",module:"Accounting & Finance",tags:["Accounting","Audit"],definition:"Writing off a small unreconcilable difference. Goes through the Maker & Checker workflow and is retained in the audit trail. Requires approval above a configured threshold."},
+{name:"Written Premium",source:"both",module:"Accounting & Finance",tags:["Accounting","Premiums"],definition:"The contractually determined amount charged to the policyholder for the effective period of the contract. In Veridex: total premium generated from all policies written in a given period, before any cession to reinsurers."},
+{name:"XOL Treaty",source:"both",module:"Reinsurance",tags:["Reinsurance","Underwriting"],definition:"See Excess of Loss (XOL) Treaty. Reinsurance where the reinsurer only pays when a single claim exceeds the retention threshold."},
+{name:"Yellow Book",source:"both",module:"Compliance & Regulatory",tags:["Accounting","Regulatory"],definition:"Common name for the NAIC Annual Statement, named for its yellow cover. The comprehensive annual financial report P&C carriers must file with state insurance departments."},
+];
+
+// ── STATE ──────────────────────────────
+let activeMod = "all", activeSrc = "all", searchQ = "";
+const maxTerms = TERMS.length;
+
+// ── INIT ───────────────────────────────
+window.onload = () => {
+  document.getElementById('statTotal').textContent = TERMS.length;
+  document.getElementById('statNaic').textContent  = TERMS.filter(t => t.source === 'naic').length;
+  document.getElementById('statSl').textContent    = TERMS.filter(t => t.source === 'veridex').length;
+  buildSidebar();
+  render();
+};
+
+// ── SIDEBAR ────────────────────────────
+function buildSidebar() {
+  const nav = document.getElementById('sidebarNav');
+  nav.innerHTML = MODULES.map(m => {
+    const count = m.id === 'all' ? TERMS.length : TERMS.filter(t => t.module === m.id).length;
+    // heat bar width: proportional to term count vs max module size
+    const maxCount = Math.max(...MODULES.slice(1).map(x => TERMS.filter(t => t.module === x.id).length));
+    const heatPct  = m.id === 'all' ? 100 : Math.round((count / maxCount) * 100);
+    return `
+      <button class="nav-item ${activeMod === m.id ? 'active' : ''}"
+              id="nav_${sid(m.id)}"
+              onclick="setMod('${m.id}')"
+              aria-pressed="${activeMod === m.id}">
+        <span class="nav-heat" style="background:${m.color};width:3px;height:${heatPct}%;top:${(100 - heatPct) / 2}%;bottom:auto;position:absolute;left:0;border-radius:0 2px 2px 0;"></span>
+        <span class="nav-icon"><i class="fa-solid ${m.icon}"></i></span>
+        <span class="nav-label">${m.label}</span>
+        <span class="nav-count">${count}</span>
+      </button>`;
+  }).join('');
+}
+
+function sid(s) { return s.replace(/[^a-z0-9]/gi, '_'); }
+
+// ── FILTER ─────────────────────────────
+function scoreMatch(t, q) {
+  // Returns a score >= 0 if the term matches, or -1 if it doesn't match at all.
+  // Higher score = better match. Priority:
+  //   100+ : exact full name match
+  //    80+ : name starts with query
+  //    60+ : every query word found in name
+  //    40+ : every query word found in tags
+  //    20+ : every query word found in definition
+  //    -1  : no match
+  if (!q) return 0;
+  const words  = q.split(/\s+/).filter(Boolean);
+  const name   = t.name.toLowerCase();
+  const def    = t.definition.toLowerCase();
+  const tags   = t.tags.join(' ').toLowerCase();
+
+  // All words must appear somewhere - hard gate first (fastest exit)
+  const allHay = `${name} ${tags} ${def}`;
+  if (!words.every(w => allHay.includes(w))) return -1;
+
+  let score = 0;
+
+  // ── Name scoring ──────────────────────────────────────────────
+  // Exact full match
+  if (name === q) { score += 100; }
+  // Name starts with query
+  else if (name.startsWith(q)) { score += 80; }
+  // Every word found in name
+  else if (words.every(w => name.includes(w))) { score += 60; }
+  // Partial: at least one word in name
+  else if (words.some(w => name.includes(w))) { score += 40; }
+
+  // Bonus: query appears as a contiguous substring in the name
+  if (name.includes(q)) score += 15;
+
+  // Bonus: each word found in name (stacks)
+  words.forEach(w => { if (name.includes(w)) score += 5; });
+
+  // ── Tag scoring ───────────────────────────────────────────────
+  words.forEach(w => { if (tags.includes(w)) score += 3; });
+
+  // ── Definition scoring (lowest weight) ───────────────────────
+  words.forEach(w => { if (def.includes(w)) score += 1; });
+
+  // Boost if query appears early in the definition
+  const defPos = def.indexOf(q);
+  if (defPos !== -1) score += Math.max(0, 5 - Math.floor(defPos / 50));
+
+  return score;
+}
+
+function getFiltered() {
+  const q = searchQ.toLowerCase().trim();
+
+  const scored = TERMS
+    .filter(t => {
+      if (activeSrc !== 'all' && t.source !== activeSrc) return false;
+      if (activeMod !== 'all' && t.module !== activeMod) return false;
+      return true;
+    })
+    .map(t => ({ t, score: q ? scoreMatch(t, q) : 0 }))
+    .filter(({ score }) => !q || score >= 0);
+
+  // Sort by score descending when searching; preserve natural order otherwise
+  if (q) scored.sort((a, b) => b.score - a.score);
+
+  return scored.map(({ t }) => t);
+}
+
+// ── RENDER ─────────────────────────────
+function render() {
+  const filtered = getFiltered();
+  const el = document.getElementById('mainContent');
+
+  if (!filtered.length) {
+    el.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon"><i class="fa-solid fa-compass-drafting"></i></div>
+        <h3>No terms match</h3>
+        <p>Try a broader search or reset your filters.</p>
+        <button class="btn-reset" onclick="clearAll()">
+          <i class="fa-solid fa-arrow-rotate-left"></i> Reset filters
+        </button>
+      </div>`;
+    return;
+  }
+
+  // Results count bar
+  const rbar = `
+    <div class="results-bar">
+      <span class="results-bar-text">
+        Showing <strong>${filtered.length}</strong> of ${maxTerms} terms
+        ${activeMod !== 'all' ? ` in <strong>${activeMod}</strong>` : ''}
+        ${activeSrc !== 'all' ? ` · source: <strong>${activeSrc}</strong>` : ''}
+        ${searchQ ? ` · matching <strong>"${escHtml(searchQ)}"</strong>` : ''}
+      </span>
+    </div>`;
+
+  // Group by module when browsing; flat ranked list when searching
+  if (activeMod === 'all' && !searchQ) {
+    const groups = {};
+    MODULES.slice(1).forEach(m => { groups[m.id] = []; });
+    filtered.forEach(t => { if (groups[t.module]) groups[t.module].push(t); });
+
+    el.innerHTML = rbar + MODULES.slice(1).map(m => {
+      const terms = groups[m.id];
+      if (!terms.length) return '';
+      return `
+        <div class="module-section" id="sec_${sid(m.id)}">
+          <div class="module-header">
+            <div class="module-icon-wrap" style="background:${m.color}18;color:${m.color}">
+              <i class="fa-solid ${m.icon}"></i>
+            </div>
+            <div>
+              <div class="module-title">${m.label}</div>
+              <div class="module-meta">${terms.length} term${terms.length !== 1 ? 's' : ''}</div>
+            </div>
+          </div>
+          <div class="term-list">${terms.map(t => mkCard(t, false)).join('')}</div>
+        </div>`;
+    }).join('');
+  } else {
+    // flat list with module badge
+    el.innerHTML = rbar + `<div class="term-list">${filtered.map(t => mkCard(t, activeMod === 'all')).join('')}</div>`;
+  }
+}
+
+// ── CARD ───────────────────────────────
+function mkCard(t, showMod) {
+  const sc   = t.source === 'naic' ? 'naic' : t.source === 'veridex' ? 'veridex' : 'both';
+  const sl   = t.source === 'naic' ? 'NAIC' : t.source === 'veridex' ? 'Veridex' : 'Both';
+  const id   = sid(t.name);
+  const mod  = MODULES.find(m => m.id === t.module);
+  const modBadge = showMod && mod
+    ? `<span class="badge badge-mod" style="color:${mod.color};background:${mod.color}14;border-color:${mod.color}30">${mod.label}</span>`
+    : '';
+  return `
+    <div class="tc" id="tc_${id}" role="listitem">
+      <div class="tc-head" onclick="toggle('${id}')" role="button" aria-expanded="false" aria-controls="tcb_${id}" tabindex="0" onkeydown="if(event.key==='Enter'||event.key===' ')toggle('${id}')">
+        <span class="tc-name">${hl(t.name)}</span>
+        <div class="tc-badges">
+          <span class="badge badge-${sc}">${sl}</span>
+          ${modBadge}
+        </div>
+        <i class="fa-solid fa-chevron-right tc-chevron" aria-hidden="true"></i>
+      </div>
+      <div class="tc-body" id="tcb_${id}" role="region">
+        <div class="tc-tags">${t.tags.map(g => `<span class="tag">${g}</span>`).join('')}</div>
+        <p class="tc-definition">${hl(t.definition)}</p>
+        <div class="tc-body-footer">
+          <button class="btn-delete-term" onclick="openDeleteModal('${t.name.replace(/'/g, "\\'")}')">
+            <i class="fa-solid fa-trash-can"></i> Delete term
+          </button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function toggle(id) {
+  const card = document.getElementById('tc_' + id);
+  const body = document.getElementById('tcb_' + id);
+  const head = card.querySelector('.tc-head');
+  const isOpen = card.classList.toggle('open');
+  body.style.display = isOpen ? 'block' : 'none';
+  head.setAttribute('aria-expanded', isOpen);
+}
+
+// ── HIGHLIGHT ──────────────────────────
+function hl(txt) {
+  if (!searchQ) return escHtml(txt);
+  const safe = escHtml(txt);
+  return searchQ.toLowerCase().split(/\s+/).filter(w => w).reduce((s, w) =>
+    s.replace(new RegExp(`(${w.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi'), '<mark>$1</mark>'), safe);
+}
+function escHtml(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ── CONTROLS ───────────────────────────
+function setMod(id) {
+  activeMod = id;
+  MODULES.forEach(m => {
+    const b = document.getElementById(`nav_${sid(m.id)}`);
+    if (b) { b.classList.toggle('active', m.id === id); b.setAttribute('aria-pressed', m.id === id); }
+  });
+  document.getElementById('mainScroll').scrollTop = 0;
+  render();
+}
+
+function setSrc(s) {
+  activeSrc = s;
+  ['all','naic','veridex','both'].forEach(x => {
+    const b = document.getElementById('src-' + x);
+    if (b) b.classList.toggle('active', x === s);
+  });
+  render();
+}
+
+let deb;
+function onSearch() {
+  clearTimeout(deb);
+  deb = setTimeout(() => {
+    searchQ = document.getElementById('searchInput').value;
+    const cb = document.getElementById('clearBtn');
+    if (cb) cb.style.display = searchQ ? 'block' : 'none';
+    render();
+  }, 130);
+}
+function clearSearch() {
+  const inp = document.getElementById('searchInput');
+  if (inp) inp.value = '';
+  searchQ = '';
+  const cb = document.getElementById('clearBtn');
+  if (cb) cb.style.display = 'none';
+  render();
+}
+function clearAll() { clearSearch(); setSrc('all'); setMod('all'); }
+
+// ── THEME TOGGLE ───────────────────────
+/* Theme toggle removed - day mode only */
+
+
+
+// ── DELETE TERM LOGIC ──────────────────────────────────
+const DELETE_PASSWORD = '6398';
+let pendingDeleteName = null;
+
+function openDeleteModal(termName) {
+  event.stopPropagation();   // don't toggle the card
+  pendingDeleteName = termName;
+  document.getElementById('pwTermName').textContent = termName;
+  document.getElementById('pwInput').value = '';
+  document.getElementById('pwError').textContent = '';
+  document.getElementById('pwInput').classList.remove('shake');
+  document.getElementById('pwModal').classList.add('open');
+  setTimeout(() => document.getElementById('pwInput').focus(), 120);
+}
+
+function closePwModal(e) {
+  if (e && e.target !== document.getElementById('pwModal')) return;
+  document.getElementById('pwModal').classList.remove('open');
+  pendingDeleteName = null;
+}
+
+function pwClearError() {
+  document.getElementById('pwError').textContent = '';
+  document.getElementById('pwInput').classList.remove('shake');
+}
+
+function confirmDelete() {
+  const entered = document.getElementById('pwInput').value.trim();
+  if (entered !== DELETE_PASSWORD) {
+    document.getElementById('pwError').textContent = 'Incorrect password. Please try again.';
+    const inp = document.getElementById('pwInput');
+    inp.classList.remove('shake');
+    void inp.offsetWidth;   // reflow to restart animation
+    inp.classList.add('shake');
+    inp.value = '';
+    return;
+  }
+  // Password correct - delete the term
+  const idx = TERMS.findIndex(t => t.name === pendingDeleteName);
+  if (idx !== -1) {
+    const deleted = TERMS.splice(idx, 1)[0];
+    // Update counters
+    document.getElementById('statTotal').textContent = TERMS.length;
+    document.getElementById('statNaic').textContent  = TERMS.filter(t => t.source === 'naic').length;
+    document.getElementById('statSl').textContent    = TERMS.filter(t => t.source === 'veridex').length;
+    buildSidebar();
+    render();
+    document.getElementById('pwModal').classList.remove('open');
+    pendingDeleteName = null;
+    showToast('<i class="fa-solid fa-circle-check"></i> <strong>' + escHtml(deleted.name) + '</strong> deleted.');
+  }
+}
+
+// ── ADD TERM LOGIC ──────────────────────────────────────
+let atSrc     = 'veridex';
+let atTags    = [];
+let newTerms  = [];   // accumulates terms added this session
+
+function openAddTerm() {
+  // Populate module dropdown
+  const sel = document.getElementById('at-module');
+  sel.innerHTML = '<option value=""> - Pick the module this term belongs to - </option>';
+  MODULES.slice(1).forEach(m => {
+    const opt = document.createElement('option');
+    opt.value = m.id; opt.textContent = m.label;
+    sel.appendChild(opt);
+  });
+  // Reset form
+  document.getElementById('at-name').value = '';
+  document.getElementById('at-def').value  = '';
+  document.getElementById('tagInput').value = '';
+  atTags = [];
+  renderTags();
+  setAtSrc('veridex');
+  atPreview();
+  document.getElementById('addTermModal').classList.add('open');
+  setTimeout(() => document.getElementById('at-module').focus(), 100);
+}
+
+function closeAddTerm(e) {
+  if (e && e.target !== document.getElementById('addTermModal')) return;
+  document.getElementById('addTermModal').classList.remove('open');
+}
+
+function setAtSrc(s) {
+  atSrc = s;
+  ['veridex','naic','both'].forEach(x => {
+    document.getElementById('src-' + x + '-btn').classList.toggle('active', x === s);
+  });
+}
+
+function handleTagKey(e) {
+  if (e.key === 'Enter' || e.key === ',') {
+    e.preventDefault();
+    const v = document.getElementById('tagInput').value.trim().replace(/,/g,'');
+    if (v && !atTags.includes(v)) { atTags.push(v); renderTags(); }
+    document.getElementById('tagInput').value = '';
+  } else if (e.key === 'Backspace' && !document.getElementById('tagInput').value && atTags.length) {
+    atTags.pop(); renderTags();
+  }
+}
+
+function renderTags() {
+  const wrap = document.getElementById('tagWrap');
+  const input = document.getElementById('tagInput');
+  // Remove old pills
+  wrap.querySelectorAll('.tag-pill').forEach(p => p.remove());
+  atTags.forEach((tag, i) => {
+    const pill = document.createElement('span');
+    pill.className = 'tag-pill';
+    pill.innerHTML = `${escHtml(tag)}<button onclick="removeTag(${i})" aria-label="Remove tag">×</button>`;
+    wrap.insertBefore(pill, input);
+  });
+  atPreview();
+}
+
+function removeTag(i) { atTags.splice(i, 1); renderTags(); }
+
+function atPreview() {
+  const name = document.getElementById('at-name').value.trim();
+  const def  = document.getElementById('at-def').value.trim();
+  const mod  = document.getElementById('at-module').value;
+  const strip = document.getElementById('atPreviewStrip');
+  const empty = document.getElementById('previewEmpty');
+  const btn   = document.getElementById('atSaveBtn');
+
+  const ready = name && def && mod;
+  btn.disabled = !ready;
+
+  if (name || def) {
+    strip.classList.add('show');
+    empty.style.display = 'none';
+    document.getElementById('ps-name').textContent = name || '(no name yet)';
+    document.getElementById('ps-def').textContent  = def  || '(no definition yet)';
+  } else {
+    strip.classList.remove('show');
+    empty.style.display = '';
+  }
+}
+
+function saveTerm() {
+  const name = document.getElementById('at-name').value.trim();
+  const def  = document.getElementById('at-def').value.trim();
+  const mod  = document.getElementById('at-module').value;
+  if (!name || !def || !mod) return;
+
+  const tags = atTags.length ? [...atTags] : [mod.split(' ')[0]];
+
+  const newTerm = { name, source: atSrc, module: mod, tags, definition: def };
+
+  // Add to live TERMS array and session log
+  TERMS.push(newTerm);
+  newTerms.push(newTerm);
+
+  // Update stat counters
+  document.getElementById('statTotal').textContent = TERMS.length;
+  document.getElementById('statNaic').textContent  = TERMS.filter(t => t.source === 'naic').length;
+  document.getElementById('statSl').textContent    = TERMS.filter(t => t.source === 'veridex').length;
+
+  // Rebuild sidebar counts
+  buildSidebar();
+
+  // Navigate to the module we just added to
+  setMod(mod);
+
+  // Close modal
+  document.getElementById('addTermModal').classList.remove('open');
+
+  // Show toast
+  showToast(`<i class="fa-solid fa-circle-check"></i> "<strong>${escHtml(name)}</strong>" added to ${escHtml(mod)}`);
+
+  // Enable export button if it exists
+  const eb = document.getElementById('exportBtn');
+  if (eb) { eb.style.display = 'flex'; }
+}
+
+// ── EXPORT ─────────────────────────────────────
+function openExport() {
+  if (!newTerms.length) { showToast('<i class="fa-solid fa-circle-info"></i> No new terms added this session yet.', true); return; }
+  const lines = newTerms.map(t =>
+    `{name:${JSON.stringify(t.name)},source:${JSON.stringify(t.source)},module:${JSON.stringify(t.module)},tags:${JSON.stringify(t.tags)},definition:${JSON.stringify(t.definition)}}`
+  ).join(',\n');
+  document.getElementById('exportCode').textContent = lines;
+  document.getElementById('exportPanel').classList.add('open');
+}
+function closeExport(e) {
+  if (e && e.target !== document.getElementById('exportPanel')) return;
+  document.getElementById('exportPanel').classList.remove('open');
+}
+function copyExport() {
+  navigator.clipboard.writeText(document.getElementById('exportCode').textContent)
+    .then(() => showToast('<i class="fa-solid fa-circle-check"></i> Copied to clipboard!'))
+    .catch(() => showToast('<i class="fa-solid fa-circle-exclamation"></i> Copy failed - please select and copy manually.', true));
+}
+
+// ── TOAST ──────────────────────────────────────
+function showToast(html, isErr) {
+  const wrap = document.getElementById('toastWrap');
+  const t = document.createElement('div');
+  t.className = 'toast' + (isErr ? ' err' : '');
+  t.innerHTML = html;
+  wrap.appendChild(t);
+  setTimeout(() => { t.style.opacity='0'; t.style.transition='opacity .4s'; setTimeout(()=>t.remove(),400); }, 3200);
+}
+
+// Keyboard shortcut: / to focus search
+document.addEventListener('keydown', e => {
+  if (e.key === '/' && document.activeElement.tagName !== 'INPUT') {
+    e.preventDefault();
+    document.getElementById('searchInput').focus();
+  }
+});
+</script>
+
+
+<!-- ── DELETE PASSWORD MODAL ─────────────────────── -->
+<div class="pw-overlay" id="pwModal" onclick="closePwModal(event)" role="dialog" aria-modal="true" aria-labelledby="pwTitle">
+  <div class="pw-box">
+    <div class="pw-head">
+      <h2 id="pwTitle"><i class="fa-solid fa-trash"></i> Delete Term</h2>
+      <button class="modal-close" onclick="closePwModal()" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="pw-body">
+      <div class="pw-term-name" id="pwTermName"></div>
+      <div>
+        <div class="pw-label">Enter password to confirm deletion</div>
+        <input class="pw-input" type="password" id="pwInput" maxlength="10" placeholder="••••••"
+          oninput="pwClearError()" onkeydown="if(event.key==='Enter')confirmDelete()">
+      </div>
+      <div class="pw-error" id="pwError"></div>
+    </div>
+    <div class="pw-foot">
+      <button class="btn-pw-cancel" onclick="closePwModal()">Cancel</button>
+      <button class="btn-pw-confirm" onclick="confirmDelete()">
+        <i class="fa-solid fa-trash"></i> Delete
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── ADD TERM MODAL ─────────────────────────── -->
+<div class="modal-overlay" id="addTermModal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" onclick="closeAddTerm(event)">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h2 id="modalTitle"><i class="fa-solid fa-circle-plus"></i> Add a New Term</h2>
+      <button class="modal-close" onclick="closeAddTerm()" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Module picker -->
+      <div class="form-row">
+        <label>Module <span>*</span></label>
+        <select id="at-module" onchange="atPreview()">
+          <option value=""> - Pick the module this term belongs to - </option>
+        </select>
+        <p class="form-hint">Not sure? Pick the closest category.</p>
+      </div>
+
+      <!-- Term name -->
+      <div class="form-row">
+        <label>Term Name <span>*</span></label>
+        <input type="text" id="at-name" placeholder="e.g. Net Written Premium" maxlength="120" oninput="atPreview()">
+      </div>
+
+      <!-- Definition -->
+      <div class="form-row">
+        <label>Definition <span>*</span></label>
+        <textarea id="at-def" placeholder="Explain it clearly - like you're telling a smart new joiner who has never heard this term before." oninput="atPreview()"></textarea>
+        <p class="form-hint">Write in plain English. Avoid textbook language.</p>
+      </div>
+
+      <!-- Tags -->
+      <div class="form-row">
+        <label>Tags</label>
+        <div class="tag-input-wrap" id="tagWrap" onclick="document.getElementById('tagInput').focus()">
+          <input type="text" class="tag-input" id="tagInput" placeholder="Type tag and press Enter..." maxlength="40" onkeydown="handleTagKey(event)">
+        </div>
+        <p class="tag-hint">Press <strong>Enter</strong> or <strong>comma</strong> to add a tag. Click × to remove.</p>
+      </div>
+
+      <!-- Source -->
+      <div class="form-row">
+        <label>Source</label>
+        <div class="source-row">
+          <button class="src-chip active" id="src-veridex-btn" onclick="setAtSrc('veridex')">Veridex</button>
+          <button class="src-chip" id="src-naic-btn" onclick="setAtSrc('naic')">NAIC</button>
+          <button class="src-chip" id="src-both-btn" onclick="setAtSrc('both')">Both</button>
+        </div>
+      </div>
+
+      <!-- Live preview -->
+      <div class="form-row">
+        <label>Preview</label>
+        <div class="preview-strip" id="atPreviewStrip">
+          <div class="ps-name" id="ps-name"></div>
+          <div class="ps-def" id="ps-def"></div>
+        </div>
+        <p class="form-hint" id="previewEmpty">Fill in the name and definition above to see a preview.</p>
+      </div>
+
+    </div>
+    <div class="modal-foot">
+      <button class="btn-cancel" onclick="closeAddTerm()">Cancel</button>
+      <button class="btn-save" id="atSaveBtn" onclick="saveTerm()" disabled>
+        <i class="fa-solid fa-floppy-disk"></i> Add to Dictionary
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ── EXPORT PANEL ───────────────────────────── -->
+<div class="export-panel" id="exportPanel" onclick="closeExport(event)">
+  <div class="export-box">
+    <div class="export-head">
+      <h2><i class="fa-solid fa-code"></i> Export New Terms (for Developer)</h2>
+      <button class="modal-close" onclick="closeExport()" aria-label="Close"><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <div class="export-body">
+      <div class="export-note">
+        The terms you added this session are shown below as JavaScript objects ready to paste into the <code>TERMS</code> array in the HTML file. Hand this to your developer or paste it yourself.
+      </div>
+      <div class="export-code" id="exportCode"></div>
+    </div>
+    <div class="export-foot">
+      <button class="btn-cancel" onclick="closeExport()">Close</button>
+      <button class="btn-save" onclick="copyExport()"><i class="fa-solid fa-copy"></i> Copy to Clipboard</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOAST CONTAINER ──────────────────────── -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+</body>
+</html>

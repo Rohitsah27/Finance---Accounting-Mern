@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Subledger & Bordereau (BX) — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Insurance Operations (PAS &amp; MGA)</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Subledger Processing</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-file-lines" style="color: var(--brand);"></i> Subledger Processing &amp; Bordereau (BX) Ingestion</h1>
+      <p>
+        The Subledger Processing module serves as the automated ingestion bridge between delegated MGA partners and the Carrier's general ledger. It ingests raw monthly Excel/CSV Bordereaux, audits line items, splits multi-tier commissions, and posts balanced journal entries automatically.
+      </p>
+    </div>
+
+    <div class="module-card" id="bordereau-workflow">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-blue">Automation</span>
+            <span class="badge badge-green">Subledger Split</span>
+          </div>
+          <h2 class="module-title">Bordereau Ingestion &amp; Split Engine (`subledger-processing.html`)</h2>
+        </div>
+        <a href="../subledger-processing.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Subledger Hub</a>
+      </div>
+
+      <p class="section-p">
+        <strong>How it works:</strong>
+      </p>
+      <div class="flow-steps">
+        <div class="flow-step-item">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <strong>Upload Monthly File</strong>
+            <span>Upload the MGA's production spreadsheet containing policy IDs, gross written premiums, commission withholdings, and net cash remittance totals.</span>
+          </div>
+        </div>
+        <div class="flow-step-item">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <strong>Automated Data Validation &amp; Sanitization</strong>
+            <span>Checks for duplicate policy numbers, invalid state tax codes, and mathematical discrepancies between gross premium and net settlement.</span>
+          </div>
+        </div>
+        <div class="flow-step-item">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <strong>Automated GL Journal Entry Generation</strong>
+            <span>Posts Dr. 1100 (Receivable from MGA), Dr. 6100 (Broker Comm), Dr. 6101 (MGA Override) / Cr. 2100 (Gross Unearned Premium Reserve).</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="policy-admin.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">Policy Admin (PAS)</span>
+      </a>
+      <a href="mga-operations.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Module &rarr;</span>
+        <span class="nav-page-title">MGA Operations</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('subledger-processing');
+</script>
+</body>
+</html>

@@ -1,0 +1,135 @@
+{
+  "accessSections": [
+    {
+      "id": "core-financial",
+      "label": "Core Financial",
+      "icon": "📊",
+      "description": "General ledger, journals, and financial reporting",
+      "moduleIds": ["dashboard", "chart-of-accounts", "journal-entry", "financial-statements"]
+    },
+    {
+      "id": "treasury",
+      "label": "Treasury & Payables",
+      "icon": "🏦",
+      "description": "Bank reconciliation and accounts payable",
+      "moduleIds": ["bank-reconciliation", "accounts-payable"]
+    },
+    {
+      "id": "insurance-ops",
+      "label": "Insurance Operations",
+      "icon": "📋",
+      "description": "Premium, claims, subledger, and reinsurance",
+      "moduleIds": ["premium-claims", "subledger", "reinsurance", "mga-operations"]
+    },
+    {
+      "id": "regulatory",
+      "label": "Regulatory & Compliance",
+      "icon": "⚖️",
+      "description": "Statutory reports, filings, and period controls",
+      "moduleIds": ["statutory-reports", "compliance-filings", "period-locking"]
+    },
+    {
+      "id": "governance",
+      "label": "Governance & Admin",
+      "icon": "🔐",
+      "description": "Audit trail and user administration",
+      "moduleIds": ["audit-trail", "user-management"]
+    }
+  ],
+  "permissionTemplates": [
+    {
+      "id": "bank-recon-approver",
+      "label": "Bank Reconciliation Approver",
+      "section": "treasury",
+      "description": "Approve bank matches and exceptions without full controller access.",
+      "permissions": {
+        "bank-reconciliation": ["view", "create", "edit", "approve", "export"]
+      }
+    },
+    {
+      "id": "statutory-filer",
+      "label": "Statutory Filing Specialist",
+      "section": "regulatory",
+      "description": "Prepare and file NAIC / state statutory reports.",
+      "permissions": {
+        "statutory-reports": ["view", "create", "edit", "export", "file"],
+        "compliance-filings": ["view", "create", "edit", "export", "file"]
+      }
+    },
+    {
+      "id": "period-close-assistant",
+      "label": "Period Close Assistant",
+      "section": "regulatory",
+      "description": "Run validations and generate close reports; no hard lock.",
+      "permissions": {
+        "period-locking": ["view", "create", "edit", "export"],
+        "journal-entry": ["view", "export"],
+        "financial-statements": ["view", "export"]
+      }
+    },
+    {
+      "id": "mga-bordereau",
+      "label": "MGA Bordereau Manager",
+      "section": "insurance-ops",
+      "description": "Upload bordereaux and manage MGA settlement splits.",
+      "permissions": {
+        "mga-operations": ["view", "create", "edit", "export"],
+        "premium-claims": ["view", "create", "edit", "export"],
+        "subledger": ["view", "export"]
+      }
+    },
+    {
+      "id": "claims-power-user",
+      "label": "Claims Power User",
+      "section": "insurance-ops",
+      "description": "Full claims module access including approve on large losses.",
+      "permissions": {
+        "premium-claims": ["view", "create", "edit", "approve", "export"],
+        "reinsurance": ["view", "export"]
+      }
+    },
+    {
+      "id": "journal-poster",
+      "label": "Journal Entry Poster",
+      "section": "core-financial",
+      "description": "Post approved journal entries to GL (no COA changes).",
+      "permissions": {
+        "journal-entry": ["view", "create", "edit", "export", "post"],
+        "chart-of-accounts": ["view"]
+      }
+    },
+    {
+      "id": "read-only-export",
+      "label": "Read-Only + Full Export",
+      "section": "governance",
+      "description": "View and export all modules; no create, edit, or approve.",
+      "permissions": {
+        "dashboard": ["view", "export"],
+        "chart-of-accounts": ["view", "export"],
+        "journal-entry": ["view", "export"],
+        "financial-statements": ["view", "export"],
+        "bank-reconciliation": ["view", "export"],
+        "accounts-payable": ["view", "export"],
+        "premium-claims": ["view", "export"],
+        "subledger": ["view", "export"],
+        "reinsurance": ["view", "export"],
+        "statutory-reports": ["view", "export"],
+        "mga-operations": ["view", "export"],
+        "compliance-filings": ["view", "export"],
+        "period-locking": ["view", "export"],
+        "audit-trail": ["view", "export"]
+      }
+    },
+    {
+      "id": "break-glass-period",
+      "label": "Break-Glass Period Override",
+      "section": "regulatory",
+      "description": "Emergency period unlock - requires audit trail (admin assign only).",
+      "adminOnly": true,
+      "permissions": {
+        "period-locking": ["view", "approve", "export", "lock", "override"],
+        "audit-trail": ["view", "export"]
+      }
+    }
+  ]
+}

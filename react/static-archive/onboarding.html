@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Setup Workspace — Onboarding | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+</head>
+<body style="background-color: var(--color-surface);">
+  <main class="main-content" style="margin-left:0;padding-top:40px;background:transparent;">
+    <div style="max-width:760px;margin:0 auto;padding:0 24px 80px;">
+
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:28px;">
+        <svg width="32" height="32" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="obVdGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#F97316"/>
+              <stop offset="100%" stop-color="#F59E0B"/>
+            </linearGradient>
+          </defs>
+          <rect width="32" height="32" rx="6" fill="#22262E"/>
+          <path d="M7 10L13 22L17 14" stroke="url(#obVdGrad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M17 10H21C23.76 10 26 12.24 26 15C26 17.76 23.76 20 21 20H17V10Z" stroke="url(#obVdGrad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+        <div style="display:flex;align-items:baseline;line-height:1;">
+          <span style="font-size:22px;font-weight:700;color:var(--color-ink);letter-spacing:-0.3px;">Veri</span><span style="font-size:22px;font-weight:700;color:var(--color-brand);letter-spacing:-0.3px;">Dex</span>
+          <span style="font-size:11px;font-weight:600;color:var(--color-muted);margin-left:10px;letter-spacing:1px;text-transform:uppercase;">Setup Workspace</span>
+        </div>
+      </div>
+
+      <div class="v-wizard-steps" id="wizard-steps"></div>
+
+      <div class="form-card" style="padding:26px 28px;">
+
+        <!-- Step 1: About you -->
+        <section class="ob-step" data-step="1">
+          <div class="ob-step-title">Welcome. Let's set this up for you.</div>
+          <div class="ob-step-sub">Two minutes of questions, and we'll build a workspace around your business, not a generic template.</div>
+          <div class="form-grid-2" style="margin-top:18px;">
+            <div>
+              <label class="field-label">Your full name *</label>
+              <input class="field-input" type="text" id="ob-name" placeholder="e.g. Maria Chen">
+            </div>
+            <div>
+              <label class="field-label">Your role at the business *</label>
+              <select class="field-input" id="ob-role-title">
+                <option value="owner">Owner / Founder</option>
+                <option value="cfo">CFO / Finance Lead</option>
+                <option value="controller">Controller</option>
+                <option value="accountant">Accountant / Bookkeeper</option>
+                <option value="admin">IT / System Administrator</option>
+                <option value="other">Something else</option>
+              </select>
+            </div>
+          </div>
+          <div id="ob-role-other-wrap" style="display:none;margin-top:14px;">
+            <label class="field-label">What's your title?</label>
+            <input class="field-input" type="text" id="ob-role-other" placeholder="e.g. Head Baker & Co-Owner">
+          </div>
+        </section>
+
+        <!-- Step 2: About the business -->
+        <section class="ob-step" data-step="2" hidden>
+          <div class="ob-step-title">Tell us about your business.</div>
+          <div class="ob-step-sub">Pick the closest fit, then describe it in your own words. The category decides which accounting rules apply behind the scenes; your description is what you'll actually see on screen.</div>
+          <div style="margin-top:18px;">
+            <label class="field-label">Business / company name *</label>
+            <input class="field-input" type="text" id="ob-company-name" placeholder="e.g. Rossi's Pizza Base Co.">
+          </div>
+          <div style="margin-top:16px;">
+            <label class="field-label">Describe your business in a few words *</label>
+            <input class="field-input" type="text" id="ob-business-label" placeholder="e.g. Pizza base manufacturer, family bakery, regional trucking MGA...">
+          </div>
+          <div style="margin-top:18px;">
+            <label class="field-label">Which category is closest? *</label>
+            <div class="v-role-grid" id="ob-business-type-grid" style="margin-top:8px;"></div>
+          </div>
+        </section>
+
+        <!-- Step 3: Goals -->
+        <section class="ob-step" data-step="3" hidden>
+          <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:12px;margin-bottom:16px;">
+            <div>
+              <div class="ob-step-title">What do you need to manage?</div>
+              <div class="ob-step-sub" style="margin-top:4px;">Check everything that applies. We'll turn on exactly those modules, nothing more, and you can change this anytime later.</div>
+            </div>
+            <button type="button" class="btn btn-outline btn-sm" id="ob-goals-select-all" onclick="toggleAllGoals()" style="flex-shrink:0;">Select All</button>
+          </div>
+          <div class="v-role-grid" id="ob-goals-grid" style="margin-top:0;"></div>
+        </section>
+
+        <!-- Step 4: Recommended setup -->
+        <section class="ob-step" data-step="4" hidden>
+          <div class="ob-step-title">Here's what we've set up for <span id="ob-recap-name">your business</span>.</div>
+          <div class="ob-step-sub">Every one of these is a real setting, not a preview. Flip anything off or on right now, or come back later in Admin Configuration Centre.</div>
+
+          <div style="margin:18px 0 8px;font-size:12.5px;font-weight:800;color:var(--gray-600);">Chart of Accounts template</div>
+          <select class="field-input" id="ob-coa-template"></select>
+
+          <div style="margin:20px 0 8px;font-size:12.5px;font-weight:800;color:var(--gray-600);">Modules turned on for you</div>
+          <div class="v-module-grid" id="ob-module-preview"></div>
+
+          <div style="margin:20px 0 8px;font-size:12.5px;font-weight:800;color:var(--gray-600);">Dimensions you can tag on every transaction</div>
+          <div id="ob-dimension-preview" style="display:flex;flex-wrap:wrap;gap:8px;"></div>
+        </section>
+
+        <!-- Step 5: Done -->
+        <section class="ob-step" data-step="5" hidden>
+          <div class="ob-step-title">You're all set, <span id="ob-final-name"></span>.</div>
+          <div class="ob-step-sub" id="ob-final-sub"></div>
+
+          <div style="margin-top:24px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="ob-choice-card" onclick="finishWithDestination('config-center')" style="border:1.5px solid var(--gray-200);border-radius:12px;padding:20px;cursor:pointer;transition:all 0.2s ease;background:var(--v-card-bg);">
+              <div style="font-size:24px;margin-bottom:8px;">⚙️</div>
+              <div style="font-weight:700;font-size:14.5px;color:var(--v-ink);margin-bottom:6px;">Configuration Centre</div>
+              <div style="font-size:12px;color:var(--gray-500);line-height:1.45;">Refine activated modules, custom dimensions, statutory reports, and core database fields.</div>
+            </div>
+
+            <div class="ob-choice-card" onclick="finishWithDestination('setup-wizard')" style="border:1.5px solid var(--gray-200);border-radius:12px;padding:20px;cursor:pointer;transition:all 0.2s ease;background:var(--v-card-bg);">
+              <div style="font-size:24px;margin-bottom:8px;">🧙‍♂️</div>
+              <div style="font-weight:700;font-size:14.5px;color:var(--v-ink);margin-bottom:6px;">Self-Service Setup Wizard</div>
+              <div style="font-size:12px;color:var(--gray-500);line-height:1.45;">Start a guided 10-stage checklist to configure tax regimes, security roles, and workflows.</div>
+            </div>
+          </div>
+
+          <div class="v-lock-note" style="margin-top:20px;">
+            Nothing here is locked in. Add or remove modules and dimensions anytime from Admin Configuration Centre, or add another business/entity later if you ever need one.
+          </div>
+        </section>
+
+        <div style="display:flex;justify-content:space-between;margin-top:28px;padding-top:18px;border-top:1px solid var(--gray-200);">
+          <button type="button" class="btn btn-ghost" id="ob-back-btn" onclick="obBack()">← Back</button>
+          <button type="button" class="btn btn-primary" id="ob-next-btn" onclick="obNext()">Continue →</button>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <script src="js/app.js"></script>
+  <script>
+    // Redirect if already onboarded
+    const cfg = getTenantConfig();
+    if (cfg && cfg.onboarded) {
+      window.location.href = 'home.html';
+    }
+
+    const OB_STEPS = ['You', 'Business', 'Goals', 'Setup', 'Done'];
+    let obStep = 1;
+    const obAnswers = { goalIds: [], businessType: null };
+
+    // Auto-prepopulate user details from active session
+    const user = (typeof getCurrentUser === 'function') ? getCurrentUser() : {};
+    const email = user.email || '';
+    if (email === 'carrier@gmail.com') obAnswers.businessType = 'carrier';
+    else if (email === 'mga@gmail.com') obAnswers.businessType = 'mga';
+    else if (email === 'broker@gmail.com') obAnswers.businessType = 'agency';
+    else if (email === 'insured@gmail.com') obAnswers.businessType = 'insured';
+
+    function renderSteps() {
+      document.getElementById('wizard-steps').innerHTML = OB_STEPS.map((label, i) => {
+        const n = i + 1;
+        const cls = n < obStep ? 'done' : (n === obStep ? 'active' : '');
+        return `<div class="v-wizard-step ${cls}">
+          <div class="v-wizard-dot">${n < obStep ? '&#10003;' : n}</div>
+          <div class="v-wizard-label">${label}</div>
+        </div>`;
+      }).join('');
+      document.querySelectorAll('.ob-step').forEach(s => { s.hidden = Number(s.dataset.step) !== obStep; });
+      document.getElementById('ob-back-btn').style.visibility = obStep === 1 ? 'hidden' : 'visible';
+      document.getElementById('ob-next-btn').textContent = obStep === 5 ? 'Go to my dashboard →' : 'Continue →';
+      if (obStep === 2) renderBusinessTypeGrid();
+      if (obStep === 3) {
+        renderGoalsGrid();
+        updateSelectAllButtonText();
+      }
+      if (obStep === 4) renderRecommendedSetup();
+      if (obStep === 5) renderFinalRecap();
+    }
+
+    function renderBusinessTypeGrid() {
+      const grid = document.getElementById('ob-business-type-grid');
+      grid.innerHTML = BUSINESS_TYPES.map(bt => `
+        <div class="v-role-card ob-type-card ${obAnswers.businessType === bt.id ? 'ob-selected' : ''}" data-bt="${bt.id}" onclick="selectBusinessType('${bt.id}')">
+          <div class="v-role-card-icon" style="background:var(--v-teal-bg);">${bt.icon}</div>
+          <h4>${bt.label}</h4>
+          <p>${bt.desc}</p>
+        </div>`).join('');
+    }
+
+    function selectBusinessType(id) {
+      obAnswers.businessType = id;
+      document.querySelectorAll('.ob-type-card').forEach(c => c.classList.toggle('ob-selected', c.dataset.bt === id));
+    }
+
+    function renderGoalsGrid() {
+      const goals = goalsForBusinessType(obAnswers.businessType || 'other');
+      const grid = document.getElementById('ob-goals-grid');
+      grid.innerHTML = goals.map(g => `
+        <div class="v-role-card ob-goal-card ${obAnswers.goalIds.includes(g.id) ? 'ob-selected' : ''}" data-goal="${g.id}" onclick="toggleGoal('${g.id}')">
+          <div class="v-role-card-icon" style="background:var(--v-amber-bg);font-size:20px;">${g.icon}</div>
+          <h4>${g.label}</h4>
+        </div>`).join('');
+    }
+
+    function toggleGoal(id) {
+      const i = obAnswers.goalIds.indexOf(id);
+      if (i === -1) obAnswers.goalIds.push(id); else obAnswers.goalIds.splice(i, 1);
+      document.querySelector(`.ob-goal-card[data-goal="${id}"]`).classList.toggle('ob-selected');
+      updateSelectAllButtonText();
+    }
+
+    function toggleAllGoals() {
+      const goals = goalsForBusinessType(obAnswers.businessType || 'other');
+      const allGoalIds = goals.map(g => g.id);
+      const allSelected = allGoalIds.every(id => obAnswers.goalIds.includes(id));
+      
+      if (allSelected) {
+        obAnswers.goalIds = obAnswers.goalIds.filter(id => !allGoalIds.includes(id));
+      } else {
+        allGoalIds.forEach(id => {
+          if (!obAnswers.goalIds.includes(id)) {
+            obAnswers.goalIds.push(id);
+          }
+        });
+      }
+      renderGoalsGrid();
+      updateSelectAllButtonText();
+    }
+
+    function updateSelectAllButtonText() {
+      const btn = document.getElementById('ob-goals-select-all');
+      if (!btn) return;
+      const goals = goalsForBusinessType(obAnswers.businessType || 'other');
+      const allGoalIds = goals.map(g => g.id);
+      const allSelected = allGoalIds.length > 0 && allGoalIds.every(id => obAnswers.goalIds.includes(id));
+      btn.textContent = allSelected ? 'Deselect All' : 'Select All';
+    }
+
+    function renderRecommendedSetup() {
+      document.getElementById('ob-recap-name').textContent = obAnswers.businessLabel || obAnswers.companyName || 'your business';
+      const templates = coaTemplatesForBusinessType(obAnswers.businessType);
+      const allTemplates = templates.length ? templates : COA_TEMPLATES;
+      const sel = document.getElementById('ob-coa-template');
+      sel.innerHTML = allTemplates.map(t => `<option value="${t.id}">${t.label} (${t.accounts} accounts)</option>`).join('');
+      sel.value = suggestCoaTemplate(obAnswers.businessType);
+
+      const rec = recommendConfigFromGoals(obAnswers.businessType, obAnswers.goalIds);
+      obAnswers._recommendedModules = rec.enabledModules;
+      obAnswers._recommendedDimensions = rec.enabledDimensions;
+
+      const grid = document.getElementById('ob-module-preview');
+      grid.innerHTML = MODULE_CATALOG.filter(m => rec.enabledModules[m.id]).map(m => `
+        <div class="v-module-card">
+          <div class="v-module-card-top">
+            <div class="v-module-card-icon">${m.no}</div>
+            <label class="v-switch"><input type="checkbox" checked data-module="${m.id}" ${m.core ? 'disabled' : ''} onchange="rec.enabledModules['${m.id}']=this.checked"><span class="v-slider"></span></label>
+          </div>
+          <div class="v-module-card-title">${m.label}</div>
+          <div class="v-module-card-desc">${m.desc}</div>
+          ${m.core ? '<span class="v-badge-config">always on</span>' : '<span class="v-badge-config">because you told us</span>'}
+        </div>`).join('');
+
+      const dimWrap = document.getElementById('ob-dimension-preview');
+      const enabledDimIds = Object.keys(rec.enabledDimensions).filter(id => rec.enabledDimensions[id]);
+      const dims = DIMENSION_LIBRARY.filter(d => enabledDimIds.includes(d.id));
+      dimWrap.innerHTML = dims.map(d => `
+        <label class="v-badge-config" style="cursor:pointer;padding:6px 12px;font-size:12px;">
+          <input type="checkbox" checked data-dim="${d.id}" style="margin-right:6px;vertical-align:middle;" onchange="rec.enabledDimensions['${d.id}']=this.checked">${d.label}
+        </label>`).join('') || '<span style="font-size:12px;color:var(--gray-400);">None yet, add these later in Admin Configuration Centre.</span>';
+
+      // expose live-editable rec object to the onchange handlers above
+      window.rec = rec;
+    }
+
+    function renderFinalRecap() {
+      document.getElementById('ob-final-name').textContent = obAnswers.ownerName || '';
+      const enabledCount = Object.values(obAnswers._recommendedModules || {}).filter(Boolean).length;
+      document.getElementById('ob-final-sub').textContent =
+        `${obAnswers.companyName || 'Your business'} is configured as a ${obAnswers.businessLabel || getBusinessType(obAnswers.businessType).label}, with ${enabledCount} module(s) turned on.`;
+    }
+
+    function validateStep() {
+      if (obStep === 1) {
+        obAnswers.ownerName = document.getElementById('ob-name').value.trim();
+        const roleSel = document.getElementById('ob-role-title').value;
+        obAnswers.ownerRoleId = roleSel;
+        obAnswers.ownerRoleTitle = roleSel === 'other' ? document.getElementById('ob-role-other').value.trim() : document.getElementById('ob-role-title').selectedOptions[0].textContent;
+        if (!obAnswers.ownerName) { showToast('Enter your name to continue', 'warning'); return false; }
+      }
+      if (obStep === 2) {
+        obAnswers.companyName = document.getElementById('ob-company-name').value.trim();
+        obAnswers.businessLabel = document.getElementById('ob-business-label').value.trim();
+        if (!obAnswers.companyName) { showToast('Enter your business name', 'warning'); return false; }
+        if (!obAnswers.businessLabel) { showToast('Describe your business in a few words', 'warning'); return false; }
+        if (!obAnswers.businessType) { showToast('Pick the closest category', 'warning'); return false; }
+      }
+      if (obStep === 4) {
+        obAnswers.coaTemplate = document.getElementById('ob-coa-template').value;
+        obAnswers.moduleOverrides = window.rec ? window.rec.enabledModules : {};
+        obAnswers.dimensionOverrides = window.rec ? window.rec.enabledDimensions : {};
+      }
+      return true;
+    }
+
+    function obNext() {
+      if (!validateStep()) return;
+      if (obStep === 5) {
+        applyOnboarding(obAnswers, 'done');
+        showToast('Workspace ready. Let\'s finish setting up, ' + (obAnswers.ownerName || '') + '.', 'success');
+        setTimeout(() => { window.location.href = 'home.html'; }, 700);
+        return;
+      }
+      obStep++;
+      renderSteps();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function finishWithDestination(dest) {
+      if (!validateStep()) return;
+      applyOnboarding(obAnswers, 'config');
+      showToast('Redirecting to your setup workspace...', 'success');
+      setTimeout(() => {
+        if (dest === 'config-center') {
+          window.location.href = 'admin-config-center.html';
+        } else if (dest === 'setup-wizard') {
+          window.location.href = 'setup-wizard.html';
+        }
+      }, 700);
+    }
+
+    function obBack() {
+      if (obStep === 1) return;
+      obStep--;
+      renderSteps();
+    }
+
+    document.getElementById('ob-role-title').addEventListener('change', function () {
+      document.getElementById('ob-role-other-wrap').style.display = this.value === 'other' ? '' : 'none';
+    });
+
+    // Auto-fill name and business details based on logged-in module to speed up prototype testing
+    try {
+      if (typeof getTenantConfig === 'function') {
+        const cfg = getTenantConfig();
+        const nameInput = document.getElementById('ob-name');
+        const companyInput = document.getElementById('ob-company-name');
+        const descInput = document.getElementById('ob-business-label');
+        
+        if (cfg.businessType === 'carrier') {
+          nameInput.value = 'SOUTHLAKE';
+          companyInput.value = "SOUTHLAKE";
+          descInput.value = "Risk Carrier";
+        } else if (cfg.businessType === 'mga') {
+          nameInput.value = 'NTA';
+          companyInput.value = "NTA";
+          descInput.value = "MGA Operators";
+        } else if (cfg.businessType === 'agency' || cfg.businessType === 'broker') {
+          nameInput.value = 'HIT';
+          companyInput.value = "HIT";
+          descInput.value = "Agency Operators";
+        } else if (cfg.businessType === 'insured') {
+          nameInput.value = 'Ayushi';
+          companyInput.value = "Ayushi";
+          descInput.value = "Insured Org";
+        }
+      }
+    } catch (ex) {}
+
+    renderSteps();
+  </script>
+
+  <style>
+    .ob-step-title { font-size: 19px; font-weight: 800; color: var(--gray-900); }
+    .ob-step-sub { font-size: 12.5px; color: var(--gray-500); margin-top: 6px; line-height: 1.55; max-width: 560px; }
+    .ob-type-card, .ob-goal-card { cursor: pointer; }
+    .ob-type-card.ob-selected, .ob-goal-card.ob-selected { border-color: var(--v-teal); background: var(--v-teal-bg); box-shadow: var(--shadow); }
+    #ob-goals-grid .v-role-card-icon { font-size: 20px; }
+    .ob-choice-card:hover { border-color: var(--v-teal) !important; background: var(--v-teal-bg) !important; transform: translateY(-2px); box-shadow: var(--shadow-md); }
+  </style>
+</body>
+</html>

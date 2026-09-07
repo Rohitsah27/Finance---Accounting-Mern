@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AP Aging Analysis — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Accounts Payable</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">AP Aging</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-chart-column" style="color: var(--amber);"></i> AP Aging Schedule <span class="file-tag">accounts-payable.html#ap-aging</span></h1>
+      <p>
+        The AP Aging schedule categorizes all outstanding payables by their maturity and due date, enabling treasury cash forecasting and preventing late payment penalties with risk carriers.
+      </p>
+    </div>
+
+    <div class="module-card">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-amber">Due Date Scheduling</span>
+            <span class="badge badge-teal">Treasury Cash Flow</span>
+          </div>
+          <h2 class="module-title">AP Aging Buckets</h2>
+        </div>
+        <a href="../accounts-payable.html#ap-aging" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open AP Aging</a>
+      </div>
+
+      <div class="grid-2">
+        <div class="info-card">
+          <h4>1. Current (0 – 30 Days)</h4>
+          <p>Upcoming carrier treaty settlements and current month broker commission statements.</p>
+        </div>
+        <div class="info-card">
+          <h4>2. 31 – 60 Days</h4>
+          <p>Payables approaching standard 45-day insurance settlement grace deadlines.</p>
+        </div>
+        <div class="info-card">
+          <h4>3. 61 – 90 Days</h4>
+          <p>Flagged payables requiring supervisor review before disbursement.</p>
+        </div>
+        <div class="info-card">
+          <h4>4. Over 90 Days</h4>
+          <p>Disputed invoices, uncashed broker checks, or held fiduciary remittances.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="ap-echecks.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">E-Checks</span>
+      </a>
+      <a href="bank-reconciliation.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Submodule &rarr;</span>
+        <span class="nav-page-title">Bank Reconciliation</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('ap-aging');
+</script>
+</body>
+</html>

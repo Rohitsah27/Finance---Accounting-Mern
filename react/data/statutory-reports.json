@@ -1,0 +1,79 @@
+{
+  "filters": {
+    "states": ["All States", "TX", "CA", "FL", "NY", "GA"],
+    "mga": ["All MGA", "Futuristic", "NTA", "ACCL"],
+    "periods": ["FY 2025-26", "Q1 2026", "Q2 2026", "MTD May 2026"]
+  },
+  "reports": [
+    { "id": "trial-balance", "label": "Trial Balance", "schedule": null },
+    { "id": "balance-sheet", "label": "Balance Sheet", "schedule": null },
+    { "id": "profit-loss", "label": "Profit & Loss", "schedule": null },
+    { "id": "cash-flow", "label": "Cash Flow", "schedule": null },
+    { "id": "schedules", "label": "Schedules", "schedule": null },
+    { "id": "footnotes", "label": "Footnotes", "schedule": null },
+    { "id": "quarterly", "label": "Quarterly Statement", "schedule": null }
+  ],
+  "trendByState": {
+    "TX": [42, 48, 52, 55, 58],
+    "CA": [38, 41, 45, 48, 51],
+    "FL": [28, 30, 33, 35, 38],
+    "NY": [22, 24, 26, 28, 30],
+    "GA": [18, 20, 22, 24, 26]
+  },
+  "trialBalance": [
+    { "state": "TX", "mga": "Futuristic", "period": "FY 2025-26", "account": "1000 - Cash", "opening": 12500000, "debit": 8200000, "credit": 6100000, "closing": 14600000 },
+    { "state": "TX", "mga": "Futuristic", "period": "FY 2025-26", "account": "1200 - Premium Receivable", "opening": 4200000, "debit": 9400000, "credit": 7200000, "closing": 6400000 },
+    { "state": "TX", "mga": "NTA", "period": "FY 2025-26", "account": "2100 - Unearned Premium", "opening": 5800000, "debit": 2100000, "credit": 7200000, "closing": 10900000 },
+    { "state": "CA", "mga": "ACCL", "period": "FY 2025-26", "account": "3000 - Loss Reserves", "opening": 8900000, "debit": 3200000, "credit": 4100000, "closing": 8000000 },
+    { "state": "CA", "mga": "NTA", "period": "FY 2025-26", "account": "4100 - Claims Payable", "opening": 3100000, "debit": 2800000, "credit": 3380000, "closing": 3680000 },
+    { "state": "FL", "mga": "Futuristic", "period": "FY 2025-26", "account": "5000 - Reinsurance Recoverable", "opening": 2400000, "debit": 980000, "credit": 420000, "closing": 2960000 },
+    { "state": "NY", "mga": "ACCL", "period": "Q1 2026", "account": "6000 - Statutory Surplus", "opening": 15200000, "debit": 0, "credit": 1200000, "closing": 16400000 },
+    { "state": "GA", "mga": "NTA", "period": "Q1 2026", "account": "7100 - Commission Payable", "opening": 890000, "debit": 450000, "credit": 620000, "closing": 1060000 }
+  ],
+  "balanceSheet": [
+    { "state": "TX", "mga": "Futuristic", "period": "FY 2025-26", "category": "Cash & Investments", "currentFY": 14600000, "priorFY": 12800000 },
+    { "state": "TX", "mga": "Futuristic", "period": "FY 2025-26", "category": "Premium Receivable", "currentFY": 6400000, "priorFY": 5200000 },
+    { "state": "TX", "mga": "NTA", "period": "FY 2025-26", "category": "Loss Reserves", "currentFY": 8000000, "priorFY": 7400000 },
+    { "state": "CA", "mga": "ACCL", "period": "FY 2025-26", "category": "Unearned Premium", "currentFY": 10900000, "priorFY": 9800000 },
+    { "state": "FL", "mga": "Futuristic", "period": "FY 2025-26", "category": "Reinsurance Recoverable", "currentFY": 2960000, "priorFY": 2400000 },
+    { "state": "CA", "mga": "NTA", "period": "Q1 2026", "category": "Statutory Surplus", "currentFY": 16400000, "priorFY": 15200000 }
+  ],
+  "profitLoss": [
+    { "state": "TX", "mga": "Futuristic", "period": "FY 2025-26", "category": "Earned Premium", "currentFY": 26480000, "priorFY": 24100000 },
+    { "state": "TX", "mga": "Futuristic", "period": "FY 2025-26", "category": "Losses Incurred", "currentFY": 16420000, "priorFY": 15200000 },
+    { "state": "TX", "mga": "NTA", "period": "FY 2025-26", "category": "Underwriting Expenses", "currentFY": 6120000, "priorFY": 5800000 },
+    { "state": "CA", "mga": "ACCL", "period": "FY 2025-26", "category": "Net Underwriting Gain", "currentFY": 3940000, "priorFY": 3100000 },
+    { "state": "FL", "mga": "Futuristic", "period": "Q1 2026", "category": "Investment Income", "currentFY": 820000, "priorFY": 740000 }
+  ],
+  "cashFlow": [
+    { "state": "TX", "mga": "Futuristic", "period": "FY 2025-26", "activity": "Net Income", "currentFY": 7500000, "priorFY": 5500000 },
+    { "state": "TX", "mga": "Futuristic", "period": "FY 2025-26", "activity": "Adjustments - Reserves", "currentFY": 1000000, "priorFY": 800000 },
+    { "state": "CA", "mga": "ACCL", "period": "FY 2025-26", "activity": "Asset Purchase", "currentFY": -2400000, "priorFY": -1500000 },
+    { "state": "FL", "mga": "NTA", "period": "FY 2025-26", "activity": "Loan Receipt", "currentFY": 3800000, "priorFY": 2000000 },
+    { "state": "NY", "mga": "ACCL", "period": "Q1 2026", "activity": "Premium Collections", "currentFY": 5200000, "priorFY": 4800000 }
+  ],
+  "schedules": [
+    { "state": "TX", "mga": "Futuristic", "period": "FY 2025-26", "schedule": "Schedule P", "description": "Loss development by LOB - TX", "status": "Ready" },
+    { "state": "TX", "mga": "NTA", "period": "FY 2025-26", "schedule": "Schedule T", "description": "Premium by state - TX retaliatory", "status": "Ready" },
+    { "state": "CA", "mga": "ACCL", "period": "FY 2025-26", "schedule": "Schedule F", "description": "Reinsurance recoverables - CA", "status": "In Progress" },
+    { "state": "FL", "mga": "Futuristic", "period": "Q1 2026", "schedule": "Schedule P", "description": "Loss triangles - FL property", "status": "Ready" }
+  ],
+  "footnotes": [
+    { "state": "TX", "mga": "Futuristic", "period": "FY 2025-26", "note": "Note 1", "title": "Basis of Preparation", "status": "Final" },
+    { "state": "CA", "mga": "ACCL", "period": "FY 2025-26", "note": "Note 4", "title": "Reinsurance Arrangements", "status": "Draft" },
+    { "state": "FL", "mga": "NTA", "period": "Q1 2026", "note": "Note 7", "title": "Cat Event Disclosure", "status": "Review" }
+  ],
+  "quarterly": [
+    { "state": "TX", "mga": "Futuristic", "period": "Q1 2026", "metric": "Revenue", "q1FY26": 5000000, "q1FY25": 4000000 },
+    { "state": "TX", "mga": "Futuristic", "period": "Q1 2026", "metric": "Expense", "q1FY26": 3000000, "q1FY25": 2500000 },
+    { "state": "CA", "mga": "ACCL", "period": "Q1 2026", "metric": "Net Income", "q1FY26": 1200000, "q1FY25": 980000 },
+    { "state": "FL", "mga": "NTA", "period": "Q2 2026", "metric": "Written Premium", "q1FY26": 2800000, "q1FY25": 2400000 }
+  ],
+  "filings": [
+    { "state": "TX", "filing": "TX Premium Tax - Q2", "period": "Q2 2026", "dueDate": "2026-06-30", "daysLeft": 40, "status": "In Progress", "assignee": "J. Smith" },
+    { "state": "CA", "filing": "CA Surplus Lines Report", "period": "Q2 2026", "dueDate": "2026-07-30", "daysLeft": 70, "status": "Not Started", "assignee": "Compliance" },
+    { "state": "TX", "filing": "TX Q1 Annual Statement - Amendment", "period": "Q1 2026", "dueDate": "2026-05-24", "daysLeft": 3, "status": "Under Review", "assignee": "Controller" },
+    { "state": "FL", "filing": "FL Hurricane Assessments", "period": "Q2 2026", "dueDate": "2026-08-15", "daysLeft": 86, "status": "Not Started", "assignee": "Finance" },
+    { "state": "NY", "filing": "NY Annual Statement", "period": "FY 2025", "dueDate": "2026-03-01", "daysLeft": 0, "status": "Filed", "assignee": "CFO" }
+  ]
+}

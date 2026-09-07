@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventory, Fixed Assets & Projects — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Operations &amp; Payroll</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Inventory, Assets &amp; Projects</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-boxes-stacked" style="color: var(--teal);"></i> Inventory, Fixed Assets &amp; Job Costing</h1>
+      <p>
+        For holding companies, program administrators, and multi-service agencies, Veridex includes modules for tracking physical assets, capital depreciation schedules, inventory valuation (FIFO / Weighted Average), and project work-in-progress (WIP).
+      </p>
+    </div>
+
+    <div class="module-card" id="fixed-assets">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-blue">Fixed Assets</span>
+            <span class="badge badge-purple">Depreciation</span>
+          </div>
+          <h2 class="module-title">Fixed Asset Register &amp; Depreciation (`fixed-assets.html`)</h2>
+        </div>
+        <a href="../fixed-assets.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Fixed Assets</a>
+      </div>
+
+      <p class="section-p">
+        <strong>What it does:</strong> Maintains capital equipment registers (IT servers, office leases, corporate vehicles). Automatically posts straight-line monthly depreciation:
+      </p>
+
+      <table class="je-table">
+        <thead>
+          <tr>
+            <th>Event</th>
+            <th>Account Code &amp; Name</th>
+            <th style="text-align:right;">Debit ($)</th>
+            <th style="text-align:right;">Credit ($)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td rowspan="2"><strong>Monthly Depreciation Entry</strong></td>
+            <td>6700 Depreciation Expense</td>
+            <td class="dr-amount">$1,250.00</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td class="indent-cr">1800 Accumulated Depreciation</td>
+            <td></td>
+            <td class="cr-amount">$1,250.00</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="payroll.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">Payroll</span>
+      </a>
+      <a href="commission-engine.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Module &rarr;</span>
+        <span class="nav-page-title">Commission Engine</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('inventory-assets');
+</script>
+</body>
+</html>

@@ -1,0 +1,66 @@
+/* Commission Engine Styles matching commission-engine.html */
+.v-tree-row:hover {
+  background: var(--gray-50, #f8fafc);
+  border-radius: 6px;
+}
+
+.comm-modal {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.6);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  justify-content: center;
+  align-items: center;
+}
+
+.comm-modal.open {
+  display: flex;
+}
+
+.comm-modal-content {
+  background: #fff;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 740px;
+  max-height: 90%;
+  overflow-y: auto;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  border: 1px solid var(--color-border, #e2e8f0);
+  padding: 24px;
+}
+
+.comm-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--color-border, #e2e8f0);
+  padding-bottom: 12px;
+  margin-bottom: 16px;
+}
+
+.comm-modal-close {
+  cursor: pointer;
+  font-size: 22px;
+  color: var(--color-muted, #64748b);
+  font-weight: bold;
+}
+
+.comm-modal-close:hover {
+  color: var(--color-ink, #0f172a);
+}
+
+.form-grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+}
+@media (max-width: 800px) {
+  .form-grid-3 {
+    grid-template-columns: 1fr;
+  }
+}

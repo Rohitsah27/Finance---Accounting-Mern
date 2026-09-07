@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home Dashboard — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Platform &amp; Dashboards</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Home Dashboard</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-table-columns" style="color: var(--brand);"></i> Home Dashboard <span class="file-tag">home.html</span></h1>
+      <p>
+        The Home Dashboard is the default landing page for executives, controllers, and accountants. It gives an immediate, high-level bird’s-eye view of cash balances, gross written premium, operational notifications, and quick action buttons.
+      </p>
+    </div>
+
+    <div class="module-card">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-blue">Executive Hub</span>
+            <span class="badge badge-teal">Live Metrics</span>
+          </div>
+          <h2 class="module-title">What the Home Dashboard Does</h2>
+        </div>
+        <a href="../home.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Live Dashboard</a>
+      </div>
+
+      <p class="section-p">
+        When you log into Veridex, this page aggregates financial data across all subsidiary entities:
+      </p>
+
+      <div class="grid-2">
+        <div class="info-card">
+          <h4>1. KPI Metric Summary Cards</h4>
+          <ul style="font-size:12.5px; margin-left:16px; margin-top:4px; color:var(--text-secondary);">
+            <li><strong>Gross Written Premium (GWP):</strong> Total premium bound in the active fiscal period.</li>
+            <li><strong>Total Cash Balance:</strong> Combined Operating (`Account 1001`) and Premium Trust (`Account 1020`) funds.</li>
+            <li><strong>Outstanding AR:</strong> Uncollected policyholder receivables.</li>
+            <li><strong>Pending Approvals:</strong> Transactions awaiting your sign-off.</li>
+          </ul>
+        </div>
+        <div class="info-card">
+          <h4>2. Quick Action Buttons</h4>
+          <ul style="font-size:12.5px; margin-left:16px; margin-top:4px; color:var(--text-secondary);">
+            <li><strong>Bind New Policy:</strong> Fast-track quote-to-bind entry in PAS.</li>
+            <li><strong>New Journal Entry:</strong> Create manual debit/credit posting.</li>
+            <li><strong>Sync Bank Statements:</strong> Run automated bank recon match.</li>
+            <li><strong>Switch Role Context:</strong> Toggle between Carrier, MGA, and Broker views.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="insurance-distribution.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">The 3 Billing Models</span>
+      </a>
+      <a href="my-role-workspace.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Submodule &rarr;</span>
+        <span class="nav-page-title">My Role Workspace</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('home-dashboard');
+</script>
+</body>
+</html>

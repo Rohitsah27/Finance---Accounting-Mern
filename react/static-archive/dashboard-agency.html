@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Agency &amp; Broker Workspace — Dashboard | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/layout.js"></script>
+  <style>
+    .kpi-metrics-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px;}
+    @media(max-width:1100px){.kpi-metrics-row{grid-template-columns:repeat(2,1fr);}}
+    @media(max-width:640px){.kpi-metrics-row{grid-template-columns:1fr;}}
+    .kpi-mc{background:#fff;border:1.5px solid var(--gray-200);border-radius:10px;padding:12px 12px 10px;display:flex;flex-direction:column;gap:2px;position:relative;overflow:hidden;}
+    .kpi-mc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+    .kpi-mc.c-placed::before{background:#0d1b4b;}
+    .kpi-mc.c-commission::before{background:#2e7d32;}
+    .kpi-mc.c-pif::before{background:#1565c0;}
+    .kpi-mc.c-retention::before{background:#6a1b9a;}
+    .kpi-mc.c-ar::before{background:#e65100;}
+    .kpi-mc.c-split::before{background:#00838f;}
+    .kpi-mc-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);}
+    .kpi-mc-value{font-size:20px;font-weight:800;color:var(--navy);line-height:1.1;margin:3px 0 1px;}
+    .kpi-mc-delta{font-size:11px;font-weight:600;}
+    .kpi-mc-delta.up{color:#2e7d32;} .kpi-mc-delta.warn{color:#e65100;} .kpi-mc-delta.down{color:var(--red);}
+    .kpi-mc-sublabel{font-size:9.5px;color:var(--gray-400);}
+    .kpi-mc-status{display:inline-block;font-size:9px;font-weight:700;border-radius:4px;padding:1px 6px;margin-top:5px;text-transform:uppercase;letter-spacing:.3px;}
+    .s-ontrack{background:#e8f5e9;color:#2e7d32;} .s-watch{background:#fff3e0;color:#e65100;}
+
+    .chart-card{background:#fff;border:1.5px solid var(--gray-200);border-radius:10px;padding:14px;margin-bottom:18px;}
+    .chart-card-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;}
+    .chart-title{font-size:12.5px;font-weight:700;color:var(--navy);}
+    .chart-sub{font-size:10.5px;color:var(--gray-400);margin-top:2px;}
+    .chart-legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;}
+    .legend-item{display:flex;align-items:center;gap:4px;font-size:10.5px;color:var(--gray-600);}
+    .legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+
+    .charts-2col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;}
+    @media(max-width:900px){.charts-2col{grid-template-columns:1fr;}}
+
+    .lb-rank{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--gray-100);color:var(--gray-600);font-size:10.5px;font-weight:800;margin-right:8px;}
+    .lb-rank.top1{background:#fff3e0;color:#e65100;}
+    .lb-rank.top2{background:#e8f0ff;color:#0d1b4b;}
+    .lb-rank.top3{background:#ede7f6;color:#4a148c;}
+    .lb-bar-bg{background:var(--gray-100);border-radius:4px;height:6px;margin-top:4px;}
+    .lb-bar-fill{height:6px;border-radius:4px;background:#0d1b4b;}
+  </style>
+</head>
+<body>
+<main class="main-content" id="main-content">
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">Agency &amp; Broker Dashboard</div>
+      <div class="page-subtitle" id="dash-subtitle">Loading entity context…</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline btn-sm" onclick="showToast('Book of business exported','success')">Export Book</button>
+      <button class="btn btn-primary btn-sm" onclick="refreshDash()">Refresh</button>
+    </div>
+  </div>
+
+  <div class="filter-bar" style="margin-bottom:18px;">
+    <span class="filter-bar-label">Period</span>
+    <select class="filter-select" id="sel-period" onchange="setFilter('period',this.value)">
+      <option value="ytd">YTD 2026</option>
+      <option value="q2">Q2 2026</option>
+      <option value="fy2025">FY 2025</option>
+    </select>
+    <span class="filter-bar-label">Carrier / MGA</span>
+    <select class="filter-select" id="sel-partner" onchange="setFilter('partner',this.value)">
+      <option value="all">All Partners</option>
+      <option value="Southlake">Southlake Insurance Co.</option>
+      <option value="FUT">FUT Program Managers</option>
+      <option value="Meridian">Meridian Insurance Group</option>
+    </select>
+    <span class="filter-bar-label">Business Type</span>
+    <select class="filter-select" id="sel-biztype" onchange="setFilter('biztype',this.value)">
+      <option value="all">New &amp; Renewal</option>
+      <option value="New">New Business</option>
+      <option value="Renewal">Renewal</option>
+    </select>
+    <div id="fbar-applied" style="font-size:11px;color:var(--gray-400);margin-left:auto;"></div>
+    <button class="btn btn-outline btn-sm" onclick="resetFilters()">Clear Filters</button>
+  </div>
+
+  <div class="kpi-metrics-row" id="kpi-row"></div>
+
+  <div class="charts-2col">
+    <div class="chart-card" style="margin-bottom:0;">
+      <div class="chart-card-hdr">
+        <div><div class="chart-title">Premium Placed Trend</div><div class="chart-sub" id="prem-sub">Premium Placed · filtered view</div></div>
+        <button class="btn btn-outline btn-sm" id="prem-toggle-btn" onclick="togglePremChart()">Line View</button>
+      </div>
+      <div id="prem-chart-wrap"></div>
+      <div class="chart-legend"><div class="legend-item"><div class="legend-dot" style="background:#0d1b4b;"></div>Premium Placed</div></div>
+    </div>
+    <div class="chart-card" style="margin-bottom:0;">
+      <div class="chart-card-hdr"><div><div class="chart-title">New Business vs Renewal</div><div class="chart-sub">Share of placed premium</div></div></div>
+      <div id="split-chart-wrap"></div>
+      <div class="chart-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:#0d1b4b;"></div>New Business</div>
+        <div class="legend-item"><div class="legend-dot" style="background:#1565c0;"></div>Renewal</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-card-hdr">
+      <div><div class="chart-title">Book of Business by Carrier / MGA</div><div class="chart-sub">Premium placed &amp; commission by partner</div></div>
+      <button class="btn btn-outline btn-sm" onclick="showToast('Book detail exported','success')">Export</button>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table" id="book-table">
+        <thead><tr><th>Carrier / MGA</th><th>Policies</th><th>Premium Placed</th><th>Commission Income</th><th>Avg Commission Rate</th></tr></thead>
+        <tbody id="book-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="charts-2col">
+    <div class="chart-card" style="margin-bottom:0;">
+      <div class="chart-card-hdr"><div><div class="chart-title">Producer Leaderboard</div><div class="chart-sub">Top producers by premium placed YTD</div></div></div>
+      <div id="leaderboard"></div>
+    </div>
+    <div class="chart-card" style="margin-bottom:0;">
+      <div class="chart-card-hdr"><div><div class="chart-title">Accounts Receivable Ageing</div><div class="chart-sub">From carriers / MGAs</div></div></div>
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead><tr><th>Bucket</th><th>Amount</th><th>% of AR</th></tr></thead>
+          <tbody id="ar-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-card" style="margin-bottom:4px;">
+    <div class="chart-card-hdr">
+      <div><div class="chart-title">Upcoming Renewals</div><div class="chart-sub">Next 30 / 60 / 90 days</div></div>
+      <div class="gbn-toggle" style="display:flex;gap:2px;background:var(--gray-100);border-radius:6px;padding:2px;">
+        <button class="btn btn-sm ren-btn active" onclick="setRenewalWindow(30,this)" style="border:none;background:transparent;">30d</button>
+        <button class="btn btn-sm ren-btn" onclick="setRenewalWindow(60,this)" style="border:none;background:transparent;">60d</button>
+        <button class="btn btn-sm ren-btn" onclick="setRenewalWindow(90,this)" style="border:none;background:transparent;">90d</button>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table" id="renewal-table">
+        <thead><tr><th>Insured</th><th>Carrier / MGA</th><th>Expiration</th><th>Premium</th><th>Days Out</th><th>Status</th></tr></thead>
+        <tbody id="renewal-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<script src="js/app.js"></script>
+<script>
+/* ═══════════════════ SEED DATA ═══════════════════ */
+const IS_DEMO = true;
+// [partner, biztype, base_premium_per_month_K, policies, commRate]
+const SEED = IS_DEMO ? [
+  ['Southlake','New',      42, 6, 0.14],
+  ['Southlake','Renewal', 118, 22, 0.15],
+  ['FUT','New',            38, 5, 0.16],
+  ['FUT','Renewal',        96, 18, 0.165],
+  ['Meridian','New',       22, 3, 0.13],
+  ['Meridian','Renewal',   61, 11, 0.135]
+] : [];
+const YTDF=[0.88,0.95,1.02,0.91,1.08,0.97,1.04,1.10];
+const YTDL=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'];
+const Q2F=[0.91,1.08,0.97];
+const Q2L=['Apr','May','Jun'];
+const FYF=[0.82,0.90,0.96,0.88,0.94,1.00,0.86,0.98,1.05,0.90,1.02,0.95];
+const FYL=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const PARTNER_NAMES = {Southlake:'Southlake Insurance Co.', FUT:'FUT Program Managers', Meridian:'Meridian Insurance Group'};
+
+function buildRecs(){
+  const out={ytd:[],q2:[],fy2025:[]};
+  SEED.forEach(([partner,biztype,base,policies,rate])=>{
+    YTDF.forEach((f,i)=>out.ytd.push({partner,biztype,slot:i,premium:+(base*f).toFixed(2),policies,rate}));
+    Q2F.forEach((f,i)=>out.q2.push({partner,biztype,slot:i,premium:+(base*f).toFixed(2),policies,rate}));
+    FYF.forEach((f,i)=>out.fy2025.push({partner,biztype,slot:i,premium:+(base*f*0.9).toFixed(2),policies,rate}));
+  });
+  return out;
+}
+const RECS = buildRecs();
+const F = { period:'ytd', partner:'all', biztype:'all', premMode:'bar', renewalWindow:30 };
+
+function getRecs(){ return RECS[F.period].filter(r=>(F.partner==='all'||r.partner===F.partner)&&(F.biztype==='all'||r.biztype===F.biztype)); }
+function agg(recs){
+  let premium=0, comm=0;
+  recs.forEach(r=>{premium+=r.premium; comm+=r.premium*r.rate;});
+  return {premium, comm};
+}
+function aggBySlot(recs){
+  const labels = F.period==='ytd'?YTDL:F.period==='q2'?Q2L:FYL;
+  return labels.map((_,i)=>{
+    const sr=recs.filter(r=>r.slot===i);
+    let premium=0; sr.forEach(r=>premium+=r.premium);
+    return {v:premium};
+  });
+}
+function fUSD(v){ return v>=1000 ? '$'+(v/1000).toFixed(2)+'M' : '$'+Math.round(v)+'K'; }
+function fPct(v){ return v.toFixed(1)+'%'; }
+const PERIOD_META = { ytd:{label:'YTD 2026',chartLabels:YTDL}, q2:{label:'Q2 2026',chartLabels:Q2L}, fy2025:{label:'FY 2025',chartLabels:FYL} };
+
+const RENEWALS = [
+  {insured:'Harbor Logistics LLC', partner:'Southlake Insurance Co.', exp:'2026-09-05', premium:24.5, status:'not-started'},
+  {insured:'Crestline Manufacturing', partner:'FUT Program Managers', exp:'2026-09-14', premium:18.2, status:'quoted'},
+  {insured:'Bluewater Marine Corp', partner:'Meridian Insurance Group', exp:'2026-09-22', premium:31.0, status:'not-started'},
+  {insured:'Northgate Retail Group', partner:'Southlake Insurance Co.', exp:'2026-10-01', premium:12.8, status:'bound'},
+  {insured:'Pinecrest Builders', partner:'FUT Program Managers', exp:'2026-10-18', premium:9.4, status:'not-started'},
+  {insured:'Vantage Health Partners', partner:'Meridian Insurance Group', exp:'2026-11-02', premium:41.6, status:'quoted'},
+  {insured:'Silverline Transport', partner:'Southlake Insurance Co.', exp:'2026-11-10', premium:15.9, status:'not-started'}
+];
+const TODAY = new Date('2026-08-20');
+function daysOut(dateStr){ return Math.round((new Date(dateStr)-TODAY)/86400000); }
+
+function renderKPIs(){
+  const recs=getRecs(), k=agg(recs), pm=PERIOD_META[F.period];
+  const totalPolicies = recs.length ? [...new Set(recs.map(r=>r.partner+r.biztype))].reduce((a,key)=>{
+    const rec = SEED.find(s=>s[0]+s[1]===key); return a+(rec?rec[3]:0);
+  },0) : 0;
+  const renewalPrem = recs.filter(r=>r.biztype==='Renewal').reduce((a,r)=>a+r.premium,0);
+  const newPrem = recs.filter(r=>r.biztype==='New').reduce((a,r)=>a+r.premium,0);
+  const retention = 88.4;
+  const arTotal = 214.6;
+  const defs = [
+    {label:'Premium Placed (YTD)', cls:'c-placed', value:fUSD(k.premium), delta:'+7.8%', dcls:'up', meta:pm.label},
+    {label:'Commission Income', cls:'c-commission', value:fUSD(k.comm), delta:'+6.9%', dcls:'up', meta:'Blended rate '+(k.premium?fPct(k.comm/k.premium*100):'0.0%')},
+    {label:'Policies In Force', cls:'c-pif', value: (312).toLocaleString(), delta:'+14 net', dcls:'up', meta:'Across '+CARRIERS_COUNT()+' carrier/MGA partners'},
+    {label:'Renewal Retention Rate', cls:'c-retention', value:fPct(retention), delta:'+1.2 pts', dcls:'up', meta:'Target ≥85.0%', stFn:true, stCls:retention>=85?'s-ontrack':'s-watch', stTxt:retention>=85?'On Track':'Watch'},
+    {label:'Accounts Receivable', cls:'c-ar', value:fUSD(arTotal), delta:'22% &gt;60 days', dcls:'warn', meta:'From carriers &amp; MGAs'},
+    {label:'New vs Renewal Split', cls:'c-split', value: (newPrem+renewalPrem>0?fPct(newPrem/(newPrem+renewalPrem)*100):'0.0%')+' New', delta:fPct(renewalPrem/(newPrem+renewalPrem||1)*100)+' Renewal', dcls:'up', meta:'Share of placed premium'}
+  ];
+  document.getElementById('kpi-row').innerHTML = defs.map(d=>`
+    <div class="kpi-mc ${d.cls}">
+      <div class="kpi-mc-label">${d.label}</div>
+      <div class="kpi-mc-value">${d.value}</div>
+      <div class="kpi-mc-delta ${d.dcls}">${d.dcls==='up'?'↑':d.dcls==='warn'?'→':'↓'} ${d.delta}</div>
+      <div class="kpi-mc-sublabel">${d.meta}</div>
+      ${d.stFn?`<div><span class="kpi-mc-status ${d.stCls}">${d.stTxt}</span></div>`:''}
+    </div>`).join('');
+}
+function CARRIERS_COUNT(){ return Object.keys(PARTNER_NAMES).length; }
+
+function togglePremChart(){
+  F.premMode = F.premMode==='bar'?'line':'bar';
+  document.getElementById('prem-toggle-btn').textContent = F.premMode==='bar'?'Line View':'Bar View';
+  renderPremiumChart();
+}
+function renderPremiumChart(){
+  const slots=aggBySlot(getRecs());
+  const labels=PERIOD_META[F.period].chartLabels;
+  const data=slots.map(s=>+s.v.toFixed(1));
+  document.getElementById('prem-sub').textContent='Premium Placed · '+PERIOD_META[F.period].label;
+  document.getElementById('prem-chart-wrap').innerHTML =
+    F.premMode==='bar'?svgBar(data,labels,{color:'#0d1b4b',accent:'#1565c0',h:150}):svgLine([{data,color:'#0d1b4b',fill:'rgba(13,27,75,.08)'}],labels,{h:150});
+}
+function renderSplitChart(){
+  const recs = getRecs();
+  const newP = recs.filter(r=>r.biztype==='New').reduce((a,r)=>a+r.premium,0);
+  const renP = recs.filter(r=>r.biztype==='Renewal').reduce((a,r)=>a+r.premium,0);
+  document.getElementById('split-chart-wrap').innerHTML = svgGroupedBar(
+    [{label:'New',values:[newP],color:'#0d1b4b'},{label:'Renewal',values:[renP],color:'#1565c0'}],
+    [PERIOD_META[F.period].label]
+  );
+}
+
+function renderBookTable(){
+  const partners = Object.keys(PARTNER_NAMES);
+  const rows = partners.filter(p=>F.partner==='all'||F.partner===p).map(p=>{
+    const recs = RECS.ytd.filter(r=>r.partner===p && (F.biztype==='all'||r.biztype===F.biztype));
+    const premium = recs.reduce((a,r)=>a+r.premium,0);
+    const comm = recs.reduce((a,r)=>a+r.premium*r.rate,0);
+    const policies = SEED.filter(s=>s[0]===p && (F.biztype==='all'||s[1]===F.biztype)).reduce((a,s)=>a+s[3],0);
+    return {name:PARTNER_NAMES[p], policies, premium, comm};
+  });
+  document.getElementById('book-tbody').innerHTML = rows.map(r=>`
+    <tr><td>${r.name}</td><td>${r.policies}</td><td>${fUSD(r.premium)}</td><td>${fUSD(r.comm)}</td><td>${fPct(r.premium?r.comm/r.premium*100:0)}</td></tr>
+  `).join('');
+}
+
+const PRODUCERS = [
+  {name:'Danielle Ford', premium:412.6}, {name:'Marcus Reyes', premium:368.2}, {name:'Priya Nair', premium:301.5},
+  {name:'Chen Wei', premium:244.8}, {name:'Sofia Alvarez', premium:198.3}
+];
+function renderLeaderboard(){
+  const maxP = Math.max(...PRODUCERS.map(p=>p.premium));
+  document.getElementById('leaderboard').innerHTML = PRODUCERS.map((p,i)=>{
+    const rankCls = i===0?'top1':i===1?'top2':i===2?'top3':'';
+    return `<div style="padding:8px 0;border-bottom:1px solid var(--gray-100);">
+      <div style="display:flex;align-items:center;justify-content:space-between;font-size:12.5px;">
+        <span><span class="lb-rank ${rankCls}">${i+1}</span>${p.name}</span>
+        <span style="font-weight:700;color:var(--navy);">${fUSD(p.premium)}</span>
+      </div>
+      <div class="lb-bar-bg"><div class="lb-bar-fill" style="width:${(p.premium/maxP*100).toFixed(0)}%;"></div></div>
+    </div>`;
+  }).join('');
+}
+
+const AR_BUCKETS = [
+  {bucket:'Current (0–30 days)', amount:132.4},
+  {bucket:'31–60 days', amount:34.8},
+  {bucket:'61–90 days', amount:28.6},
+  {bucket:'90+ days', amount:18.8}
+];
+function renderARTable(){
+  const total = AR_BUCKETS.reduce((a,b)=>a+b.amount,0);
+  document.getElementById('ar-tbody').innerHTML = AR_BUCKETS.map(b=>`
+    <tr><td>${b.bucket}</td><td>${fUSD(b.amount)}</td><td>${fPct(b.amount/total*100)}</td></tr>
+  `).join('')+`<tr style="font-weight:700;color:var(--navy);"><td>Total</td><td>${fUSD(total)}</td><td>100.0%</td></tr>`;
+}
+
+function setRenewalWindow(days,btn){
+  F.renewalWindow = days;
+  document.querySelectorAll('.ren-btn').forEach(b=>{b.classList.remove('active'); b.style.background='transparent'; b.style.color='var(--gray-600)';});
+  btn.classList.add('active'); btn.style.background='#fff'; btn.style.color='var(--navy)'; btn.style.boxShadow='0 1px 4px rgba(0,0,0,.12)';
+  renderRenewals();
+}
+function renderRenewals(){
+  const list = RENEWALS.map(r=>({...r, daysOut: daysOut(r.exp)}))
+    .filter(r=>r.daysOut<=F.renewalWindow && r.daysOut>=0 && (F.partner==='all'||r.partner.indexOf(F.partner)===0))
+    .sort((a,b)=>a.daysOut-b.daysOut);
+  const sc = {'not-started':'badge-red','quoted':'badge-orange','bound':'badge-green'};
+  const sl = {'not-started':'Not Started','quoted':'Quoted','bound':'Bound'};
+  document.getElementById('renewal-tbody').innerHTML = list.length ? list.map(r=>`
+    <tr>
+      <td>${r.insured}</td>
+      <td>${r.partner}</td>
+      <td>${new Date(r.exp).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</td>
+      <td>${fUSD(r.premium)}</td>
+      <td>${r.daysOut}d</td>
+      <td><span class="badge ${sc[r.status]}">${sl[r.status]}</span></td>
+    </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;padding:18px;color:var(--gray-400);">No renewals in this window</td></tr>';
+}
+
+function setFilter(key,val){ F[key]=val; updateAppliedLabel(); renderAll(); }
+function resetFilters(){
+  F.period='ytd'; F.partner='all'; F.biztype='all'; F.renewalWindow=30;
+  document.getElementById('sel-period').value='ytd';
+  document.getElementById('sel-partner').value='all';
+  document.getElementById('sel-biztype').value='all';
+  document.querySelectorAll('.ren-btn').forEach((b,i)=>{
+    b.classList.toggle('active', i===0);
+    b.style.background = i===0?'#fff':'transparent';
+    b.style.color = i===0?'var(--navy)':'var(--gray-600)';
+    b.style.boxShadow = i===0?'0 1px 4px rgba(0,0,0,.12)':'none';
+  });
+  updateAppliedLabel(); renderAll();
+  showToast('Filters cleared','info');
+}
+function updateAppliedLabel(){
+  const chips=[];
+  if(F.partner!=='all') chips.push(F.partner);
+  if(F.biztype!=='all') chips.push(F.biztype);
+  document.getElementById('fbar-applied').textContent = chips.length ? 'Active filters: '+chips.join(', ') : 'Showing all data';
+}
+function renderAll(){ renderKPIs(); renderPremiumChart(); renderSplitChart(); renderBookTable(); renderLeaderboard(); renderARTable(); renderRenewals(); }
+function refreshDash(){
+  const t=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('dash-subtitle').textContent = entitySubtitle()+' · Updated '+t;
+  showToast('Dashboard refreshed','success');
+}
+function entitySubtitle(){
+  const entity = getActiveEntity();
+  return (entity?entity.name:'Agency') + ' · Retail / Wholesale Placement';
+}
+
+/* ═══════════════════ SVG CHARTS ═══════════════════ */
+function svgBar(data,labels,opts={}){
+  const h=opts.h||150,w=520,px=28,gap=6;
+  const mx=Math.max(...data)*1.18||1;
+  const n=data.length, bw=(w-px*2-gap*(n-1))/n;
+  const toY=v=>px+(h-px*2)*(1-v/mx);
+  let out='';
+  data.forEach((v,i)=>{
+    const x=px+i*(bw+gap), y=toY(v), bh=h-px-y;
+    const last=i===n-1;
+    out+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(bh,1).toFixed(1)}" rx="3" fill="${last?opts.accent||opts.color:opts.color}" opacity="${last?1:0.72}"/>`;
+    out+=`<text x="${(x+bw/2).toFixed(1)}" y="${(h-7).toFixed(1)}" text-anchor="middle" font-size="9.5" fill="#9aa">${labels[i]}</text>`;
+    if(v>0)out+=`<text x="${(x+bw/2).toFixed(1)}" y="${(y-3).toFixed(1)}" text-anchor="middle" font-size="9" fill="${last?opts.accent||opts.color:'#666'}" font-weight="600">${v.toFixed(1)}</text>`;
+  });
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" style="display:block;">${out}</svg>`;
+}
+function svgLine(datasets,labels,opts={}){
+  const h=opts.h||150,w=520,px=34,py=18;
+  const allV=datasets.flatMap(d=>d.data);
+  const mn=opts.yMin!==undefined?opts.yMin:Math.floor(Math.min(...allV)*0.92);
+  const mx=opts.yMax!==undefined?opts.yMax:Math.ceil(Math.max(...allV)*1.08)||100;
+  const n=labels.length, xS=(w-px*2)/(n>1?n-1:1);
+  const toX=i=>px+i*xS, toY=v=>py+(h-py*2)*(1-(v-mn)/(mx-mn));
+  let out='';
+  datasets.forEach(ds=>{
+    const pts=ds.data.map((v,i)=>`${toX(i).toFixed(1)},${toY(v).toFixed(1)}`).join(' ');
+    const aP=`M${toX(0).toFixed(1)},${toY(ds.data[0]).toFixed(1)} `+
+      ds.data.slice(1).map((v,i)=>`L${toX(i+1).toFixed(1)},${toY(v).toFixed(1)}`).join(' ')+
+      ` L${toX(n-1).toFixed(1)},${toY(mn).toFixed(1)} L${toX(0).toFixed(1)},${toY(mn).toFixed(1)} Z`;
+    out+=`<path d="${aP}" fill="${ds.fill||'transparent'}"/>`;
+    out+=`<polyline points="${pts}" fill="none" stroke="${ds.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    ds.data.forEach((v,i)=>{ out+=`<circle cx="${toX(i).toFixed(1)}" cy="${toY(v).toFixed(1)}" r="2.8" fill="${ds.color}"/>`; });
+  });
+  labels.forEach((l,i)=>{ out+=`<text x="${toX(i).toFixed(1)}" y="${(h-5).toFixed(1)}" text-anchor="middle" font-size="9.5" fill="#9aa">${l}</text>`; });
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" style="display:block;">${out}</svg>`;
+}
+function svgGroupedBar(datasets,groups){
+  const h=170,w=520,px=32,py=20;
+  const allV=datasets.flatMap(d=>d.values); const mx=Math.max(...allV)*1.2||1;
+  const n=groups.length,m=datasets.length,gW=(w-px*2)/n;
+  const bw=(gW*0.5)/m, bgap=(gW*0.5)/(m+1);
+  const toY=v=>py+(h-py*2)*(1-v/mx);
+  let out='';
+  datasets.forEach((ds,di)=>{ groups.forEach((g,gi)=>{
+    const v=ds.values[gi], x=px+gi*gW+bgap*(di+1)+bw*di, y=toY(v), bh=h-py-y;
+    out+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(bh,1).toFixed(1)}" rx="2" fill="${ds.color}" opacity="0.84"/>`;
+    if(v>0)out+=`<text x="${(x+bw/2).toFixed(1)}" y="${(y-3).toFixed(1)}" text-anchor="middle" font-size="9" fill="${ds.color}">${v.toFixed(0)}</text>`;
+  });});
+  groups.forEach((g,gi)=>{ out+=`<text x="${(px+gi*gW+gW/2).toFixed(1)}" y="${(h-5).toFixed(1)}" text-anchor="middle" font-size="9.5" fill="#9aa">${g}</text>`; });
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" style="display:block;">${out}</svg>`;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('dash-subtitle').textContent = entitySubtitle();
+  updateAppliedLabel();
+  renderAll();
+});
+</script>
+<script>
+  initLayout('dashboard');
+</script>
+</body>
+</html>

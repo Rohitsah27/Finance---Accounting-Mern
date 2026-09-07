@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Statutory Reports — Filings | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/layout.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    /* ── Tab strip ── */
+    .sr-tabs{display:flex;gap:0;background:#fff;border:1.5px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:20px;}
+    .sr-tab{flex:1;padding:11px 14px;font-size:12.5px;font-weight:600;border:none;background:transparent;cursor:pointer;color:var(--gray-500);transition:all .15s;border-right:1px solid var(--border);display:flex;align-items:center;justify-content:center;gap:6px;}
+    .sr-tab:last-child{border-right:none;}
+    .sr-tab.active{background:var(--navy);color:#fff;}
+    .sr-tab:hover:not(.active){background:#f0f2f5;}
+    .sr-tab-badge{font-size:9.5px;font-weight:800;background:var(--coral);color:#fff;border-radius:9px;padding:1px 6px;}
+    .sr-tab.active .sr-tab-badge{background:#fff;color:var(--navy);}
+
+    /* ── Filter bar ── */
+    .sr-filter-bar{display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
+    .sr-filter-select{padding:7px 28px 7px 10px;font-size:12px;border:1.5px solid var(--border);border-radius:7px;background:#fff url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%239ca3af' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 8px center;color:var(--gray-700);outline:none;appearance:none;cursor:pointer;}
+    .sr-filter-select:focus{border-color:var(--navy);}
+    .sr-search{padding:7px 11px;font-size:12px;border:1.5px solid var(--border);border-radius:7px;outline:none;width:170px;}
+    .sr-search:focus{border-color:var(--navy);}
+    .sr-filter-spacer{flex:1;}
+    .period-toggle{display:flex;background:#f0f2f5;border-radius:8px;padding:3px;}
+    .period-btn{padding:5px 14px;font-size:12px;font-weight:600;border:none;background:transparent;border-radius:6px;cursor:pointer;color:var(--gray-500);transition:all .15s;}
+    .period-btn.active{background:var(--navy);color:#fff;}
+    .sr-period-chip{padding:6px 14px;font-size:12px;font-weight:600;background:var(--navy);color:#fff;border:none;border-radius:7px;cursor:default;}
+
+    /* ── Stat row ── */
+    .sr-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+    @media(max-width:900px){.sr-stats{grid-template-columns:repeat(2,1fr);}}
+    .sr-stat{background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:15px 18px;position:relative;overflow:hidden;}
+    .sr-stat::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+    .sr-stat.c-navy::before{background:var(--navy);}
+    .sr-stat.c-blue::before{background:#1565c0;}
+    .sr-stat.c-green::before{background:#2e7d32;}
+    .sr-stat.c-coral::before{background:var(--coral);}
+    .sr-stat-lbl{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);}
+    .sr-stat-val{font-size:22px;font-weight:800;color:var(--navy);margin:4px 0 2px;}
+    .sr-stat-sub{font-size:11px;color:var(--gray-400);}
+
+    /* ── Panel ── */
+    .sr-panel{background:#fff;border:1.5px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:18px;}
+    .sr-panel-hdr{padding:13px 18px;background:#f8f9fb;border-bottom:1.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;}
+    .sr-panel-title{font-size:13.5px;font-weight:700;color:var(--navy);}
+    .sr-table{width:100%;border-collapse:collapse;}
+    .sr-table th{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-500);padding:9px 16px;background:#f8f9fb;border-bottom:1.5px solid var(--border);text-align:left;}
+    .sr-table th.r{text-align:right;}
+    .sr-table td{font-size:12.5px;color:var(--gray-700);padding:10px 16px;border-bottom:1px solid var(--gray-100);}
+    .sr-table td.r{text-align:right;font-variant-numeric:tabular-nums;}
+    .sr-table tr:last-child td{border-bottom:none;}
+    .sr-table tr:hover td{background:#fafbff;}
+    .sr-table tfoot td{font-weight:700;color:var(--navy);background:#f8f9fb;border-top:2px solid var(--border);}
+    .sr-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 9px;border-radius:10px;}
+    .sr-badge.approved{background:#e8f5e9;color:#2e7d32;}
+    .sr-badge.pending{background:#fff8e1;color:#f57f17;}
+    .sr-badge.review{background:#e3f2fd;color:#1565c0;}
+    .sr-badge.overdue{background:#fdecea;color:#c62828;}
+    .sr-badge.draft{background:#f3e8ff;color:#7c3aed;}
+    .sr-badge.filed{background:#e8f5e9;color:#2e7d32;}
+    .sr-badge.not-filed{background:#fdecea;color:#c62828;}
+
+    /* ── Report cards (Legal Reports grid) ── */
+    .sr-card-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:18px;}
+    @media(max-width:900px){.sr-card-grid{grid-template-columns:repeat(2,1fr);}}
+    .sr-report-card{border:1.5px solid var(--border);border-radius:9px;padding:16px;cursor:pointer;transition:box-shadow .15s;}
+    .sr-report-card:hover{box-shadow:0 4px 14px rgba(0,0,0,.08);border-color:#c7d2fe;}
+    .sr-rc-type{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-400);margin-bottom:6px;}
+    .sr-rc-name{font-size:13.5px;font-weight:700;color:var(--navy);margin-bottom:4px;}
+    .sr-rc-desc{font-size:11.5px;color:var(--gray-500);margin-bottom:10px;}
+    .sr-rc-footer{display:flex;align-items:center;justify-content:space-between;}
+    .sr-rc-period{font-size:11px;color:var(--gray-400);}
+    .sr-rc-actions{display:flex;gap:6px;}
+    .sr-rc-btn{padding:4px 10px;font-size:11px;font-weight:600;border-radius:5px;border:none;cursor:pointer;}
+    .sr-rc-btn.view{background:#eef2ff;color:#3730a3;}
+    .sr-rc-btn.dl{background:#e8f5e9;color:#2e7d32;}
+
+    /* ── Standard toggle (GAAP/SAP/IFRS) ── */
+    .sr-std-toggle{display:flex;gap:6px;}
+    .sr-std-btn{padding:5px 14px;font-size:11.5px;font-weight:600;border:1.5px solid var(--border);border-radius:6px;background:#fff;color:var(--gray-600);cursor:pointer;transition:all .15s;}
+    .sr-std-btn.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+
+    /* ── Drill-down expandable ── */
+    .sr-dd-row{cursor:pointer;}
+    .sr-dd-row:hover td{background:#fafbff;}
+    .sr-dd-expand{padding:0 !important;border-bottom:1px solid var(--gray-100);}
+    .sr-dd-inner{padding:10px 16px 10px 36px;background:#f8f9fb;display:none;}
+    .sr-dd-inner.open{display:block;}
+    .sr-dd-sub{display:flex;gap:20px;flex-wrap:wrap;}
+    .sr-dd-sub-item{font-size:12px;color:var(--gray-600);}
+    .sr-dd-sub-item strong{color:var(--navy);}
+    .sr-variance-pos{color:#2e7d32;font-weight:700;}
+    .sr-variance-neg{color:#c62828;font-weight:700;}
+    .sr-chevron{transition:transform .2s;display:inline-block;font-size:11px;margin-right:6px;}
+    .sr-chevron.open{transform:rotate(90deg);}
+
+    /* ── NAIC ── */
+    .sr-naic-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;padding:18px;}
+    @media(max-width:900px){.sr-naic-grid{grid-template-columns:1fr 1fr;}}
+    .sr-naic-card{border:1.5px solid var(--border);border-radius:9px;padding:16px;}
+    .sr-naic-code{font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;color:var(--gray-400);margin-bottom:4px;}
+    .sr-naic-name{font-size:13px;font-weight:700;color:var(--navy);margin-bottom:6px;}
+    .sr-naic-row{display:flex;justify-content:space-between;font-size:11.5px;color:var(--gray-600);margin-bottom:3px;}
+    .sr-naic-row strong{color:var(--gray-800);}
+    .sr-naic-actions{margin-top:10px;display:flex;gap:6px;}
+    .sr-naic-btn{padding:5px 10px;font-size:11px;font-weight:600;border-radius:5px;border:none;cursor:pointer;}
+    .sr-naic-btn.gen{background:var(--navy);color:#fff;}
+    .sr-naic-btn.dl{background:#e8f5e9;color:#2e7d32;}
+    .sr-naic-progress{height:4px;background:var(--gray-100);border-radius:2px;margin-top:8px;overflow:hidden;}
+    .sr-naic-prog-fill{height:4px;border-radius:2px;background:var(--navy);}
+
+    /* ── Pipeline charts ── */
+    .sr-chart-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:18px 18px 0;}
+    @media(max-width:800px){.sr-chart-row{grid-template-columns:1fr;}}
+    .sr-chart-box{background:#f8f9fb;border:1.5px solid var(--border);border-radius:9px;padding:16px;}
+    .sr-chart-box canvas{max-height:220px;}
+
+    /* ── Pipeline table status colors ── */
+    .fp-status{display:inline-block;font-size:10px;font-weight:700;padding:2px 9px;border-radius:10px;}
+    .fp-status.submitted{background:#e8f5e9;color:#2e7d32;}
+    .fp-status.in-review{background:#e3f2fd;color:#1565c0;}
+    .fp-status.pending{background:#fff8e1;color:#f57f17;}
+    .fp-status.rejected{background:#fdecea;color:#c62828;}
+    .fp-status.draft{background:#f3e8ff;color:#7c3aed;}
+
+    /* ── Misc ── */
+    .tab-content{display:none;}
+    .tab-content.active{display:block;}
+  </style>
+</head>
+<body>
+<main class="main-content" id="main-content">
+
+  <!-- ═══ PAGE HEADER ═══ -->
+  <div class="page-header" style="margin-bottom:20px;">
+    <div>
+      <div class="page-title">Statutory &amp; Filing Reports</div>
+      <div class="page-subtitle">GAAP · SAP · IFRS · NAIC Packages · Filings Pipeline</div>
+    </div>
+    <div class="page-actions">
+      <div class="period-toggle" id="periodToggle">
+        <button class="period-btn" onclick="setPeriod('itd')">ITD</button>
+        <button class="period-btn active" onclick="setPeriod('ytd')">YTD</button>
+        <button class="period-btn" onclick="setPeriod('mtd')">MTD</button>
+      </div>
+      <button class="sr-period-chip" id="periodChip">Reporting Period: Q1–Q2 2026</button>
+      <button class="btn btn-outline btn-sm" onclick="exportAll()">Bulk Export</button>
+    </div>
+  </div>
+
+  <!-- ═══ STAT CARDS ═══ -->
+  <div class="sr-stats" id="srStats"></div>
+
+  <!-- ═══ TAB STRIP ═══ -->
+  <div class="sr-tabs">
+    <button class="sr-tab active" onclick="switchTab('legal-reports')" id="tab-legal-reports">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+      Legal Reports
+    </button>
+    <button class="sr-tab" onclick="switchTab('drill-down')" id="tab-drill-down">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Drill-Down Viewer
+    </button>
+    <button class="sr-tab" onclick="switchTab('naic-packages')" id="tab-naic-packages">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+      NAIC Packages
+    </button>
+    <button class="sr-tab" onclick="switchTab('filings-pipeline')" id="tab-filings-pipeline">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Filings Pipeline
+      <span class="sr-tab-badge">2</span>
+    </button>
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- TAB 1: LEGAL REPORTS                   -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="tab-content active" id="content-legal-reports">
+
+    <div class="sr-panel">
+      <div class="sr-panel-hdr">
+        <div class="sr-panel-title">Report Library</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div class="sr-std-toggle">
+            <button class="sr-std-btn active" onclick="setStandard(this,'GAAP')">GAAP</button>
+            <button class="sr-std-btn" onclick="setStandard(this,'SAP')">SAP</button>
+            <button class="sr-std-btn" onclick="setStandard(this,'IFRS')">IFRS</button>
+          </div>
+          <input class="sr-search" id="legalSearch" placeholder="Search reports…" oninput="renderLegal()">
+        </div>
+      </div>
+      <div class="sr-card-grid" id="legalGrid"></div>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- TAB 2: DRILL-DOWN VIEWER               -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="tab-content" id="content-drill-down">
+
+    <div class="sr-filter-bar">
+      <select class="sr-filter-select" id="ddState" onchange="renderDrillDown()">
+        <option value="">All States</option>
+        <option>Texas</option><option>Florida</option><option>California</option><option>New York</option><option>Illinois</option>
+      </select>
+      <select class="sr-filter-select" id="ddLob" onchange="renderDrillDown()">
+        <option value="">All LOB</option>
+        <option>Auto</option><option>Property</option><option>GL</option><option>Marine</option>
+      </select>
+      <select class="sr-filter-select" id="ddAccount" onchange="renderDrillDown()">
+        <option value="">All Accounts</option>
+        <option>Premium</option><option>Claims</option><option>Reinsurance</option><option>Expenses</option>
+      </select>
+      <input class="sr-search" id="ddSearch" placeholder="Search accounts…" oninput="renderDrillDown()">
+      <div class="sr-filter-spacer"></div>
+      <button class="btn btn-outline btn-sm" onclick="expandAll()">Expand All</button>
+      <button class="btn btn-outline btn-sm" onclick="exportTable('ddTable')">Export CSV</button>
+    </div>
+
+    <div class="sr-panel">
+      <div class="sr-panel-hdr">
+        <div class="sr-panel-title">Account Drill-Down</div>
+        <span style="font-size:12px;color:var(--gray-400);">Click a row to expand detail</span>
+      </div>
+      <table class="sr-table" id="ddTable">
+        <thead>
+          <tr>
+            <th style="width:30px;"></th>
+            <th>Account / Category</th>
+            <th>LOB</th>
+            <th>State</th>
+            <th class="r">Prior Period</th>
+            <th class="r">Current Period</th>
+            <th class="r">Variance ($)</th>
+            <th class="r">Variance (%)</th>
+          </tr>
+        </thead>
+        <tbody id="ddBody"></tbody>
+      </table>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- TAB 3: NAIC PACKAGES                   -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="tab-content" id="content-naic-packages">
+
+    <div class="sr-panel">
+      <div class="sr-panel-hdr">
+        <div class="sr-panel-title">NAIC Package Components</div>
+        <div style="display:flex;gap:8px;">
+          <select class="sr-filter-select" id="naicState" onchange="renderNaicTable()">
+            <option value="">All States</option>
+            <option>Texas</option><option>Florida</option><option>California</option><option>New York</option>
+          </select>
+          <select class="sr-filter-select" id="naicStatus" onchange="renderNaicTable()">
+            <option value="">All Status</option>
+            <option>Complete</option><option>In Progress</option><option>Not Started</option>
+          </select>
+        </div>
+      </div>
+      <table class="sr-table">
+        <thead>
+          <tr>
+            <th>Schedule</th>
+            <th>Description</th>
+            <th>State</th>
+            <th class="r">Pages</th>
+            <th>Completion</th>
+            <th>Last Updated</th>
+            <th>Reviewer</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="naicTbody"></tbody>
+      </table>
+    </div>
+
+    <div class="sr-naic-grid" id="naicCardGrid"></div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════ -->
+  <!-- TAB 4: FILINGS PIPELINE                -->
+  <!-- ═══════════════════════════════════════ -->
+  <div class="tab-content" id="content-filings-pipeline">
+
+    <div class="sr-chart-row">
+      <div class="sr-chart-box">
+        <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px;">Filings by Status (YTD)</div>
+        <canvas id="fpBarChart"></canvas>
+      </div>
+      <div class="sr-chart-box">
+        <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px;">Filing Distribution</div>
+        <canvas id="fpDonutChart"></canvas>
+      </div>
+    </div>
+
+    <div class="sr-filter-bar" style="margin-top:18px;">
+      <select class="sr-filter-select" id="fpState" onchange="renderPipeline()">
+        <option value="">All States</option>
+        <option>Texas</option><option>Florida</option><option>California</option><option>New York</option><option>Illinois</option>
+      </select>
+      <select class="sr-filter-select" id="fpType" onchange="renderPipeline()">
+        <option value="">All Types</option>
+        <option>Annual Statement</option><option>Quarterly</option><option>Premium Tax</option><option>Surplus Lines</option>
+      </select>
+      <select class="sr-filter-select" id="fpStatus" onchange="renderPipeline()">
+        <option value="">All Status</option>
+        <option>Submitted</option><option>In Review</option><option>Pending</option><option>Draft</option><option>Rejected</option>
+      </select>
+      <input class="sr-search" id="fpSearch" placeholder="Search filings…" oninput="renderPipeline()">
+      <div class="sr-filter-spacer"></div>
+      <button class="btn btn-outline btn-sm" onclick="exportTable('fpTable')">Export CSV</button>
+    </div>
+
+    <div class="sr-panel">
+      <div class="sr-panel-hdr">
+        <div class="sr-panel-title">Filing Registry</div>
+        <span style="font-size:12px;color:var(--gray-400);" id="fpCount"> - filings</span>
+      </div>
+      <table class="sr-table" id="fpTable">
+        <thead>
+          <tr>
+            <th>Filing ID</th>
+            <th>Type</th>
+            <th>State</th>
+            <th>Jurisdiction</th>
+            <th class="r">Period</th>
+            <th class="r">Due Date</th>
+            <th class="r">Filed Date</th>
+            <th>Preparer</th>
+            <th>Status</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="fpBody"></tbody>
+      </table>
+    </div>
+
+  </div>
+
+</main>
+
+<script>
+// ══════════════════════════════════════════════════════════════
+// DATA
+// ══════════════════════════════════════════════════════════════
+const LEGAL_REPORTS = [
+  { type:'GAAP', name:'Balance Sheet',             desc:'Assets, liabilities and equity statement',      period:'Q2 2026', status:'Approved' },
+  { type:'GAAP', name:'Income Statement',          desc:'Revenue, expenses and net income breakdown',    period:'Q2 2026', status:'Approved' },
+  { type:'GAAP', name:'Cash Flow Statement',       desc:'Operating, investing and financing activities', period:'Q2 2026', status:'Review' },
+  { type:'GAAP', name:'Statement of Equity',       desc:'Changes in stockholders equity',                period:'Q1 2026', status:'Approved' },
+  { type:'GAAP', name:'Footnote Disclosures',      desc:'Accounting policies and significant estimates', period:'Q2 2026', status:'Draft' },
+  { type:'SAP',  name:'Annual Statement',          desc:'NAIC SAP-based statutory annual filing',       period:'FY 2025', status:'Filed' },
+  { type:'SAP',  name:'Quarterly Statement',       desc:'Q2 2026 statutory quarterly filing',           period:'Q2 2026', status:'Pending' },
+  { type:'SAP',  name:'Trial Balance',             desc:'Pre-close trial balance all accounts',         period:'Q2 2026', status:'Approved' },
+  { type:'SAP',  name:'Schedule F – Reinsurance',  desc:'Ceded and assumed reinsurance schedules',      period:'Q2 2026', status:'Review' },
+  { type:'SAP',  name:'Schedule P – Losses',       desc:'Reserve development and loss triangles',       period:'FY 2025', status:'Filed' },
+  { type:'IFRS', name:'IFRS 17 Measurement',       desc:'Insurance contract liability measurement',     period:'Q2 2026', status:'Draft' },
+  { type:'IFRS', name:'IFRS 17 Disclosure',        desc:'Quantitative and qualitative disclosures',     period:'Q2 2026', status:'Draft' },
+];
+
+const DRILL_DATA = [
+  { account:'Written Premium',   lob:'Auto',     state:'Texas',      cat:'Premium',      prior:4200000, current:4820000 },
+  { account:'Written Premium',   lob:'Property', state:'California', cat:'Premium',      prior:4850000, current:5240000 },
+  { account:'Earned Premium',    lob:'Auto',     state:'Florida',    cat:'Premium',      prior:3100000, current:3410000 },
+  { account:'Earned Premium',    lob:'Property', state:'Texas',      cat:'Premium',      prior:2900000, current:3150000 },
+  { account:'Loss & LAE',        lob:'Auto',     state:'Texas',      cat:'Claims',       prior:2100000, current:2380000 },
+  { account:'Loss & LAE',        lob:'Property', state:'California', cat:'Claims',       prior:1840000, current:1960000 },
+  { account:'IBNR Reserve',      lob:'GL',       state:'New York',   cat:'Claims',       prior:1200000, current:1350000 },
+  { account:'Ceded Premium',     lob:'Auto',     state:'Florida',    cat:'Reinsurance',  prior:620000,  current:680000  },
+  { account:'Ceded Losses',      lob:'Property', state:'Texas',      cat:'Reinsurance',  prior:480000,  current:510000  },
+  { account:'UW Expenses',       lob:'Auto',     state:'Illinois',   cat:'Expenses',     prior:980000,  current:1050000 },
+  { account:'Commission Expense',lob:'Property', state:'Florida',    cat:'Expenses',     prior:760000,  current:820000  },
+  { account:'Admin Expense',     lob:'Marine',   state:'New York',   cat:'Expenses',     prior:340000,  current:310000  },
+];
+
+const NAIC_SCHEDULES = [
+  { code:'SCH-A', name:'Investments - Bonds',         state:'Texas',      pages:12, pct:100, updated:'2026-03-28', reviewer:'J. Marsh',   status:'Complete' },
+  { code:'SCH-B', name:'Investments - Mortgages',     state:'Texas',      pages:8,  pct:100, updated:'2026-03-28', reviewer:'J. Marsh',   status:'Complete' },
+  { code:'SCH-D', name:'Bonds & Stocks',               state:'Florida',    pages:24, pct:80,  updated:'2026-04-10', reviewer:'A. Chen',    status:'In Progress' },
+  { code:'SCH-F', name:'Reinsurance',                  state:'California', pages:18, pct:60,  updated:'2026-04-18', reviewer:'T. Patel',   status:'In Progress' },
+  { code:'SCH-P', name:'Loss Reserve Development',     state:'New York',   pages:32, pct:100, updated:'2026-03-31', reviewer:'R. Santos',  status:'Complete' },
+  { code:'SCH-T', name:'Exhibit of Premiums Written',  state:'Texas',      pages:10, pct:0,   updated:' - ',          reviewer:'Unassigned', status:'Not Started' },
+  { code:'SCH-Y', name:'Information of Reinsurers',    state:'Florida',    pages:6,  pct:40,  updated:'2026-04-20', reviewer:'A. Chen',    status:'In Progress' },
+  { code:'SCH-H', name:'Accident & Health Exhibit',    state:'California', pages:14, pct:100, updated:'2026-04-05', reviewer:'T. Patel',   status:'Complete' },
+];
+
+const FILINGS = [
+  { id:'FL-2026-001', type:'Annual Statement',  state:'Texas',      jurisdiction:'TDI',  period:'FY 2025', due:'2026-03-01', filed:'2026-02-28', preparer:'J. Marsh',  status:'Submitted', dateYM:'2026-02' },
+  { id:'FL-2026-002', type:'Premium Tax',       state:'Florida',    jurisdiction:'FLOI', period:'Q1 2026', due:'2026-04-30', filed:'2026-04-25', preparer:'A. Chen',   status:'Submitted', dateYM:'2026-04' },
+  { id:'FL-2026-003', type:'Quarterly',         state:'California', jurisdiction:'CDI',  period:'Q1 2026', due:'2026-05-15', filed:' - ',          preparer:'T. Patel',  status:'In Review', dateYM:'2026-05' },
+  { id:'FL-2026-004', type:'Surplus Lines',     state:'New York',   jurisdiction:'NYDFS',period:'Q1 2026', due:'2026-05-01', filed:' - ',          preparer:'R. Santos', status:'Pending',   dateYM:'2026-05' },
+  { id:'FL-2026-005', type:'Annual Statement',  state:'Illinois',   jurisdiction:'IDOI', period:'FY 2025', due:'2026-03-01', filed:'2026-03-01', preparer:'J. Marsh',  status:'Submitted', dateYM:'2026-03' },
+  { id:'FL-2026-006', type:'Premium Tax',       state:'Ohio',       jurisdiction:'ODI',  period:'Q1 2026', due:'2026-04-15', filed:' - ',          preparer:'A. Chen',   status:'Rejected',  dateYM:'2026-04' },
+  { id:'FL-2026-007', type:'Quarterly',         state:'Georgia',    jurisdiction:'OCI',  period:'Q1 2026', due:'2026-05-15', filed:' - ',          preparer:'T. Patel',  status:'Draft',     dateYM:'2026-05' },
+  { id:'FL-2026-008', type:'Annual Statement',  state:'Texas',      jurisdiction:'TDI',  period:'Q2 2026', due:'2026-08-01', filed:' - ',          preparer:'J. Marsh',  status:'Pending',   dateYM:'2026-05' },
+  { id:'FL-2026-009', type:'Surplus Lines',     state:'Florida',    jurisdiction:'FLOI', period:'Q2 2026', due:'2026-07-31', filed:' - ',          preparer:'A. Chen',   status:'Draft',     dateYM:'2026-05' },
+  { id:'FL-2026-010', type:'Premium Tax',       state:'California', jurisdiction:'CDI',  period:'Q2 2026', due:'2026-06-30', filed:' - ',          preparer:'T. Patel',  status:'In Review', dateYM:'2026-05' },
+];
+
+const PERIOD_STATS = {
+  itd: { reports:'48', filed:'36', pending:'8',  overdue:'4', trend:'+3' },
+  ytd: { reports:'24', filed:'18', pending:'4',  overdue:'2', trend:'+1' },
+  mtd: { reports:'6',  filed:'3',  pending:'2',  overdue:'1', trend:'0'  },
+};
+
+const PERIOD_LABELS = { itd:'All-Time', ytd:'YTD 2026', mtd:'May 2026' };
+const PERIOD_CHIPS  = { itd:'All-Time', ytd:'Q1–Q2 2026', mtd:'May 2026' };
+
+// ══════════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════════
+let currentPeriod = 'ytd';
+let currentStandard = 'GAAP';
+let fpBarChart = null, fpDonutChart = null;
+let _expandedRows = new Set();
+
+// ══════════════════════════════════════════════════════════════
+// PERIOD TOGGLE
+// ══════════════════════════════════════════════════════════════
+function setPeriod(p) {
+  currentPeriod = p;
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.toggle('active', b.textContent.toLowerCase() === p));
+  document.getElementById('periodChip').textContent = 'Reporting Period: ' + PERIOD_CHIPS[p];
+  renderStats();
+  renderLegal();
+  renderDrillDown();
+  renderPipeline();
+}
+
+// ══════════════════════════════════════════════════════════════
+// STAT CARDS
+// ══════════════════════════════════════════════════════════════
+function renderStats() {
+  const s = PERIOD_STATS[currentPeriod];
+  const lbl = PERIOD_LABELS[currentPeriod];
+  document.getElementById('srStats').innerHTML = `
+    <div class="sr-stat c-navy">
+      <div class="sr-stat-lbl">Total Reports (${lbl})</div>
+      <div class="sr-stat-val">${s.reports}</div>
+      <div class="sr-stat-sub">Across all standards &amp; states</div>
+    </div>
+    <div class="sr-stat c-green">
+      <div class="sr-stat-lbl">Filed / Approved</div>
+      <div class="sr-stat-val">${s.filed}</div>
+      <div class="sr-stat-sub">Submitted &amp; confirmed</div>
+    </div>
+    <div class="sr-stat c-blue">
+      <div class="sr-stat-lbl">Pending / In Review</div>
+      <div class="sr-stat-val">${s.pending}</div>
+      <div class="sr-stat-sub">Awaiting regulator action</div>
+    </div>
+    <div class="sr-stat c-coral">
+      <div class="sr-stat-lbl">Overdue / Rejected</div>
+      <div class="sr-stat-val">${s.overdue}</div>
+      <div class="sr-stat-sub">Require immediate action</div>
+    </div>
+  `;
+}
+
+// ══════════════════════════════════════════════════════════════
+// TAB SWITCHING
+// ══════════════════════════════════════════════════════════════
+function switchTab(id) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.sr-tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('content-' + id).classList.add('active');
+  document.getElementById('tab-' + id).classList.add('active');
+  history.replaceState(null, '', '#' + id);
+  if (id === 'filings-pipeline') buildPipelineCharts();
+}
+
+// ══════════════════════════════════════════════════════════════
+// TAB 1: LEGAL REPORTS
+// ══════════════════════════════════════════════════════════════
+function setStandard(btn, std) {
+  currentStandard = std;
+  document.querySelectorAll('.sr-std-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderLegal();
+}
+
+function renderLegal() {
+  const search = (document.getElementById('legalSearch').value || '').toLowerCase();
+  const rows = LEGAL_REPORTS.filter(r => {
+    if (r.type !== currentStandard) return false;
+    if (search && !r.name.toLowerCase().includes(search) && !r.desc.toLowerCase().includes(search)) return false;
+    return true;
+  });
+  const statusColor = { Approved:'approved', Review:'review', Draft:'draft', Filed:'filed', Pending:'pending' };
+  document.getElementById('legalGrid').innerHTML = rows.map(r => `
+    <div class="sr-report-card" onclick="viewReport('${r.name}')">
+      <div class="sr-rc-type">${r.type} Standard</div>
+      <div class="sr-rc-name">${r.name}</div>
+      <div class="sr-rc-desc">${r.desc}</div>
+      <div class="sr-rc-footer">
+        <div class="sr-rc-period">${r.period}</div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span class="sr-badge ${statusColor[r.status] || 'pending'}">${r.status}</span>
+          <div class="sr-rc-actions">
+            <button class="sr-rc-btn view" onclick="event.stopPropagation();viewReport('${r.name}')">View</button>
+            <button class="sr-rc-btn dl" onclick="event.stopPropagation();showToast('Downloading ${r.name}…')">DL</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  `).join('') || '<div style="padding:24px;color:var(--gray-400);text-align:center;">No reports match the current filter.</div>';
+}
+
+function viewReport(name) {
+  showToast('Opening ' + name + ' report…');
+}
+
+// ══════════════════════════════════════════════════════════════
+// TAB 2: DRILL-DOWN
+// ══════════════════════════════════════════════════════════════
+function periodFilter(row) {
+  if (currentPeriod === 'mtd') return true;
+  if (currentPeriod === 'ytd') return true;
+  return true;
+}
+
+function renderDrillDown() {
+  const state  = document.getElementById('ddState').value;
+  const lob    = document.getElementById('ddLob').value;
+  const cat    = document.getElementById('ddAccount').value;
+  const search = (document.getElementById('ddSearch').value || '').toLowerCase();
+
+  const rows = DRILL_DATA.filter(r => {
+    if (state && r.state !== state) return false;
+    if (lob   && r.lob !== lob) return false;
+    if (cat   && r.cat !== cat) return false;
+    if (search && !r.account.toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  const scaleF = currentPeriod === 'mtd' ? 0.33 : currentPeriod === 'ytd' ? 1 : 2.4;
+
+  document.getElementById('ddBody').innerHTML = rows.map((r, i) => {
+    const prior   = Math.round(r.prior * scaleF);
+    const current = Math.round(r.current * scaleF);
+    const varD    = current - prior;
+    const varP    = prior > 0 ? ((varD / prior) * 100).toFixed(1) : ' - ';
+    const varCls  = varD >= 0 ? 'sr-variance-pos' : 'sr-variance-neg';
+    const uid = 'dd-' + i;
+    return `<tr class="sr-dd-row" onclick="toggleDDRow('${uid}')">
+      <td><span class="sr-chevron" id="chev-${uid}">▶</span></td>
+      <td>${r.account}</td>
+      <td>${r.lob}</td>
+      <td>${r.state}</td>
+      <td class="r">$${fmt(prior)}</td>
+      <td class="r">$${fmt(current)}</td>
+      <td class="r"><span class="${varCls}">${varD >= 0 ? '+' : ''}$${fmt(varD)}</span></td>
+      <td class="r"><span class="${varCls}">${varP}%</span></td>
+    </tr>
+    <tr><td colspan="8" class="sr-dd-expand"><div class="sr-dd-inner" id="${uid}">
+      <div class="sr-dd-sub">
+        <div class="sr-dd-sub-item">Category: <strong>${r.cat}</strong></div>
+        <div class="sr-dd-sub-item">Effective Rate: <strong>${(current / 10000000 * 100).toFixed(2)}%</strong></div>
+        <div class="sr-dd-sub-item">GL Code: <strong>${100 + i * 7}</strong></div>
+        <div class="sr-dd-sub-item">MGA: <strong>Falcon MGA</strong></div>
+        <div class="sr-dd-sub-item">Note: Regular ${PERIOD_LABELS[currentPeriod]} movement within expected range</div>
+      </div>
+    </div></td></tr>`;
+  }).join('') || '<tr><td colspan="8" style="padding:24px;text-align:center;color:var(--gray-400);">No accounts match filter</td></tr>';
+}
+
+function toggleDDRow(uid) {
+  const inner = document.getElementById(uid);
+  const chev  = document.getElementById('chev-' + uid);
+  if (!inner) return;
+  const open = inner.classList.toggle('open');
+  if (chev) chev.classList.toggle('open', open);
+}
+
+function expandAll() {
+  document.querySelectorAll('.sr-dd-inner').forEach(el => el.classList.add('open'));
+  document.querySelectorAll('.sr-chevron').forEach(el => el.classList.add('open'));
+}
+
+// ══════════════════════════════════════════════════════════════
+// TAB 3: NAIC
+// ══════════════════════════════════════════════════════════════
+function renderNaicTable() {
+  const stateF  = document.getElementById('naicState').value;
+  const statusF = document.getElementById('naicStatus').value;
+  const rows = NAIC_SCHEDULES.filter(r => {
+    if (stateF  && r.state !== stateF) return false;
+    if (statusF && r.status !== statusF) return false;
+    return true;
+  });
+  const statusCls = { Complete:'approved', 'In Progress':'pending', 'Not Started':'overdue' };
+  document.getElementById('naicTbody').innerHTML = rows.map(r => `
+    <tr>
+      <td><strong>${r.code}</strong></td>
+      <td>${r.name}</td>
+      <td>${r.state}</td>
+      <td class="r">${r.pages}</td>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="flex:1;background:var(--gray-100);border-radius:3px;height:6px;overflow:hidden;">
+            <div style="width:${r.pct}%;height:6px;border-radius:3px;background:${r.pct===100?'#2e7d32':r.pct>50?'var(--navy)':'var(--coral)'};"></div>
+          </div>
+          <span style="font-size:11px;font-weight:700;color:var(--gray-600);width:28px;">${r.pct}%</span>
+        </div>
+      </td>
+      <td style="font-size:12px;">${r.updated}</td>
+      <td style="font-size:12px;">${r.reviewer}</td>
+      <td><span class="sr-badge ${statusCls[r.status] || 'pending'}">${r.status}</span></td>
+      <td>
+        <button class="sr-rc-btn view" onclick="showToast('Opening ${r.code}…')">View</button>
+      </td>
+    </tr>
+  `).join('');
+
+  document.getElementById('naicCardGrid').innerHTML = rows.slice(0, 6).map(r => `
+    <div class="sr-naic-card">
+      <div class="sr-naic-code">${r.code}</div>
+      <div class="sr-naic-name">${r.name}</div>
+      <div class="sr-naic-row"><span>State</span><strong>${r.state}</strong></div>
+      <div class="sr-naic-row"><span>Reviewer</span><strong>${r.reviewer}</strong></div>
+      <div class="sr-naic-row"><span>Pages</span><strong>${r.pages}</strong></div>
+      <div class="sr-naic-progress"><div class="sr-naic-prog-fill" style="width:${r.pct}%;"></div></div>
+      <div class="sr-naic-actions">
+        <button class="sr-naic-btn gen" onclick="showToast('Generating ${r.code} package…')">Generate</button>
+        <button class="sr-naic-btn dl"  onclick="showToast('Downloading ${r.code}…')">Download</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ══════════════════════════════════════════════════════════════
+// TAB 4: PIPELINE
+// ══════════════════════════════════════════════════════════════
+function periodFilterFP(row) {
+  if (currentPeriod === 'mtd') return row.dateYM === '2026-05';
+  if (currentPeriod === 'ytd') return row.dateYM && row.dateYM.startsWith('2026');
+  return true;
+}
+
+function renderPipeline() {
+  const stateF  = document.getElementById('fpState').value;
+  const typeF   = document.getElementById('fpType').value;
+  const statusF = document.getElementById('fpStatus').value;
+  const search  = (document.getElementById('fpSearch').value || '').toLowerCase();
+
+  const rows = FILINGS.filter(r => {
+    if (!periodFilterFP(r)) return false;
+    if (stateF  && r.state !== stateF) return false;
+    if (typeF   && r.type !== typeF) return false;
+    if (statusF && r.status !== statusF) return false;
+    if (search  && !r.id.toLowerCase().includes(search) && !r.type.toLowerCase().includes(search) && !r.state.toLowerCase().includes(search)) return false;
+    return true;
+  });
+
+  document.getElementById('fpCount').textContent = rows.length + ' filings';
+  const statusCls = { Submitted:'submitted', 'In Review':'in-review', Pending:'pending', Draft:'draft', Rejected:'rejected' };
+
+  document.getElementById('fpBody').innerHTML = rows.map(r => `
+    <tr>
+      <td><strong style="font-family:monospace;font-size:12px;">${r.id}</strong></td>
+      <td>${r.type}</td>
+      <td>${r.state}</td>
+      <td>${r.jurisdiction}</td>
+      <td class="r">${r.period}</td>
+      <td class="r" style="font-size:12px;${r.status==='Rejected'?'color:var(--coral);':''}">${r.due}</td>
+      <td class="r" style="font-size:12px;color:var(--gray-400);">${r.filed}</td>
+      <td style="font-size:12px;">${r.preparer}</td>
+      <td><span class="fp-status ${statusCls[r.status] || 'pending'}">${r.status}</span></td>
+      <td>
+        <button class="sr-rc-btn view" onclick="showToast('Opening ${r.id}…')">View</button>
+      </td>
+    </tr>
+  `).join('') || '<tr><td colspan="10" style="padding:24px;text-align:center;color:var(--gray-400);">No filings match filter</td></tr>';
+}
+
+function buildPipelineCharts() {
+  const labels = ['Submitted', 'In Review', 'Pending', 'Draft', 'Rejected'];
+  const counts = labels.map(l => FILINGS.filter(f => f.status === l).length);
+  const colors = ['#2e7d32','#1565c0','#f57f17','#7c3aed','#c62828'];
+
+  if (fpBarChart) fpBarChart.destroy();
+  fpBarChart = new Chart(document.getElementById('fpBarChart'), {
+    type: 'bar',
+    data: { labels, datasets: [{ data: counts, backgroundColor: colors, borderRadius: 5, borderSkipped: false }] },
+    options: {
+      responsive: true, plugins: { legend: { display: false } },
+      scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#f0f2f5' } }, x: { grid: { display: false } } }
+    }
+  });
+
+  if (fpDonutChart) fpDonutChart.destroy();
+  fpDonutChart = new Chart(document.getElementById('fpDonutChart'), {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: counts, backgroundColor: colors, borderWidth: 2 }] },
+    options: {
+      responsive: true, cutout: '65%',
+      plugins: { legend: { position: 'right', labels: { font: { size: 11 }, padding: 10 } } }
+    }
+  });
+}
+
+// ══════════════════════════════════════════════════════════════
+// UTILS
+// ══════════════════════════════════════════════════════════════
+function fmt(n) { return Math.abs(Math.round(n)).toLocaleString('en-US'); }
+
+function showToast(msg, type) {
+  let t = document.getElementById('toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'toast';
+    t.style.cssText = 'position:fixed;bottom:24px;right:24px;padding:12px 20px;border-radius:8px;font-size:13px;font-weight:600;z-index:9999;transition:opacity .3s;box-shadow:0 4px 16px rgba(0,0,0,.15);';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.background = type === 'error' ? '#c62828' : '#1e293b';
+  t.style.color = '#fff';
+  t.style.opacity = '1';
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.style.opacity = '0', 3000);
+}
+
+function exportAll() { showToast('Preparing bulk export ZIP…'); }
+
+function exportTable(tableId) {
+  const tbl = document.getElementById(tableId);
+  if (!tbl) return;
+  const headers = Array.from(tbl.querySelectorAll('thead th')).map(th => th.innerText.trim());
+  const rows    = Array.from(tbl.querySelectorAll('tbody tr')).map(tr =>
+    Array.from(tr.querySelectorAll('td')).map(td => td.innerText.trim().replace(/\n/g,' '))
+  );
+  const csv = [headers, ...rows].map(r => r.join(',')).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv,' + encodeURIComponent(csv);
+  a.download = tableId + '.csv';
+  a.click();
+}
+
+// ══════════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  const _hash = location.hash.replace('#', '');
+  const _validTabs2 = ['legal-reports','drill-down','naic-packages','filings-pipeline'];
+  const _initSrTab = _validTabs2.includes(_hash) ? _hash : 'legal-reports';
+  initLayout(_initSrTab);
+  renderStats();
+  renderLegal();
+  renderDrillDown();
+  renderNaicTable();
+  renderPipeline();
+  if (_initSrTab !== 'legal-reports') switchTab(_initSrTab);
+});
+
+/* ── Hash change (sidebar navigation while already on page) ── */
+const _srValidTabs = ['legal-reports','drill-down','naic-packages','filings-pipeline'];
+window.addEventListener('hashchange', () => {
+  const h = location.hash.replace('#', '');
+  const tab = _srValidTabs.includes(h) ? h : 'legal-reports';
+  switchTab(tab);
+});
+</script>
+</body>
+</html>

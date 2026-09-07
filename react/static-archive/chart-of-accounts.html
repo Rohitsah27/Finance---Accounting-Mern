@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chart of Accounts — General Ledger | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/gl-engine.js"></script>
+  <script src="js/gl-ui.js"></script>
+  <script src="js/layout.js"></script>
+</head>
+<body>
+  <main class="main-content" id="main-content">
+
+    <div class="page-header">
+      <div>
+        <div class="page-title">Chart of Accounts</div>
+        <div class="page-subtitle">Real, persisted accounts. Add one, set its dimensions and opening balance, and it drives Journal Entry, balances, and every report that reads the ledger.</div>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-outline" onclick="exportCoaCsv()">Export</button>
+        <button class="btn btn-primary" onclick="toggleAddAccountForm()">+ New Account</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row" id="coa-stats"></div>
+
+    <!-- New account form -->
+    <div class="form-card" id="add-account-form-wrap" style="display:none;margin-bottom:16px;">
+      <div style="font-size:12.5px;font-weight:800;color:var(--gray-600);margin-bottom:10px;">New Account</div>
+      <div class="form-grid-3">
+        <div>
+          <label class="field-label">Account code *</label>
+          <input class="field-input" id="na-code" placeholder="e.g. 1200">
+        </div>
+        <div>
+          <label class="field-label">Account name *</label>
+          <input class="field-input" id="na-name" placeholder="e.g. Prepaid Expenses">
+        </div>
+        <div>
+          <label class="field-label">Type *</label>
+          <select class="field-input" id="na-group">
+            <option value="asset">Asset</option>
+            <option value="liability">Liability</option>
+            <option value="equity">Equity</option>
+            <option value="revenue">Revenue</option>
+            <option value="expense">Expense</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-top:12px;">
+        <label class="field-label">Applicable dimensions <span class="v-badge-config">shown on Journal Entry lines for this account</span></label>
+        <div id="na-dims" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:6px;"></div>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:8px;">
+        <button class="btn btn-primary btn-sm" onclick="submitNewAccount()">Save Account</button>
+        <button class="btn btn-ghost btn-sm" onclick="toggleAddAccountForm()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Opening balance form -->
+    <div class="form-card" id="opening-balance-form-wrap" style="display:none;margin-bottom:16px;">
+      <div style="font-size:12.5px;font-weight:800;color:var(--gray-600);margin-bottom:10px;">Set Opening Balance: <span id="ob-account-label"></span></div>
+      <div class="form-grid-3">
+        <div>
+          <label class="field-label">Debit</label>
+          <input class="field-input" type="number" step="0.01" id="ob-debit" placeholder="0.00">
+        </div>
+        <div>
+          <label class="field-label">Credit</label>
+          <input class="field-input" type="number" step="0.01" id="ob-credit" placeholder="0.00">
+        </div>
+        <div>
+          <label class="field-label">As of</label>
+          <input class="field-input" type="text" id="ob-asof" disabled>
+        </div>
+      </div>
+      <div style="margin-top:14px;display:flex;gap:8px;">
+        <button class="btn btn-primary btn-sm" onclick="submitOpeningBalance()">Save Opening Balance</button>
+        <button class="btn btn-ghost btn-sm" onclick="toggleOpeningBalanceForm()">Cancel</button>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-bar">
+      <span class="filter-bar-label">Filters:</span>
+      <select class="filter-select" id="coa-filter-type" onchange="renderCoaTable()">
+        <option value="">All Types</option>
+        <option value="asset">Asset</option>
+        <option value="liability">Liability</option>
+        <option value="equity">Equity</option>
+        <option value="revenue">Revenue</option>
+        <option value="expense">Expense</option>
+      </select>
+      <select class="filter-select" id="coa-filter-status" onchange="renderCoaTable()">
+        <option value="">All Status</option>
+        <option value="active">Active</option>
+        <option value="inactive">Inactive</option>
+      </select>
+      <div class="filter-spacer"></div>
+      <div class="search-wrapper">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="text" class="filter-input" placeholder="Search accounts..."
+          id="coa-search" data-filter-input="coa-table" style="width:200px;">
+      </div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-wrap">
+      <div class="table-head-row">
+        <div class="table-head-title">All Accounts</div>
+        <div class="table-head-actions">
+          <a href="excel-onboarding.html" class="btn btn-outline btn-sm">Import</a>
+        </div>
+      </div>
+      <table class="data-table" id="coa-table" data-table-init>
+        <thead>
+          <tr>
+            <th><input type="checkbox" class="table-check"></th>
+            <th>Account Code</th>
+            <th>Account Name</th>
+            <th>Type</th>
+            <th>Dimensions</th>
+            <th>Debit (DR)</th>
+            <th>Credit (CR)</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="coa-tbody"></tbody>
+      </table>
+    </div>
+
+  </main>
+
+  <script src="js/app.js"></script>
+  <script src="js/reports-utils.js"></script>
+  <script>
+    initLayout('chart-of-accounts');
+    renderImportResultBanner('coa');
+
+    const GROUP_BADGE = { asset: 'badge-asset', liability: 'badge-liability', equity: 'badge-equity', revenue: 'badge-revenue', expense: 'badge-expense' };
+
+    function toggleAddAccountForm() {
+      const wrap = document.getElementById('add-account-form-wrap');
+      const opening = wrap.style.display === 'none';
+      wrap.style.display = opening ? '' : 'none';
+      if (opening) renderDimensionChecklist();
+    }
+
+    function renderDimensionChecklist() {
+      const cfg = getTenantConfig();
+      const dims = dimensionsForBusinessType(cfg.businessType).filter(d => cfg.enabledDimensions[d.id]);
+      document.getElementById('na-dims').innerHTML = dims.map(d => `
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;">
+          <input type="checkbox" value="${d.id}" class="na-dim-cb"> ${d.label}
+        </label>`).join('') || '<span style="color:var(--gray-400);font-size:12px;">No dimensions enabled, turn some on in Admin Configuration Centre → Dimension Manager.</span>';
+    }
+
+    function submitNewAccount() {
+      const code = document.getElementById('na-code').value.trim();
+      const name = document.getElementById('na-name').value.trim();
+      const group = document.getElementById('na-group').value;
+      const dims = [...document.querySelectorAll('.na-dim-cb:checked')].map(cb => cb.value);
+      if (!code || !name) { showToast('Enter an account code and name', 'warning'); return; }
+      try {
+        addGLAccount({ code, name, group, dimensions: dims });
+      } catch (e) {
+        showToast(e.message, 'error');
+        return;
+      }
+      document.getElementById('na-code').value = '';
+      document.getElementById('na-name').value = '';
+      toggleAddAccountForm();
+      renderAll();
+      showToast(`Account ${code} - ${name} created`, 'success');
+    }
+
+    let obTargetCode = null;
+    function toggleOpeningBalanceForm(code) {
+      const wrap = document.getElementById('opening-balance-form-wrap');
+      if (code) {
+        obTargetCode = code;
+        const acct = findGLAccountByCode(code);
+        document.getElementById('ob-account-label').textContent = code + ' - ' + (acct ? acct.name : '');
+        document.getElementById('ob-asof').value = today();
+        const existing = getOpeningBalances()[code];
+        document.getElementById('ob-debit').value = existing ? existing.debit : '';
+        document.getElementById('ob-credit').value = existing ? existing.credit : '';
+        wrap.style.display = '';
+        wrap.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      } else {
+        wrap.style.display = 'none';
+      }
+    }
+
+    function submitOpeningBalance() {
+      const debit = parseFloat(document.getElementById('ob-debit').value) || 0;
+      const credit = parseFloat(document.getElementById('ob-credit').value) || 0;
+      setOpeningBalance(obTargetCode, debit, credit);
+      toggleOpeningBalanceForm(null);
+      renderAll();
+      showToast(`Opening balance set for ${obTargetCode}`, 'success');
+    }
+
+    function toggleAccountStatus(code, current) {
+      setGLAccountStatus(code, current === 'active' ? 'inactive' : 'active');
+      renderAll();
+      showToast(`${code} marked ${current === 'active' ? 'inactive' : 'active'}`, 'info');
+    }
+
+    function renderStats() {
+      const accts = getGLAccounts();
+      const active = accts.filter(a => a.status === 'active').length;
+      const inactive = accts.length - active;
+      const thisMonth = accts.filter(a => new Date(a.createdAt).getMonth() === new Date().getMonth() && new Date(a.createdAt).getFullYear() === new Date().getFullYear()).length;
+      document.getElementById('coa-stats').innerHTML = `
+        <div class="stat-card"><div class="stat-icon si-navy"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="14" height="14" rx="2" stroke="#102a2e" stroke-width="1.8"/><path d="M7 10h6M7 7h6M7 13h3" stroke="#102a2e" stroke-width="1.5" stroke-linecap="round"/></svg></div><div class="stat-info"><div class="stat-value">${accts.length}</div><div class="stat-label">Total Accounts</div></div></div>
+        <div class="stat-card"><div class="stat-icon si-green"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 10l3.5 3.5L15 6" stroke="#2e7d32" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="stat-info"><div class="stat-value">${active}</div><div class="stat-label">Active Accounts</div></div></div>
+        <div class="stat-card"><div class="stat-icon si-orange"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 5v6M10 14v1" stroke="#e65100" stroke-width="2" stroke-linecap="round"/></svg></div><div class="stat-info"><div class="stat-value">${inactive}</div><div class="stat-label">Inactive Accounts</div></div></div>
+        <div class="stat-card"><div class="stat-icon si-coral"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="#c9791f" stroke-width="1.8"/><path d="M10 7v3l2 2" stroke="#c9791f" stroke-width="1.8" stroke-linecap="round"/></svg></div><div class="stat-info"><div class="stat-value">${thisMonth}</div><div class="stat-label">New This Month</div></div></div>`;
+    }
+
+    function renderCoaTable() {
+      const typeFilter = document.getElementById('coa-filter-type').value;
+      const statusFilter = document.getElementById('coa-filter-status').value;
+      let accts = getGLAccounts();
+      accts.sort((a, b) => (parseInt(a.code, 10) || 0) - (parseInt(b.code, 10) || 0));
+      if (typeFilter) accts = accts.filter(a => a.group === typeFilter);
+      if (statusFilter) accts = accts.filter(a => a.status === statusFilter);
+      const dimLabelById = {};
+      DIMENSION_LIBRARY.forEach(d => { dimLabelById[d.id] = d.label; });
+
+      document.getElementById('coa-tbody').innerHTML = accts.map(a => {
+        const bal = getAccountBalance(a.code);
+        const dimsHtml = (a.dimensions || []).map(id => `<span class="v-tree-badge">${dimLabelById[id] || id}</span>`).join(' ') || '<span style="color:var(--gray-400);">none</span>';
+        return `<tr>
+          <td><input type="checkbox" class="table-check"></td>
+          <td class="cell-link">${a.code}</td>
+          <td>${a.name}</td>
+          <td><span class="badge ${GROUP_BADGE[a.group] || 'badge-gray'}">${a.group.charAt(0).toUpperCase() + a.group.slice(1)}</span></td>
+          <td>${dimsHtml}</td>
+          <td><a href="javascript:void(0)" onclick="openAccountLedgerModal('${a.code}')" style="color:${bal.debit > 0 ? 'var(--green)' : 'var(--gray-400)'};font-weight:700;" title="Click to view ledger detail">${fmtCurrency(bal.debit)}</a></td>
+          <td><a href="javascript:void(0)" onclick="openAccountLedgerModal('${a.code}')" style="color:${bal.credit > 0 ? 'var(--coral)' : 'var(--gray-400)'};font-weight:700;" title="Click to view ledger detail">${fmtCurrency(bal.credit)}</a></td>
+          <td><span class="badge ${a.status === 'active' ? 'badge-green' : 'badge-gray'}">${a.status === 'active' ? 'Active' : 'Inactive'}</span></td>
+          <td style="white-space:nowrap;">
+            <button class="btn btn-ghost btn-sm" onclick="toggleOpeningBalanceForm('${a.code}')">Opening Bal.</button>
+            <button class="btn btn-ghost btn-sm" onclick="toggleAccountStatus('${a.code}','${a.status}')">${a.status === 'active' ? 'Deactivate' : 'Activate'}</button>
+          </td>
+        </tr>`;
+      }).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--gray-400);padding:20px;">No accounts match these filters.</td></tr>';
+      initTableSelection('coa-table');
+    }
+
+    function exportCoaCsv() {
+      exportTableCSV('coa-table', 'chart-of-accounts.csv');
+    }
+
+    function renderAll() {
+      renderStats();
+      renderCoaTable();
+    }
+
+    renderAll();
+  </script>
+</body>
+</html>

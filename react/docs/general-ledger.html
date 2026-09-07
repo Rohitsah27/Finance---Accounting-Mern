@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>General Ledger (GL) — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>General Ledger</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Core Accounting Engine</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-book-journal-whills" style="color: var(--purple);"></i> General Ledger (GL) Engine</h1>
+      <p>
+        The General Ledger is the central financial foundation of Veridex. It enforces double-entry balancing rules (`Debit === Credit`), supports multi-entity chart of accounts, dimension tagging, financial statement generation, and accounting period locks.
+      </p>
+    </div>
+
+    <!-- Chart of Accounts -->
+    <div class="module-card" id="chart-of-accounts">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-blue">GL Foundation</span>
+            <span class="badge badge-teal">Account Master</span>
+          </div>
+          <h2 class="module-title">1. Chart of Accounts (`chart-of-accounts.html`)</h2>
+        </div>
+        <a href="../chart-of-accounts.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open COA</a>
+      </div>
+
+      <p class="section-p">
+        <strong>What it does:</strong> Maintains the complete master list of all GL accounts organized into Assets, Liabilities, Equity, Revenue, and Expenses. Allows adding custom accounts and configuring multi-dimensional tracking tags.
+      </p>
+
+      <table class="je-table">
+        <thead>
+          <tr>
+            <th>Range</th>
+            <th>Group</th>
+            <th>Key Accounts</th>
+            <th>Purpose in Insurance</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>1000s</strong></td>
+            <td>Assets</td>
+            <td>1001 Cash Operating, 1020 Premium Trust, 1100 Premium AR</td>
+            <td>Fiduciary funds, operating liquidity, uncollected policyholder premiums.</td>
+          </tr>
+          <tr>
+            <td><strong>2000s</strong></td>
+            <td>Liabilities</td>
+            <td>2100 Unearned Premium, 2150 Comm Payable, 2200 Carrier Settlement Payable, 2300 Surplus Taxes</td>
+            <td>Unexpired policy reserves, money owed to brokers, carriers, and state tax boards.</td>
+          </tr>
+          <tr>
+            <td><strong>3000s</strong></td>
+            <td>Equity</td>
+            <td>3001 Retained Earnings, 3100 Member Capital</td>
+            <td>Cumulative net income retained within the entity.</td>
+          </tr>
+          <tr>
+            <td><strong>4000s</strong></td>
+            <td>Revenue</td>
+            <td>4100 Gross Written Premium, 4800 Interest Income</td>
+            <td>Earned insurance premiums and investment income.</td>
+          </tr>
+          <tr>
+            <td><strong>5000s-6000s</strong></td>
+            <td>Expenses</td>
+            <td>5000 Incurred Losses, 5800 LAE, 6100 Broker Comm Exp, 6101 MGA Override Exp</td>
+            <td>Claims payouts, legal defense costs, producer acquisition expenses.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Journal Entry -->
+    <div class="module-card" id="journal-entry">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-purple">Double-Entry</span>
+            <span class="badge badge-green">Audit Trail</span>
+          </div>
+          <h2 class="module-title">2. Journal Entry Hub (`journal-entry.html` &amp; `manual-entry.html`)</h2>
+        </div>
+        <a href="../journal-entry.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Journal Entries</a>
+      </div>
+
+      <p class="section-p">
+        <strong>What it does:</strong> Allows accountants to record, review, submit, and approve multi-line journal entries. The system prevents out-of-balance entries from ever posting.
+      </p>
+
+      <div class="callout callout-info">
+        <i class="fa-solid fa-tags"></i>
+        <div>
+          <strong>Multi-Dimension Scoping:</strong> Every journal line can be tagged with dimensions: `Broker` (e.g. HIT Agency), `MGA` (NTA), `Carrier` (SOUTHLAKE), `State` (TX), and `Line of Business` (Commercial Trucking). This enables instant filtering on financial statements!
+        </div>
+      </div>
+    </div>
+
+    <!-- Financial Statements -->
+    <div class="module-card" id="financial-statements">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-teal">Reporting</span>
+            <span class="badge badge-amber">Statements</span>
+          </div>
+          <h2 class="module-title">3. Financial Statements (`financial-statements.html`)</h2>
+        </div>
+        <a href="../financial-statements.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Financial Statements</a>
+      </div>
+
+      <p class="section-p">
+        <strong>What it does:</strong> Automatically generates the 4 core financial accounting reports calculated live from the General Ledger:
+      </p>
+
+      <div class="grid-2">
+        <div class="info-card">
+          <h4>1. Trial Balance</h4>
+          <p>Verifies that all debits equal credits across all accounts in the ledger for any selected period.</p>
+        </div>
+        <div class="info-card">
+          <h4>2. Balance Sheet</h4>
+          <p>Assets = Liabilities + Equity. Displays cash in trust, unearned reserves, and net working capital.</p>
+        </div>
+        <div class="info-card">
+          <h4>3. Income Statement (P&amp;L)</h4>
+          <p>Earned Premium Revenue minus Incurred Claims Losses, Commission Acquisition Costs, and Operating Overheads.</p>
+        </div>
+        <div class="info-card">
+          <h4>4. Cash Flow Statement</h4>
+          <p>Operating cash flows from premium collections, payments to carriers, and financing activities.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Period Locking -->
+    <div class="module-card" id="period-locking">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-red">Internal Controls</span>
+            <span class="badge badge-purple">Month-End Close</span>
+          </div>
+          <h2 class="module-title">4. Period Close &amp; Locking (`period-locking.html`)</h2>
+        </div>
+        <a href="../period-locking.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Period Close</a>
+      </div>
+
+      <p class="section-p">
+        <strong>What it does:</strong> Locks closed accounting periods (e.g. Q1, Q2, Year-End) to prevent back-dated journal entries from altering previously filed financial statements and tax filings.
+      </p>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="dashboards.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">Platform &amp; Dashboards</span>
+      </a>
+      <a href="accounts-receivable.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Module &rarr;</span>
+        <span class="nav-page-title">Accounts Receivable (AR)</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('general-ledger');
+</script>
+</body>
+</html>

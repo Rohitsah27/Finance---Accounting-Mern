@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Bank Reconciliation & Cash Management — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Bank &amp; Cash Management</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Bank Reconciliation</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-building-columns" style="color: var(--teal);"></i> Bank Reconciliation &amp; Cash Management</h1>
+      <p>
+        Bank Reconciliation ensures that every dollar in the bank statement corresponds to an authorized journal entry in the General Ledger. It automates 1-to-1 and 1-to-many transaction matching, flags unpresented checks, and routes exceptions to approval queues.
+      </p>
+    </div>
+
+    <!-- Bank Accounts -->
+    <div class="module-card" id="bank-accounts">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-teal">Treasury</span>
+            <span class="badge badge-blue">Account Map</span>
+          </div>
+          <h2 class="module-title">1. Operating vs. Premium Trust Accounts</h2>
+        </div>
+        <a href="../bank-reconciliation.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Bank Recon</a>
+      </div>
+
+      <p class="section-p">
+        Insurance regulations strictly require separating fiduciary policyholder cash from company operating cash:
+      </p>
+
+      <div class="grid-2">
+        <div class="info-card">
+          <h4>100101 · Operating Account (Chase `****4821`)</h4>
+          <p>Used for corporate payroll, software licenses, office rent, and earned commission revenues. Mapped to <strong>Account 1001</strong>.</p>
+        </div>
+        <div class="info-card">
+          <h4>100102 · Premium Trust Account (Wells Fargo `****5502`)</h4>
+          <p>Fiduciary trust holding unremitted policy premiums and carrier settlements. Mapped to <strong>Account 1020</strong>.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Auto Match Engine -->
+    <div class="module-card" id="auto-matching">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-green">Auto-Match</span>
+            <span class="badge badge-purple">Recon Engine</span>
+          </div>
+          <h2 class="module-title">2. Automated Transaction Matching Engine</h2>
+        </div>
+      </div>
+
+      <p class="section-p">
+        <strong>How it works:</strong> When a bank statement is synced, the engine compares:
+      </p>
+      <ul style="margin-left: 20px; font-size: 13px; color: var(--text-secondary); line-height: 1.8;">
+        <li><strong>Exact Amount &amp; Date Range:</strong> Matches within &plusmn;3 days window.</li>
+        <li><strong>Reference &amp; Check Number:</strong> Correlates check serialize numbers (`10482`, `10483`).</li>
+        <li><strong>Multi-Transaction Split Matching:</strong> Matches a single bulk wire against multiple policyholder invoices.</li>
+      </ul>
+    </div>
+
+    <!-- Reconciliation Approvals -->
+    <div class="module-card" id="recon-approvals">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-amber">Approvals</span>
+            <span class="badge badge-purple">Audit Gate</span>
+          </div>
+          <h2 class="module-title">3. Reconciliation Approvals Queue (`#approvals`)</h2>
+        </div>
+        <a href="../bank-reconciliation.html#approvals" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Approvals Tab</a>
+      </div>
+
+      <p class="section-p">
+        High-value withdrawals (e.g. SOUTHLAKE Net Settlement $32,257.00) require secondary sign-off before being formally posted and marked as reconciled.
+      </p>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="accounts-payable.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">Accounts Payable (AP)</span>
+      </a>
+      <a href="payroll.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Module &rarr;</span>
+        <span class="nav-page-title">Payroll &amp; Employee Ledgers</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('bank-reconciliation');
+</script>
+</body>
+</html>

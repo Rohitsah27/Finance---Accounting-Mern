@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Workspace — Dashboard | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/layout.js"></script>
+  <style>
+    .adm-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;}
+    @media(max-width:900px){.adm-stats{grid-template-columns:1fr 1fr;}}
+    .mod-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:10px;}
+    .mod-card{background:#fff;border:1px solid var(--gray-200);border-radius:9px;padding:11px 13px;display:flex;align-items:center;gap:10px;}
+    .mod-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+    .mod-dot.on{background:var(--green);}
+    .mod-dot.off{background:var(--gray-300);}
+    .mod-label{font-size:12px;font-weight:600;color:var(--gray-900);}
+    .mod-group{font-size:9.5px;color:var(--gray-400);text-transform:uppercase;letter-spacing:.3px;}
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px;}
+    @media(max-width:1000px){.two-col{grid-template-columns:1fr;}}
+    .webhook-row{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;border-bottom:1px solid var(--gray-100);font-size:12.5px;}
+    .webhook-row:last-child{border-bottom:none;}
+    .quick-links{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px;}
+  </style>
+</head>
+<body>
+<main class="main-content" id="main-content">
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">System Administration Dashboard</div>
+      <div class="page-subtitle" id="dash-subtitle">Tenant configuration &amp; system health</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline btn-sm" onclick="refreshDash()">Refresh</button>
+      <button class="btn btn-primary btn-sm" onclick="window.location.href='admin-config-center.html'">Configuration Centre</button>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <span class="filter-bar-label">Module Group</span>
+    <select class="filter-select" id="sel-group" onchange="setFilter('group',this.value)">
+      <option value="all">All Groups</option>
+    </select>
+    <span class="filter-bar-label">Status</span>
+    <select class="filter-select" id="sel-status" onchange="setFilter('status',this.value)">
+      <option value="all">Enabled + Disabled</option>
+      <option value="on">Enabled Only</option>
+      <option value="off">Disabled Only</option>
+    </select>
+    <div class="filter-spacer"></div>
+    <input type="text" class="filter-input" placeholder="Search modules…" style="width:200px;" oninput="setSearch(this.value)">
+    <button class="btn btn-outline btn-sm" onclick="resetFilters()">Clear Filters</button>
+  </div>
+
+  <div class="adm-stats" id="stat-row"></div>
+
+  <div class="table-wrap" style="padding:16px 18px;margin-bottom:18px;">
+    <div class="table-head-title" style="margin-bottom:12px;">Module Catalogue Health <span id="mod-count" style="font-weight:400;color:var(--gray-400);font-size:11px;"></span></div>
+    <div class="mod-grid" id="mod-grid"></div>
+  </div>
+
+  <div class="two-col">
+    <div class="table-wrap">
+      <div class="table-head-row"><div class="table-head-title">Integration &amp; Webhook Health</div></div>
+      <div id="webhook-panel"></div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-head-row"><div class="table-head-title">Users &amp; Roles Summary</div></div>
+      <table class="data-table">
+        <thead><tr><th>Role</th><th>Active Users</th></tr></thead>
+        <tbody id="roles-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="table-wrap" style="margin-top:18px;">
+    <div class="table-head-row"><div class="table-head-title">Configuration Change Log</div></div>
+    <table class="data-table">
+      <thead><tr><th>Version</th><th>Change</th><th>By</th><th>When</th></tr></thead>
+      <tbody id="changelog-tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="quick-links">
+    <button class="btn btn-outline btn-sm" onclick="window.location.href='admin-config-center.html'">Admin Configuration Centre</button>
+    <button class="btn btn-outline btn-sm" onclick="window.location.href='setup-wizard.html'">Setup Wizard</button>
+    <button class="btn btn-outline btn-sm" onclick="window.location.href='user-management.html'">User Management</button>
+  </div>
+
+</main>
+
+<script src="js/app.js"></script>
+<script>
+const CFG = getTenantConfig();
+const ACTIVE_ENTITY = getActiveEntity();
+document.getElementById('dash-subtitle').textContent =
+  'Tenant configuration & system health · ' + ACTIVE_ENTITY.name + ' (v' + CFG.configVersion + ')';
+
+/* Populate module group filter from MODULE_CATALOG */
+(function(){
+  const groups = [...new Set(MODULE_CATALOG.map(m=>m.group))];
+  const sel = document.getElementById('sel-group');
+  groups.forEach(g => { const opt=document.createElement('option'); opt.value=g; opt.textContent=g; sel.appendChild(opt); });
+})();
+
+/* ═══════════════════ MOCK SUPPORT DATA ═══════════════════ */
+const ROLE_USER_COUNTS = { owner:1, cfo:1, controller:2, accountant:5, 'ap-ar-clerk':3, 'payroll-admin':1, auditor:2, admin:2, 'agency-principal':1, 'mga-ops':1, 'carrier-controller':1, 'reinsurance-analyst':1 };
+const WEBHOOKS = [
+  { name:'Bank Feed - Plaid', status:'healthy' },
+  { name:'GL Sync - Data Warehouse', status:'healthy' },
+  { name:'E-Signature Provider', status:'healthy' },
+];
+const CHANGELOG = [
+  { v:CFG.configVersion, change:'Enabled Insurance Extension module for carrier entity', by:'Jordan Blake', when:'2 days ago' },
+  { v:CFG.configVersion-1, change:'Added dimension: Product/SKU Line', by:'Jordan Blake', when:'9 days ago' },
+  { v:CFG.configVersion-2, change:'Switched active entity to Southlake Insurance Co.', by:'M. Alvarez', when:'16 days ago' },
+  { v:CFG.configVersion-3, change:'Updated Chart of Accounts template to Insurance Carrier (GAAP + Stat)', by:'Jordan Blake', when:'23 days ago' },
+];
+
+/* ═══════════════════ FILTER STATE ═══════════════════ */
+const F = { group:'all', status:'all', search:'' };
+
+function filteredModules() {
+  return MODULE_CATALOG.filter(m => {
+    const enabled = isModuleEnabled(m.id);
+    if (F.group !== 'all' && m.group !== F.group) return false;
+    if (F.status === 'on' && !enabled) return false;
+    if (F.status === 'off' && enabled) return false;
+    if (F.search && !(m.label+m.group).toLowerCase().includes(F.search)) return false;
+    return true;
+  });
+}
+
+/* ═══════════════════ STATS ═══════════════════ */
+function renderStats() {
+  const total = MODULE_CATALOG.length;
+  const enabledCount = MODULE_CATALOG.filter(m=>isModuleEnabled(m.id)).length;
+  const totalUsers = Object.values(ROLE_USER_COUNTS).reduce((a,b)=>a+b,0);
+  const healthy = WEBHOOKS.filter(w=>w.status==='healthy').length;
+  const stats = [
+    { label:'Modules Enabled', val:enabledCount+' / '+total, sub:Math.round(enabledCount/total*100)+'% of catalogue', icon:'🧩' },
+    { label:'Active Users', val:totalUsers, sub:Object.keys(ROLE_USER_COUNTS).length+' distinct roles', icon:'👤' },
+    { label:'Webhook Health', val:healthy+' / '+WEBHOOKS.length, sub:'All integrations checked hourly', icon:'🔌' },
+    { label:'Config Version', val:'v'+CFG.configVersion, sub:CFG.configStatus+' · readiness '+CFG.readinessScore+'%', icon:'⚙️' },
+  ];
+  document.getElementById('stat-row').innerHTML = stats.map(s => `
+    <div class="stat-card">
+      <div class="stat-icon si-navy" style="font-size:18px;">${s.icon}</div>
+      <div class="stat-info">
+        <div class="stat-value">${s.val}</div>
+        <div class="stat-label">${s.label}</div>
+        <div class="stat-change" style="color:var(--gray-400);">${s.sub}</div>
+      </div>
+    </div>`).join('');
+}
+
+/* ═══════════════════ MODULE GRID ═══════════════════ */
+function renderModules() {
+  const list = filteredModules();
+  document.getElementById('mod-count').textContent = '(' + list.length + ' of ' + MODULE_CATALOG.length + ' shown)';
+  document.getElementById('mod-grid').innerHTML = list.length ? list.map(m => {
+    const on = isModuleEnabled(m.id);
+    return `<div class="mod-card">
+      <div class="mod-dot ${on?'on':'off'}"></div>
+      <div>
+        <div class="mod-label">${m.no}. ${m.label}</div>
+        <div class="mod-group">${m.group}</div>
+      </div>
+    </div>`;
+  }).join('') : '<div style="padding:18px;color:var(--gray-400);">No modules match current filters</div>';
+}
+
+/* ═══════════════════ WEBHOOKS ═══════════════════ */
+function renderWebhooks() {
+  document.getElementById('webhook-panel').innerHTML = WEBHOOKS.map(w => `
+    <div class="webhook-row">
+      <span>${w.name}</span>
+      <span class="badge ${w.status==='healthy'?'badge-green':'badge-red'}">${w.status==='healthy'?'Healthy':'Down'}</span>
+    </div>`).join('') + `<div class="webhook-row" style="border-top:2px solid var(--gray-200);font-weight:700;">
+      <span>Overall Status</span><span class="badge badge-green">${WEBHOOKS.length} of ${WEBHOOKS.length} Healthy</span></div>`;
+}
+
+/* ═══════════════════ ROLES SUMMARY ═══════════════════ */
+function renderRoles() {
+  document.getElementById('roles-tbody').innerHTML = Object.entries(ROLE_USER_COUNTS).map(([id,count]) => `
+    <tr><td>${getRoleLabel(id)}</td><td>${count}</td></tr>`).join('');
+}
+
+/* ═══════════════════ CHANGE LOG ═══════════════════ */
+function renderChangelog() {
+  document.getElementById('changelog-tbody').innerHTML = CHANGELOG.map(c => `
+    <tr><td><span class="badge badge-navy">v${c.v}</span></td><td>${c.change}</td><td>${c.by}</td><td>${c.when}</td></tr>`).join('');
+}
+
+/* ═══════════════════ FILTER CONTROLS ═══════════════════ */
+function setFilter(key, val) { F[key] = val; renderModules(); }
+function setSearch(v) { F.search = v.toLowerCase(); renderModules(); }
+function resetFilters() {
+  F.group='all'; F.status='all'; F.search='';
+  document.getElementById('sel-group').value='all';
+  document.getElementById('sel-status').value='all';
+  renderModules();
+  showToast('Filters cleared','info');
+}
+
+function refreshDash() {
+  const t = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('dash-subtitle').textContent = 'Tenant configuration & system health · ' + ACTIVE_ENTITY.name + ' · Updated ' + t;
+  showToast('Dashboard refreshed','success');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderStats(); renderModules(); renderWebhooks(); renderRoles(); renderChangelog();
+});
+</script>
+<script>
+  initLayout('dashboard');
+</script>
+</body>
+</html>

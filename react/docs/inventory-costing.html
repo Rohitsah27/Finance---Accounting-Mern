@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Inventory & Costing — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Inventory &amp; Costing</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Inventory &amp; Manufacturing</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-warehouse" style="color: var(--teal);"></i> Inventory &amp; Costing <span class="file-tag">inventory-costing.html</span></h1>
+      <p>
+        Tracks physical stock, bills of materials (BOM), cost of goods sold (COGS), inventory valuation methods (FIFO / Weighted Average), and stock adjustments for enterprise holding groups.
+      </p>
+    </div>
+
+    <div class="module-card">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-teal">Stock Valuation</span>
+            <span class="badge badge-blue">COGS Engine</span>
+          </div>
+          <h2 class="module-title">Inventory Controls</h2>
+        </div>
+        <a href="../inventory-costing.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Inventory</a>
+      </div>
+
+      <div class="grid-2">
+        <div class="info-card">
+          <h4>Valuation Models</h4>
+          <p>Supports First-In First-Out (FIFO) and Weighted Average Costing (WAC) with automated GL inventory asset adjustments (`Account 1200`).</p>
+        </div>
+        <div class="info-card">
+          <h4>Stock Write-Offs &amp; Counts</h4>
+          <p>Records physical count adjustments, shrinkage, and obsolete stock impairment expenses (`Account 5200`).</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="payroll-employees.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">Payroll &amp; Employees</span>
+      </a>
+      <a href="fixed-assets.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Submodule &rarr;</span>
+        <span class="nav-page-title">Fixed Assets</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('inventory-costing');
+</script>
+</body>
+</html>

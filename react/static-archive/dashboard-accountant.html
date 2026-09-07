@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accountant Workspace — Dashboard | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/layout.js"></script>
+  <style>
+    .qa-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;}
+    @media(max-width:1000px){.qa-row{grid-template-columns:1fr 1fr;}}
+    .qa-card{background:#fff;border:1px solid var(--gray-200);border-radius:10px;box-shadow:var(--shadow-sm);padding:16px;cursor:pointer;transition:box-shadow .15s,transform .1s;}
+    .qa-card:hover{box-shadow:var(--shadow);transform:translateY(-2px);}
+    .qa-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;margin-bottom:10px;}
+    .qa-title{font-size:13px;font-weight:700;color:var(--gray-900);}
+    .qa-sub{font-size:11px;color:var(--gray-500);margin-top:2px;}
+
+    .task-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--gray-100);}
+    .task-row:last-child{border-bottom:none;}
+    .task-check{width:16px;height:16px;accent-color:var(--navy);cursor:pointer;}
+    .task-body{flex:1;min-width:0;}
+    .task-title{font-size:12.5px;font-weight:600;color:var(--gray-900);}
+    .task-title.done{text-decoration:line-through;color:var(--gray-400);}
+    .task-meta{font-size:11px;color:var(--gray-500);margin-top:1px;}
+
+    .two-col{display:grid;grid-template-columns:1.3fr 1fr;gap:14px;margin-top:18px;}
+    @media(max-width:1000px){.two-col{grid-template-columns:1fr;}}
+    .box{background:#fff;border:1px solid var(--gray-200);border-radius:10px;box-shadow:var(--shadow-sm);}
+    .box-hdr{padding:14px 18px;border-bottom:1px solid var(--gray-200);font-size:14px;font-weight:700;color:var(--gray-900);display:flex;justify-content:space-between;align-items:center;}
+  </style>
+</head>
+<body>
+<main class="main-content" id="main-content">
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">Accountant Dashboard</div>
+      <div class="page-subtitle" id="dash-subtitle">Day-to-day operational workspace</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline btn-sm" onclick="refreshDash()">Refresh</button>
+    </div>
+  </div>
+
+  <div class="qa-row">
+    <div class="qa-card" onclick="window.location.href='journal-entry.html'">
+      <div class="qa-icon" style="background:rgba(13,27,75,.08);color:var(--navy);">📝</div>
+      <div class="qa-title">New Journal Entry</div>
+      <div class="qa-sub">Post a manual GL entry</div>
+    </div>
+    <div class="qa-card" onclick="window.location.href='accounts-payable.html'">
+      <div class="qa-icon" style="background:var(--red-bg);color:var(--red);">💳</div>
+      <div class="qa-title">Enter a Bill (AP)</div>
+      <div class="qa-sub">Code and schedule for payment</div>
+    </div>
+    <div class="qa-card" onclick="window.location.href='accounts-receivable.html'">
+      <div class="qa-icon" style="background:var(--green-bg);color:var(--green);">🧾</div>
+      <div class="qa-title">Create Invoice (AR)</div>
+      <div class="qa-sub">Bill a customer</div>
+    </div>
+    <div class="qa-card" onclick="window.location.href='bank-reconciliation.html'">
+      <div class="qa-icon" style="background:var(--blue-bg);color:var(--blue);">🏦</div>
+      <div class="qa-title">Reconcile Bank</div>
+      <div class="qa-sub">Match transactions to GL</div>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <span class="filter-bar-label">Task Type</span>
+    <select class="filter-select" id="sel-type" onchange="setFilter('type',this.value)">
+      <option value="all">All Tasks</option>
+      <option value="je">JE Approvals</option>
+      <option value="ap">Bills to Pay</option>
+      <option value="ar">Invoices to Code</option>
+    </select>
+    <span class="filter-bar-label">Priority</span>
+    <select class="filter-select" id="sel-priority" onchange="setFilter('priority',this.value)">
+      <option value="all">Any Priority</option>
+      <option value="high">High</option>
+      <option value="normal">Normal</option>
+    </select>
+    <div class="filter-spacer"></div>
+    <input type="text" class="filter-input" placeholder="Search my tasks…" style="width:200px;" oninput="setSearch(this.value)">
+    <button class="btn btn-outline btn-sm" onclick="resetFilters()">Clear Filters</button>
+  </div>
+
+  <div class="two-col">
+    <div class="box">
+      <div class="box-hdr">My Open Tasks <span class="badge badge-orange" id="task-count-badge"></span></div>
+      <div id="task-list"></div>
+    </div>
+    <div class="box">
+      <div class="box-hdr">Recently Posted Activity</div>
+      <div id="activity-feed"></div>
+    </div>
+  </div>
+
+</main>
+
+<script src="js/app.js"></script>
+<script>
+const CFG = getTenantConfig();
+const ACTIVE_ENTITY = getActiveEntity();
+document.getElementById('dash-subtitle').textContent = 'Day-to-day operational workspace · ' + ACTIVE_ENTITY.name;
+
+/* ═══════════════════ SEED DATA ═══════════════════ */
+const IS_DEMO = true;
+const TASKS = IS_DEMO ? [
+  { id:'T-1', type:'je', priority:'high',   title:'Approve JE-2026-0301 - Accrued commission expense', meta:'$184,250 · Prepared by M. Alvarez', done:false },
+  { id:'T-2', type:'ap', priority:'high',   title:'Code bill from Turbine Parts Supply Co.',            meta:'$22,480 · Due in 3 days', done:false },
+  { id:'T-3', type:'ar', priority:'normal', title:'Code incoming payment - AC Retail Stores #4471',      meta:'$9,120 · Unapplied cash', done:false },
+  { id:'T-4', type:'je', priority:'normal', title:'Review JE-2026-0303 - Volume rebate accrual',         meta:'$41,200 · Prepared by R. Osei', done:false },
+  { id:'T-5', type:'ap', priority:'normal', title:'Pay bill - Freight & Logistics Partners',              meta:'$6,750 · Due today', done:false },
+  { id:'T-6', type:'ar', priority:'high',   title:'Code invoice dispute - Southlake 3rd Party Partners',  meta:'$3,400 · Flagged by customer', done:false },
+] : [];
+
+const ACTIVITY = IS_DEMO ? [
+  { icon:'📝', text:'JE-2026-0298 posted by J. Fontaine - Prepaid insurance amortization', time:'12 min ago' },
+  { icon:'💳', text:'Bill payment issued - Turbine Parts Supply Co. ($18,200)', time:'41 min ago' },
+  { icon:'🧾', text:'Invoice #INV-5521 sent - AC Wholesale Distribution', time:'1h ago' },
+  { icon:'🏦', text:'Bank reconciliation completed - Operating Chase 4021', time:'2h ago' },
+  { icon:'📝', text:'JE-2026-0296 posted by M. Alvarez - Payroll accrual reversal', time:'3h ago' },
+  { icon:'💳', text:'ACH payment batch approved - 4 vendors, $54,120 total', time:'5h ago' },
+] : [];
+
+/* ═══════════════════ FILTER STATE ═══════════════════ */
+const F = { type:'all', priority:'all', search:'' };
+let TASK_STATE = TASKS.map(t => ({...t}));
+
+function filteredTasks() {
+  return TASK_STATE.filter(t => {
+    if (F.type !== 'all' && t.type !== F.type) return false;
+    if (F.priority !== 'all' && t.priority !== F.priority) return false;
+    if (F.search && !t.title.toLowerCase().includes(F.search)) return false;
+    return true;
+  });
+}
+
+function renderTasks() {
+  const list = filteredTasks();
+  const open = TASK_STATE.filter(t=>!t.done).length;
+  document.getElementById('task-count-badge').textContent = open + ' open';
+  document.getElementById('task-list').innerHTML = list.length ? list.map(t => `
+    <div class="task-row">
+      <input type="checkbox" class="task-check" ${t.done?'checked':''} onchange="toggleTask('${t.id}')">
+      <div class="task-body">
+        <div class="task-title ${t.done?'done':''}">${t.title}</div>
+        <div class="task-meta">${t.meta}</div>
+      </div>
+      <span class="badge ${t.priority==='high'?'badge-red':'badge-gray'}">${t.priority==='high'?'High':'Normal'}</span>
+    </div>`).join('') : '<div style="padding:24px;text-align:center;color:var(--gray-400);">No tasks match current filters</div>';
+}
+
+function toggleTask(id) {
+  const t = TASK_STATE.find(x=>x.id===id);
+  if (!t) return;
+  t.done = !t.done;
+  renderTasks();
+  showToast(t.done ? 'Task marked complete' : 'Task reopened', t.done ? 'success' : 'info');
+}
+
+function renderActivity() {
+  document.getElementById('activity-feed').innerHTML = ACTIVITY.map(a => `
+    <div class="audit-log-row">
+      <div class="audit-log-icon">${a.icon}</div>
+      <div class="audit-log-content">
+        <div class="audit-log-title">${a.text}</div>
+        <div class="audit-log-meta">${a.time}</div>
+      </div>
+    </div>`).join('');
+}
+
+/* ═══════════════════ FILTER CONTROLS ═══════════════════ */
+function setFilter(key, val) { F[key] = val; renderTasks(); }
+function setSearch(v) { F.search = v.toLowerCase(); renderTasks(); }
+function resetFilters() {
+  F.type='all'; F.priority='all'; F.search='';
+  document.getElementById('sel-type').value='all';
+  document.getElementById('sel-priority').value='all';
+  renderTasks();
+  showToast('Filters cleared','info');
+}
+
+function refreshDash() {
+  const t = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('dash-subtitle').textContent = 'Day-to-day operational workspace · ' + ACTIVE_ENTITY.name + ' · Updated ' + t;
+  showToast('Dashboard refreshed','success');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderTasks();
+  renderActivity();
+});
+</script>
+<script>
+  initLayout('dashboard');
+</script>
+</body>
+</html>

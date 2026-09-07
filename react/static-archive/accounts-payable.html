@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accounts Payable — AP Hub | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/layout.js"></script>
+  <script src="js/gl-engine.js"></script>
+  <style>
+    .sub-tabbar{display:flex;gap:2px;background:var(--gray-100);border-radius:7px;padding:3px;margin-bottom:18px;width:fit-content;}
+    .sub-tab{padding:6px 16px;font-size:12px;font-weight:600;border-radius:5px;cursor:pointer;color:var(--gray-500);border:none;background:transparent;transition:all .15s;}
+    .sub-tab.active{background:#fff;color:var(--navy);box-shadow:0 1px 4px rgba(0,0,0,.1);}
+    .form-strip{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-bottom:18px;padding:14px;background:#f8f9fb;border:1.5px solid var(--border);border-radius:8px;}
+    .form-field{display:flex;flex-direction:column;gap:4px;}
+    .form-label{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);}
+    .form-ctrl{padding:7px 10px;font-size:13px;border:1.5px solid var(--border);border-radius:6px;background:#fff;color:var(--gray-800);outline:none;min-width:160px;}
+    .form-ctrl:focus{border-color:var(--navy);}
+    .form-ctrl-sm{min-width:110px;}
+    .kpi-strip-6{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:20px;}
+    @media(max-width:1200px){.kpi-strip-6{grid-template-columns:repeat(3,1fr);}}
+    @media(max-width:700px){.kpi-strip-6{grid-template-columns:repeat(2,1fr);}}
+    .kpi-tile{background:#fff;border:1.5px solid var(--border);border-radius:9px;padding:14px 16px;}
+    .kpi-tile-lbl{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);}
+    .kpi-tile-val{font-size:22px;font-weight:800;color:var(--navy);margin:4px 0 2px;}
+    .kpi-tile-sub{font-size:11px;color:var(--gray-400);}
+    .kpi-tile-sub.up{color:#2e7d32;} .kpi-tile-sub.warn{color:#e65100;}
+    .pipeline{display:flex;align-items:stretch;gap:0;margin-bottom:20px;border:1.5px solid var(--border);border-radius:9px;overflow:hidden;}
+    .pipe-step{flex:1;padding:14px 12px;text-align:center;position:relative;background:#fff;}
+    .pipe-step+.pipe-step::before{content:'›';position:absolute;left:-10px;top:50%;transform:translateY(-50%);font-size:20px;color:var(--gray-300);font-weight:700;}
+    .pipe-step-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);margin-bottom:6px;}
+    .pipe-step-val{font-size:18px;font-weight:800;color:var(--navy);}
+    .pipe-step-amt{font-size:11px;color:var(--gray-400);margin-top:2px;}
+    .pipe-step.active-pipe{background:#f0f4ff;}
+    .pipe-step.done-pipe{background:#f0faf3;}
+    .pipe-step.warn-pipe{background:#fff8f0;}
+    .tbl-wrap{background:#ffffff;border:1.5px solid var(--border);border-radius:9px;overflow:hidden;}
+    .tbl-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f8f9fb;border-bottom:1.5px solid var(--border);}
+    .tbl-hdr-title{font-size:13px;font-weight:700;color:var(--navy);}
+    .tbl-wrap table{width:100%;border-collapse:collapse;}
+    .tbl-wrap th{background:#f8f9fb;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-500);padding:8px 12px;border-bottom:1.5px solid var(--border);white-space:nowrap;}
+    .tbl-wrap td{font-size:12.5px;color:var(--gray-700);padding:9px 12px;border-bottom:1px solid var(--gray-100);vertical-align:middle;}
+    .tbl-wrap tr:last-child td{border-bottom:none;}
+    .tbl-wrap tr:hover td{background:#fafbff;}
+    .chip{display:inline-block;font-size:10px;font-weight:700;border-radius:4px;padding:2px 8px;text-transform:uppercase;}
+    .chip-green{background:#e8f5e9;color:#2e7d32;}
+    .chip-blue{background:#e3f2fd;color:#1565c0;}
+    .chip-orange{background:#fff3e0;color:#e65100;}
+    .chip-red{background:#ffebee;color:#c62828;}
+    .chip-purple{background:#f3e5f5;color:#6a1b9a;}
+    .donut-wrap{background:#fff;border:1.5px solid var(--border);border-radius:9px;padding:16px;}
+    .donut-leg-row{display:flex;align-items:center;gap:8px;font-size:12px;margin-bottom:7px;}
+    .donut-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+  </style>
+</head>
+<body>
+<main class="main-content" id="main-content">
+
+  <div class="page-header" style="margin-bottom:16px;">
+    <div>
+      <div class="page-title">Accounts Payable</div>
+      <div class="page-subtitle">Veridex Finance System · Period: May 2026</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline btn-sm" id="ap-toggle-analytics-btn" onclick="toggleApAnalytics()">Show Analytics</button>
+      <button class="btn btn-outline btn-sm" onclick="exportTableCSV('ap-inv-table','ap-invoices.csv')">Export</button>
+      <button class="btn btn-primary btn-sm" onclick="addNewAPInvoice()">+ New Invoice</button>
+    </div>
+  </div>
+
+  <div id="ap-analytics-section" style="display:none;margin-top:16px;">
+  <!-- KPI Strip -->
+  <div class="kpi-strip-6">
+    <div class="kpi-tile" style="border-top:3px solid #0d1b4b;">
+      <div class="kpi-tile-lbl">AP Outstanding</div>
+      <div class="kpi-tile-val" style="font-size:18px;">$842,100</div>
+      <div class="kpi-tile-sub">38 open invoices</div>
+    </div>
+    <div class="kpi-tile" style="border-top:3px solid #e65100;">
+      <div class="kpi-tile-lbl">Pending Approval</div>
+      <div class="kpi-tile-val" style="font-size:18px;color:#e65100;">$214,300</div>
+      <div class="kpi-tile-sub warn">12 · 5 overdue SLA</div>
+    </div>
+    <div class="kpi-tile" style="border-top:3px solid #c62828;">
+      <div class="kpi-tile-lbl">Due This Week</div>
+      <div class="kpi-tile-val" style="font-size:18px;color:#c62828;">$98,400</div>
+      <div class="kpi-tile-sub warn">5 invoices</div>
+    </div>
+    <div class="kpi-tile" style="border-top:3px solid #2e7d32;">
+      <div class="kpi-tile-lbl">Paid MTD</div>
+      <div class="kpi-tile-val" style="font-size:18px;color:#2e7d32;">$529,600</div>
+      <div class="kpi-tile-sub up">↑ 11.2% vs prior</div>
+    </div>
+    <div class="kpi-tile" style="border-top:3px solid #6a1b9a;">
+      <div class="kpi-tile-lbl">On Hold</div>
+      <div class="kpi-tile-val" style="font-size:18px;color:#6a1b9a;">3</div>
+      <div class="kpi-tile-sub">Missing W9 / docs</div>
+    </div>
+    <div class="kpi-tile" style="border-top:3px solid #1565c0;">
+      <div class="kpi-tile-lbl">Avg Pay Cycle</div>
+      <div class="kpi-tile-val" style="font-size:18px;">22 days</div>
+      <div class="kpi-tile-sub up">↓ 3 days vs prior</div>
+    </div>
+  </div>
+
+  <!-- Payment Lifecycle Pipeline -->
+  <div style="font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">Payment Lifecycle Pipeline</div>
+  <div class="pipeline">
+    <div class="pipe-step warn-pipe">
+      <div class="pipe-step-lbl">Pending Approval</div>
+      <div class="pipe-step-val">12</div>
+      <div class="pipe-step-amt">$214,300</div>
+    </div>
+    <div class="pipe-step active-pipe">
+      <div class="pipe-step-lbl">Approved</div>
+      <div class="pipe-step-val">9</div>
+      <div class="pipe-step-amt">$182,800</div>
+    </div>
+    <div class="pipe-step active-pipe">
+      <div class="pipe-step-lbl">Scheduled</div>
+      <div class="pipe-step-val">7</div>
+      <div class="pipe-step-amt">$156,400</div>
+    </div>
+    <div class="pipe-step done-pipe">
+      <div class="pipe-step-lbl">Paid</div>
+      <div class="pipe-step-val">284</div>
+      <div class="pipe-step-amt">$4.2M YTD</div>
+    </div>
+    <div class="pipe-step done-pipe">
+      <div class="pipe-step-lbl">Cleared</div>
+      <div class="pipe-step-val">281</div>
+      <div class="pipe-step-amt">$4.17M YTD</div>
+    </div>
+  </div>
+
+  <!-- AP Charts Row -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;">
+
+    <!-- Monthly Payment Trend -->
+    <div style="background:#fff;border:1.5px solid var(--border);border-radius:9px;padding:16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="font-size:12px;font-weight:700;color:var(--navy);">Monthly Payments - 2026</div>
+        <div style="font-size:10.5px;color:var(--gray-400);">Jan – May</div>
+      </div>
+      <svg viewBox="0 0 380 110" width="100%" height="110" style="overflow:visible;">
+        <!-- grid lines -->
+        <line x1="36" y1="10" x2="36" y2="86" stroke="#e5e7eb" stroke-width="1"/>
+        <line x1="36" y1="10" x2="368" y2="10" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="4,3"/>
+        <line x1="36" y1="34" x2="368" y2="34" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="4,3"/>
+        <line x1="36" y1="58" x2="368" y2="58" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="4,3"/>
+        <line x1="36" y1="86" x2="368" y2="86" stroke="#e5e7eb" stroke-width="1"/>
+        <!-- y labels -->
+        <text x="30" y="14" text-anchor="end" font-size="9" fill="#9ca3af">600K</text>
+        <text x="30" y="38" text-anchor="end" font-size="9" fill="#9ca3af">400K</text>
+        <text x="30" y="62" text-anchor="end" font-size="9" fill="#9ca3af">200K</text>
+        <text x="30" y="90" text-anchor="end" font-size="9" fill="#9ca3af">0</text>
+        <!-- bars: max=600K, chart height=76px (10→86). bar width=44 -->
+        <!-- Jan 320K → h=320/600*76=40.5≈41 → y=86-41=45 -->
+        <rect x="42"  y="45" width="44" height="41" rx="3" fill="#0d1b4b" opacity=".8"/>
+        <!-- Feb 285K → h=285/600*76=36.1≈36 → y=50 -->
+        <rect x="108" y="50" width="44" height="36" rx="3" fill="#0d1b4b" opacity=".8"/>
+        <!-- Mar 412K → h=412/600*76=52.2≈52 → y=34 -->
+        <rect x="174" y="34" width="44" height="52" rx="3" fill="#0d1b4b" opacity=".8"/>
+        <!-- Apr 498K → h=498/600*76=63.1≈63 → y=23 -->
+        <rect x="240" y="23" width="44" height="63" rx="3" fill="#0d1b4b" opacity=".85"/>
+        <!-- May 530K → h=530/600*76=67.1≈67 → y=19 (current) -->
+        <rect x="306" y="19" width="44" height="67" rx="3" fill="#e05470"/>
+        <!-- value labels -->
+        <text x="64"  y="42" text-anchor="middle" font-size="9" fill="#6b7280">$320K</text>
+        <text x="130" y="47" text-anchor="middle" font-size="9" fill="#6b7280">$285K</text>
+        <text x="196" y="31" text-anchor="middle" font-size="9" fill="#6b7280">$412K</text>
+        <text x="262" y="20" text-anchor="middle" font-size="9" fill="#6b7280">$498K</text>
+        <text x="328" y="16" text-anchor="middle" font-size="9" font-weight="700" fill="#e05470">$530K</text>
+        <!-- x labels -->
+        <text x="64"  y="100" text-anchor="middle" font-size="10" fill="#6b7280">Jan</text>
+        <text x="130" y="100" text-anchor="middle" font-size="10" fill="#6b7280">Feb</text>
+        <text x="196" y="100" text-anchor="middle" font-size="10" fill="#6b7280">Mar</text>
+        <text x="262" y="100" text-anchor="middle" font-size="10" fill="#6b7280">Apr</text>
+        <text x="328" y="100" text-anchor="middle" font-size="10" font-weight="700" fill="#e05470">May</text>
+      </svg>
+      <div style="display:flex;gap:14px;margin-top:4px;">
+        <div style="display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--gray-500);"><span style="width:10px;height:10px;border-radius:2px;background:#0d1b4b;display:inline-block;"></span>Prior months</div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--gray-500);"><span style="width:10px;height:10px;border-radius:2px;background:#e05470;display:inline-block;"></span>Current month</div>
+      </div>
+    </div>
+
+    <!-- Spend by Category -->
+    <div style="background:#fff;border:1.5px solid var(--border);border-radius:9px;padding:16px;">
+      <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:14px;">Spend by Category - YTD</div>
+      <div style="display:flex;flex-direction:column;gap:10px;">
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span>Claims / LAE</span><span style="font-weight:700;color:#0d1b4b;">$624,800 <span style="color:var(--gray-400);font-weight:400;">(26%)</span></span></div>
+          <div style="background:var(--gray-100);border-radius:4px;height:9px;"><div style="width:26%;height:9px;border-radius:4px;background:#0d1b4b;"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span>Reinsurance Ceded</span><span style="font-weight:700;color:#1565c0;">$578,500 <span style="color:var(--gray-400);font-weight:400;">(24%)</span></span></div>
+          <div style="background:var(--gray-100);border-radius:4px;height:9px;"><div style="width:24%;height:9px;border-radius:4px;background:#1565c0;"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span>IT &amp; SaaS</span><span style="font-weight:700;color:#2e7d32;">$398,200 <span style="color:var(--gray-400);font-weight:400;">(17%)</span></span></div>
+          <div style="background:var(--gray-100);border-radius:4px;height:9px;"><div style="width:17%;height:9px;border-radius:4px;background:#2e7d32;"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span>Legal &amp; Compliance</span><span style="font-weight:700;color:#e65100;">$318,400 <span style="color:var(--gray-400);font-weight:400;">(13%)</span></span></div>
+          <div style="background:var(--gray-100);border-radius:4px;height:9px;"><div style="width:13%;height:9px;border-radius:4px;background:#e65100;"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span>Professional Services</span><span style="font-weight:700;color:#6a1b9a;">$264,800 <span style="color:var(--gray-400);font-weight:400;">(11%)</span></span></div>
+          <div style="background:var(--gray-100);border-radius:4px;height:9px;"><div style="width:11%;height:9px;border-radius:4px;background:#6a1b9a;"></div></div>
+        </div>
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px;"><span>Other</span><span style="font-weight:700;color:#6b7280;">$214,300 <span style="color:var(--gray-400);font-weight:400;">(9%)</span></span></div>
+          <div style="background:var(--gray-100);border-radius:4px;height:9px;"><div style="width:9%;height:9px;border-radius:4px;background:#9ca3af;"></div></div>
+        </div>
+        <div style="border-top:1px solid var(--gray-100);padding-top:8px;display:flex;justify-content:space-between;font-size:12.5px;font-weight:700;color:var(--navy);"><span>Total YTD Spend</span><span>$2.4M</span></div>
+      </div>
+    </div>
+
+  </div>
+  </div> <!-- End of Analytics Section -->
+
+  <!-- Sub-tabs -->
+  <div class="sub-tabbar">
+    <button class="sub-tab active" onclick="switchTab('ap-invoices',this)">All Invoices</button>
+    <button class="sub-tab" onclick="switchTab('ap-ach',this)">ACH Payments</button>
+    <button class="sub-tab" onclick="switchTab('ap-echecks',this)">E-Checks</button>
+    <button class="sub-tab" onclick="switchTab('ap-aging',this)">AP Aging</button>
+  </div>
+
+  <!-- ALL INVOICES -->
+  <div id="ap-invoices">
+    <div class="form-strip">
+      <div class="form-field">
+        <label class="form-label">Status</label>
+        <select class="form-ctrl form-ctrl-sm">
+          <option>All Status</option>
+          <option>Pending Approval</option>
+          <option>Approved</option>
+          <option>Paid</option>
+          <option>On Hold</option>
+          <option>Voided</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Vendor Type</label>
+        <select class="form-ctrl form-ctrl-sm">
+          <option>All Vendors</option>
+          <option>Claims Handlers</option>
+          <option>Legal</option>
+          <option>IT / SaaS</option>
+          <option>Reinsurance</option>
+          <option>Professional</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Amount</label>
+        <select class="form-ctrl form-ctrl-sm">
+          <option>All Amounts</option>
+          <option>Under $10K</option>
+          <option>$10K–$100K</option>
+          <option>$100K–$1M</option>
+          <option>Over $1M</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label class="form-label">From</label>
+        <input type="date" class="form-ctrl form-ctrl-sm" value="2026-05-01">
+      </div>
+      <div class="form-field">
+        <label class="form-label">To</label>
+        <input type="date" class="form-ctrl form-ctrl-sm" value="2026-05-31">
+      </div>
+      <div class="form-field" style="flex:1;">
+        <label class="form-label">Search</label>
+        <input class="form-ctrl" placeholder="Search invoice, vendor…" data-filter-input="ap-inv-table">
+      </div>
+    </div>
+    <div class="tbl-wrap">
+      <div class="tbl-hdr">
+        <span class="tbl-hdr-title">Invoice Register</span>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-outline btn-sm" onclick="bulkApproveAP()">Bulk Approve</button>
+          <button class="btn btn-outline btn-sm" onclick="exportTableCSV('ap-inv-table','ap-invoices.csv')">Export</button>
+          <button class="btn btn-primary btn-sm" onclick="addNewAPInvoice()">+ New Invoice</button>
+        </div>
+      </div>
+      <table class="data-table" id="ap-inv-table" style="font-size:12.5px;">
+        <thead><tr>
+          <th><input type="checkbox" onclick="toggleAllCb(this,'ap-inv-cb')"></th>
+          <th>Invoice No.</th><th>Vendor</th><th>Inv Date</th><th>Due Date</th>
+          <th class="text-right">Amount</th><th>Category</th><th>GL Acct</th><th>Method</th><th>Status</th><th>Actions</th>
+        </tr></thead>
+        <tbody>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ACH PAYMENTS -->
+  <div id="ap-ach" style="display:none;">
+    <div class="tbl-wrap">
+      <div class="tbl-hdr">
+        <span class="tbl-hdr-title">ACH Payments</span>
+        <div style="display:flex;gap:8px;">
+          <input class="filter-input" placeholder="Search vendor…" data-filter-input="ap-ach-table" style="width:180px;">
+          <button class="btn btn-primary btn-sm" onclick="addNewACHPayment()">+ New ACH</button>
+        </div>
+      </div>
+      <table class="data-table" id="ap-ach-table">
+        <thead><tr><th>Invoice #</th><th>Vendor</th><th>GL Acct</th><th class="text-right">Amount</th><th>Method</th><th>Scheduled</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- E-CHECKS -->
+  <div id="ap-echecks" style="display:none;">
+    <div class="tbl-wrap">
+      <div class="tbl-hdr">
+        <span class="tbl-hdr-title">E-Check Payments</span>
+        <div style="display:flex;gap:8px;">
+          <input class="filter-input" placeholder="Search payee…" data-filter-input="ap-ec-table" style="width:180px;">
+          <button class="btn btn-primary btn-sm" onclick="addNewEcheck()">+ New E-Check</button>
+        </div>
+      </div>
+      <table class="data-table" id="ap-ec-table">
+        <thead><tr><th>Check #</th><th>Payee</th><th>GL Acct</th><th class="text-right">Amount</th><th>Method</th><th>Issue Date</th><th>Cleared Date</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- AP AGING -->
+  <div id="ap-aging" style="display:none;">
+    <div style="display:block;">
+      <div class="tbl-wrap">
+        <div class="tbl-hdr"><span class="tbl-hdr-title">AP Aging Summary</span></div>
+        <table class="data-table">
+          <thead><tr><th>Aging Bucket</th><th class="text-right">Amount</th><th class="text-right">Invoices</th><th>% of Total</th></tr></thead>
+          <tbody>
+            <!-- Rendered dynamically from localStorage -->
+          </tbody>
+          <tfoot>
+            <!-- Rendered dynamically from localStorage -->
+          </tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script src="js/app.js"></script>
+<script src="js/reports-utils.js"></script>
+<script src="js/gl-engine.js"></script>
+<script>
+  initLayout('accounts-payable');
+  renderImportResultBanner('vendor');
+
+  const SUB_PANELS = ['ap-invoices','ap-ach','ap-echecks','ap-aging'];
+
+  const fmtM = n => '$' + Math.round(n).toLocaleString('en-US');
+
+  function today() {
+    return new Date().toLocaleDateString('en-US', {month: '2-digit', day: '2-digit', year: 'numeric'});
+  }
+
+  function getMgaCompanyName() {
+    try {
+      const raw = localStorage.getItem('mga_v_tenant_config');
+      if (raw) {
+        const cfg = JSON.parse(raw);
+        if (cfg.companyName) return cfg.companyName;
+      }
+    } catch (e) {}
+    return 'My Business';
+  }
+
+  function getCarrierCompanyName() {
+    try {
+      const raw = localStorage.getItem('carrier_v_tenant_config');
+      if (raw) {
+        const cfg = JSON.parse(raw);
+        if (cfg.companyName) return cfg.companyName;
+      }
+    } catch (e) {}
+    return 'Southlake Insurance Co.';
+  }
+
+  function getAPInvoicesKey() {
+    const active = typeof getActiveEntity === 'function' ? getActiveEntity() : null;
+    const bType = active ? active.businessType : 'mga';
+    return bType + '_pas_invoices';
+  }
+
+  function getAPInvoices() {
+    let stored = JSON.parse(localStorage.getItem(getAPInvoicesKey()) || '[]');
+    // Filter stored to show only payables (owed to Carriers or MGAs)
+    stored = stored.filter(inv => inv.type === 'Carrier Payable' || inv.type === 'MGA Payable' || (inv.type && inv.type.toLowerCase().includes('payable')));
+    
+    // Resolve Carrier and MGA name dynamically
+    let carrierName = getCarrierCompanyName();
+    let mgaName = getMgaCompanyName();
+
+    const active = typeof getActiveEntity === 'function' ? getActiveEntity() : null;
+    const isCarrier = active ? active.businessType === 'carrier' : false;
+    const isAgency = active ? (active.businessType === 'agency' || active.businessType === 'broker' || active.id === 'ENT-AGY-01') : false;
+    const isOnboard = typeof isOnboarded === 'function' ? isOnboarded() : false;
+
+    // Default static vendor payables
+    const defaults = isOnboard ? [] : (isCarrier ? [
+      { id: 'PAY-RE-001', policyNum: 'POL-2026-0428', customer: 'Westfield Reinsurance', type: 'Carrier Payable', amount: 124500, paidAmount: 124500, status: 'Paid', issueDate: '05/12/2026', dueDate: '06/12/2026', category: 'Reinsurance Ceded', glAcct: '5500', method: 'E-Check' },
+      { id: 'PAY-RE-002', policyNum: 'POL-2026-1934', customer: 'Munich Re Ceded Claims', type: 'Carrier Payable', amount: 68200, paidAmount: 68200, status: 'Paid', issueDate: '05/20/2026', dueDate: '06/20/2026', category: 'Reinsurance Ceded', glAcct: '5500', method: 'E-Check' }
+    ] : (isAgency ? [
+      { id: 'PAY-MGA-NTA-1', policyNum: 'POL-V8NHT', customer: mgaName || 'NTA', type: 'MGA Payable', amount: 36760.00, paidAmount: 0, status: 'Approved', issueDate: '08/20/2026', dueDate: '09/19/2026', category: 'MGA Settlement', glAcct: '2200', method: 'ACH' }
+    ] : [
+      { id: 'PAY-MGA-001', policyNum: 'POL-2026-0428', customer: carrierName, type: 'Carrier Payable', amount: 71621.00, paidAmount: 0, status: 'Approved', issueDate: '05/14/2026', dueDate: '06/14/2026', category: 'Carrier Settlement', glAcct: '2200', method: 'ACH' },
+      { id: 'PAY-MGA-002', policyNum: 'POL-2026-1934', customer: carrierName, type: 'Carrier Payable', amount: 41004.00, paidAmount: 0, status: 'Approved', issueDate: '05/13/2026', dueDate: '06/13/2026', category: 'Carrier Settlement', glAcct: '2200', method: 'ACH' },
+      { id: 'PAY-2026-0284', policyNum: 'POL-2026-0428', customer: 'Crawford & Co. Claims', type: 'Carrier Payable', amount: 84260, paidAmount: 0, status: 'Pending Approval', issueDate: '05/15/2026', dueDate: '06/14/2026', category: 'Claims LAE', glAcct: '5800', method: 'ACH' },
+      { id: 'PAY-2026-0283', policyNum: 'POL-2026-1934', customer: 'Baker McKenzie LLP', type: 'Carrier Payable', amount: 48240, paidAmount: 0, status: 'Pending Approval', issueDate: '05/14/2026', dueDate: '06/13/2026', category: 'Legal', glAcct: '6400', method: 'ACH' }
+    ]));
+    
+    const merged = [...stored];
+    defaults.forEach(d => {
+      if (!merged.some(m => m.id === d.id || (m.policyNum === d.policyNum && m.type === d.type))) {
+        merged.push(d);
+      }
+    });
+    return merged;
+  }
+
+  function renderAP() {
+    const payables = getAPInvoices();
+    
+    let totalAP = 0;
+    let pendingApproval = 0;
+    let dueThisWeek = 0;
+    let paidMTD = 0;
+    let onHold = 0;
+    
+    let openCount = 0;
+    let pendingCount = 0;
+    let weekCount = 0;
+    let holdCount = 0;
+    
+    let pipePending = 0;
+    let pipeApproved = 0;
+    let pipeScheduled = 0;
+    
+    let aging0_30 = 0;
+    let aging31_60 = 0;
+    let aging61_90 = 0;
+    let aging90_plus = 0;
+    let aging0_30_count = 0;
+    let aging31_60_count = 0;
+    let aging61_90_count = 0;
+    let aging90_plus_count = 0;
+    
+    payables.forEach(inv => {
+      const amt = Number(inv.amount || 0);
+      const paid = Number(inv.paidAmount || 0);
+      const bal = amt - paid;
+      
+      paidMTD += paid;
+      
+      if (bal > 0) {
+        totalAP += bal;
+        openCount++;
+        
+        if (inv.status === 'Pending Approval') {
+          pendingApproval += bal;
+          pendingCount++;
+          pipePending++;
+        }
+        else if (inv.status === 'Approved') {
+          pipeApproved++;
+        }
+        else if (inv.status === 'On Hold') {
+          onHold++;
+          holdCount++;
+        }
+        
+        // Due this week check (within 7 days)
+        const due = new Date(inv.dueDate);
+        const diffTime = due - new Date();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        if (diffDays >= 0 && diffDays <= 7) {
+          dueThisWeek += bal;
+          weekCount++;
+        }
+
+        // AP Aging buckets calculation
+        const dueRef = new Date(inv.dueDate);
+        const diffTimeRef = new Date() - dueRef;
+        const diffDaysRef = Math.ceil(diffTimeRef / (1000 * 60 * 60 * 24));
+        
+        if (diffDaysRef <= 0 || diffDaysRef <= 30) {
+          aging0_30 += bal;
+          aging0_30_count++;
+        } else if (diffDaysRef <= 60) {
+          aging31_60 += bal;
+          aging31_60_count++;
+        } else if (diffDaysRef <= 90) {
+          aging61_90 += bal;
+          aging61_90_count++;
+        } else {
+          aging90_plus += bal;
+          aging90_plus_count++;
+        }
+      }
+    });
+    
+    // Update KPI panels
+    const tiles = document.querySelectorAll('.kpi-tile');
+    if (tiles.length >= 6) {
+      tiles[0].querySelector('.kpi-tile-val').textContent = fmtM(totalAP);
+      tiles[0].querySelector('.kpi-tile-sub').textContent = openCount + ' open invoices';
+      
+      tiles[1].querySelector('.kpi-tile-val').textContent = fmtM(pendingApproval);
+      tiles[1].querySelector('.kpi-tile-sub').textContent = pendingCount + ' pending';
+      
+      tiles[2].querySelector('.kpi-tile-val').textContent = fmtM(dueThisWeek);
+      tiles[2].querySelector('.kpi-tile-sub').textContent = weekCount + ' invoice(s)';
+      
+      tiles[3].querySelector('.kpi-tile-val').textContent = fmtM(paidMTD);
+      
+      tiles[4].querySelector('.kpi-tile-val').textContent = holdCount;
+    }
+    
+    // Update Pipeline steps
+    const pipelineVals = document.querySelectorAll('.pipe-step-val');
+    const pipelineAmts = document.querySelectorAll('.pipe-step-amt');
+    if (pipelineVals.length >= 5) {
+      pipelineVals[0].textContent = pipePending;
+      pipelineAmts[0].textContent = fmtM(pendingApproval);
+      
+      pipelineVals[1].textContent = pipeApproved;
+      pipelineAmts[1].textContent = fmtM(payables.filter(i => i.status === 'Approved' && (i.amount - i.paidAmount) > 0).reduce((sum, i) => sum + (i.amount - i.paidAmount), 0));
+      
+      // Paid and Cleared YTD
+      pipelineVals[3].textContent = payables.filter(i => i.status === 'Paid').length;
+      pipelineAmts[3].textContent = fmtM(paidMTD) + ' YTD';
+    }
+    
+    // Render Table Rows
+    const tbody = document.querySelector('#ap-inv-table tbody');
+    if (tbody) {
+      if (payables.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="11" class="text-muted" style="text-align:center;padding:20px;">No invoices found. Click "+ New Invoice" to add one.</td></tr>';
+      } else {
+        tbody.innerHTML = payables.map(inv => {
+          const amt = Number(inv.amount || 0);
+          const paid = Number(inv.paidAmount || 0);
+          const bal = amt - paid;
+          
+          let chipClass = 'chip-blue';
+          if (bal === 0) chipClass = 'chip-green';
+          else if (inv.status === 'Pending Approval') chipClass = 'chip-orange';
+          else if (inv.status === 'Approved') chipClass = 'chip-green';
+          else if (inv.status === 'On Hold') chipClass = 'chip-red';
+          
+          let actionMarkup = `<span style="color:var(--gray-400);font-size:11px;">Completed</span>`;
+          if (bal > 0) {
+            if (inv.status === 'Pending Approval') {
+              actionMarkup = `
+                <div style="display:flex;gap:3px;">
+                  <button class="btn btn-sm" style="background:#e8f5e9;color:#2e7d32;border:1px solid #2e7d32;font-size:11px;" onclick="approveAPInv('${inv.id}')">Approve</button>
+                  <button class="btn btn-ghost btn-sm" onclick="rejectAPInv('${inv.id}')">Reject</button>
+                </div>
+              `;
+            } else {
+              actionMarkup = `
+                <div style="display:flex;gap:3px;">
+                  <button class="btn btn-outline btn-sm" style="font-size:11px;" onclick="payAPInv('${inv.id}', ${bal})">Pay Now</button>
+                  <button class="btn btn-ghost btn-sm">View</button>
+                </div>
+              `;
+            }
+          }
+          
+          return `
+            <tr>
+              <td><input type="checkbox" class="ap-inv-cb"></td>
+              <td class="font-semibold">${inv.id}</td>
+              <td>${inv.customer}</td>
+              <td>${inv.issueDate || today()}</td>
+              <td>${inv.dueDate}</td>
+              <td class="text-right">${fmtM(amt)}</td>
+              <td>${inv.category || 'Carrier Settlement'}</td>
+              <td>${inv.glAcct || '2200'}</td>
+              <td><span class="chip chip-blue">${inv.method || 'ACH'}</span></td>
+              <td><span class="chip ${chipClass}">${inv.status}</span></td>
+              <td>${actionMarkup}</td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+
+    // Render ACH Payments Table
+    const achTbody = document.querySelector('#ap-ach-table tbody');
+    if (achTbody) {
+      const achPayables = payables.filter(inv => inv.method === 'ACH');
+      if (achPayables.length === 0) {
+        achTbody.innerHTML = '<tr><td colspan="8" class="text-muted" style="text-align:center;padding:20px;">No ACH payments found.</td></tr>';
+      } else {
+        achTbody.innerHTML = achPayables.map(inv => {
+          const amt = Number(inv.amount || 0);
+          const paid = Number(inv.paidAmount || 0);
+          const bal = amt - paid;
+          let statusClass = 'chip-blue';
+          if (bal === 0) statusClass = 'chip-green';
+          else if (inv.status === 'Pending Approval') statusClass = 'chip-orange';
+          
+          return `
+            <tr>
+              <td class="font-semibold">${inv.id}</td>
+              <td>${inv.customer}</td>
+              <td>${inv.glAcct || '2200'}</td>
+              <td class="text-right">${fmtM(amt)}</td>
+              <td><span class="chip chip-blue">ACH</span></td>
+              <td>${inv.dueDate}</td>
+              <td><span class="chip ${statusClass}">${inv.status}</span></td>
+              <td><button class="btn btn-ghost btn-sm" onclick="payAPInv('${inv.id}', ${bal})">${bal > 0 ? 'Pay' : 'View'}</button></td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+
+    // Render E-Checks Table
+    const ecTbody = document.querySelector('#ap-ec-table tbody');
+    if (ecTbody) {
+      const ecPayables = payables.filter(inv => inv.method === 'E-Check' || inv.method === 'Echeck' || inv.method === 'Check');
+      if (ecPayables.length === 0) {
+        ecTbody.innerHTML = '<tr><td colspan="9" class="text-muted" style="text-align:center;padding:20px;">No E-Checks found.</td></tr>';
+      } else {
+        ecTbody.innerHTML = ecPayables.map(inv => {
+          const amt = Number(inv.amount || 0);
+          const paid = Number(inv.paidAmount || 0);
+          const bal = amt - paid;
+          let statusClass = 'chip-blue';
+          if (bal === 0) statusClass = 'chip-green';
+          
+          return `
+            <tr>
+              <td class="font-semibold">${inv.id.replace('PAY-', 'EC-')}</td>
+              <td>${inv.customer}</td>
+              <td>${inv.glAcct || '2200'}</td>
+              <td class="text-right">${fmtM(amt)}</td>
+              <td><span class="chip chip-purple">E-Check</span></td>
+              <td>${inv.issueDate || today()}</td>
+              <td>${bal === 0 ? today() : ' - '}</td>
+              <td><span class="chip ${statusClass}">${inv.status}</span></td>
+              <td><button class="btn btn-ghost btn-sm" onclick="payAPInv('${inv.id}', ${bal})">${bal > 0 ? 'Clear' : 'View'}</button></td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+
+    // Render AP Aging Summary Table
+    const apAgingTbody = document.querySelector('#ap-aging table tbody');
+    const apAgingTfoot = document.querySelector('#ap-aging table tfoot');
+    if (apAgingTbody) {
+      const totalAgingAmt = aging0_30 + aging31_60 + aging61_90 + aging90_plus;
+      const totalAgingCount = aging0_30_count + aging31_60_count + aging61_90_count + aging90_plus_count;
+      
+      const pct0_30 = totalAgingAmt > 0 ? (aging0_30 / totalAgingAmt * 100) : 0;
+      const pct31_60 = totalAgingAmt > 0 ? (aging31_60 / totalAgingAmt * 100) : 0;
+      const pct61_90 = totalAgingAmt > 0 ? (aging61_90 / totalAgingAmt * 100) : 0;
+      const pct90_plus = totalAgingAmt > 0 ? (aging90_plus / totalAgingAmt * 100) : 0;
+      
+      if (totalAgingAmt === 0) {
+        apAgingTbody.innerHTML = '<tr><td colspan="4" class="text-muted" style="text-align:center;padding:24px;">No aging payables. All accounts are settled.</td></tr>';
+        if (apAgingTfoot) {
+          apAgingTfoot.innerHTML = `
+            <tr style="font-weight:700;border-top:2px solid var(--border);">
+              <td style="color:var(--navy);">Total</td>
+              <td class="text-right" style="color:var(--navy);">$0.00</td>
+              <td class="text-right" style="color:var(--navy);">0</td>
+              <td style="color:var(--navy);">0%</td>
+            </tr>
+          `;
+        }
+      } else {
+        apAgingTbody.innerHTML = `
+          <tr>
+            <td>Current (0–30 days)</td>
+            <td class="text-right" style="color:${aging0_30 > 0 ? '#2e7d32' : 'var(--gray-400)'};font-weight:600;">$${aging0_30.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+            <td class="text-right">${aging0_30_count}</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div style="flex:1;background:var(--gray-100);border-radius:4px;height:8px;">
+                  <div style="width:${pct0_30}%;height:8px;border-radius:4px;background:#2e7d32;"></div>
+                </div>
+                <span style="font-size:11px;font-weight:700;color:#2e7d32;">${pct0_30.toFixed(0)}%</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>31–60 days</td>
+            <td class="text-right" style="color:${aging31_60 > 0 ? '#e65100' : 'var(--gray-400)'};font-weight:600;">$${aging31_60.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+            <td class="text-right">${aging31_60_count}</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div style="flex:1;background:var(--gray-100);border-radius:4px;height:8px;">
+                  <div style="width:${pct31_60}%;height:8px;border-radius:4px;background:#e65100;"></div>
+                </div>
+                <span style="font-size:11px;font-weight:700;color:#e65100;">${pct31_60.toFixed(0)}%</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>61–90 days</td>
+            <td class="text-right" style="color:${aging61_90 > 0 ? '#c62828' : 'var(--gray-400)'};font-weight:600;">$${aging61_90.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+            <td class="text-right">${aging61_90_count}</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div style="flex:1;background:var(--gray-100);border-radius:4px;height:8px;">
+                  <div style="width:${pct61_90}%;height:8px;border-radius:4px;background:#c62828;"></div>
+                </div>
+                <span style="font-size:11px;font-weight:700;color:#c62828;">${pct61_90.toFixed(0)}%</span>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td>90+ days</td>
+            <td class="text-right" style="color:${aging90_plus > 0 ? '#6a1b9a' : 'var(--gray-400)'};font-weight:600;">$${aging90_plus.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+            <td class="text-right">${aging90_plus_count}</td>
+            <td>
+              <div style="display:flex;align-items:center;gap:8px;">
+                <div style="flex:1;background:var(--gray-100);border-radius:4px;height:8px;">
+                  <div style="width:${pct90_plus}%;height:8px;border-radius:4px;background:#6a1b9a;"></div>
+                </div>
+                <span style="font-size:11px;font-weight:700;color:#6a1b9a;">${pct90_plus.toFixed(0)}%</span>
+              </div>
+            </td>
+          </tr>
+        `;
+        if (apAgingTfoot) {
+          apAgingTfoot.innerHTML = `
+            <tr style="font-weight:700;border-top:2px solid var(--border);">
+              <td style="color:var(--navy);">Total</td>
+              <td class="text-right" style="color:var(--navy);">$${totalAgingAmt.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+              <td class="text-right" style="color:var(--navy);">${totalAgingCount}</td>
+              <td style="color:var(--navy);">100%</td>
+            </tr>
+          `;
+        }
+      }
+    }
+  }
+
+  function approveAPInv(invoiceId) {
+    let invoices = JSON.parse(localStorage.getItem(getAPInvoicesKey()) || '[]');
+    let target = invoices.find(inv => inv.id === invoiceId);
+    if (target) {
+      target.status = 'Approved';
+      localStorage.setItem(getAPInvoicesKey(), JSON.stringify(invoices));
+      showToast('Invoice approved - ready for payment', 'success');
+      renderAP();
+    }
+  }
+
+  function rejectAPInv(invoiceId) {
+    let invoices = JSON.parse(localStorage.getItem(getAPInvoicesKey()) || '[]');
+    let target = invoices.find(inv => inv.id === invoiceId);
+    if (target) {
+      target.status = 'Voided';
+      localStorage.setItem(getAPInvoicesKey(), JSON.stringify(invoices));
+      showToast('Invoice rejected and voided', 'warning');
+      renderAP();
+    }
+  }
+
+  function payAPInv(invoiceId, balance) {
+    const active = typeof getActiveEntity === 'function' ? getActiveEntity() : null;
+    const isAgency = active ? (active.businessType === 'agency' || active.businessType === 'broker' || active.id === 'ENT-AGY-01') : false;
+    const partnerType = isAgency ? 'MGA' : 'Carrier';
+
+    if (!confirm(`Disburse premium settlement payment of $${balance.toLocaleString()} to ${partnerType} via ACH?`)) return;
+    
+    // 1. Update current active Accounts Payable Invoice status
+    const currentKey = getAPInvoicesKey();
+    let currentInvoices = JSON.parse(localStorage.getItem(currentKey) || '[]');
+    let target = currentInvoices.find(inv => inv.id === invoiceId);
+    let policyNum = target ? target.policyNum : 'POL-2026';
+    let partnerName = target ? target.customer : (isAgency ? 'NTA' : getCarrierCompanyName());
+    let mgaName = getMgaCompanyName();
+    
+    if (target) {
+      target.paidAmount = (target.paidAmount || 0) + balance;
+      target.status = 'Paid';
+      localStorage.setItem(currentKey, JSON.stringify(currentInvoices));
+    }
+    
+    // 2. Post Disburse & Receipt GL Entries
+    if (isAgency) {
+      // Post Broker Stage 3 disburse entry into Broker ledger
+      let agencyList = JSON.parse(localStorage.getItem('agency_v_gl_journal_entries') || '[]');
+      let agencyNextNum = 'JE-' + new Date().getFullYear() + '-' + String(agencyList.length + 1).padStart(4, '0');
+      let agencyJE = {
+        id: 'JE-BRK-DISB-' + invoiceId,
+        number: agencyNextNum,
+        entityId: 'ENT-AGY-01',
+        date: new Date().toISOString().split('T')[0],
+        status: 'draft',
+        postedAt: new Date().toISOString(),
+        createdBy: 'HIT',
+        description: `Settlement disburse to MGA: ${partnerName} (${invoiceId}) for ${policyNum}`,
+        source: 'INSURANCE',
+        lines: [
+          { acct: '2200', debit: balance, credit: 0, desc: `Clear Net Premium Payable to ${partnerName}`, dims: { mga: partnerName, lob: 'Commercial Trucking' } },
+          { acct: '1001', debit: 0, credit: balance, desc: 'Settlement cash disburse (ACH)', dims: { location: 'HQ' } }
+        ]
+      };
+      const existIdxA = agencyList.findIndex(x => x.id === agencyJE.id || x.description === agencyJE.description);
+      if (existIdxA === -1) agencyList.unshift(agencyJE);
+      else agencyList[existIdxA] = Object.assign(agencyList[existIdxA], agencyJE);
+      localStorage.setItem('agency_v_gl_journal_entries', JSON.stringify(agencyList));
+
+      let allList = JSON.parse(localStorage.getItem('v_gl_journal_entries') || '[]');
+      const allIdxA = allList.findIndex(x => x.id === agencyJE.id || (x.description === agencyJE.description && x.entityId === 'ENT-AGY-01'));
+      if (allIdxA === -1) allList.unshift(agencyJE);
+      else allList[allIdxA] = agencyJE;
+      localStorage.setItem('v_gl_journal_entries', JSON.stringify(allList));
+
+      // Agency paying MGA
+      let MGAInvoices = JSON.parse(localStorage.getItem('mga_pas_invoices') || '[]');
+      let mgaTarget = MGAInvoices.find(inv => inv.policyNum === policyNum && (inv.type.includes('Premium') || inv.type === 'Commercial Trucking Premium'));
+      if (mgaTarget) {
+        mgaTarget.paidAmount = mgaTarget.amount;
+        mgaTarget.status = 'Paid';
+        localStorage.setItem('mga_pas_invoices', JSON.stringify(MGAInvoices));
+      }
+      
+      let agencyBank = JSON.parse(localStorage.getItem('agency_pas_bank_txns') || '[]');
+      agencyBank.unshift({
+        date: new Date().toISOString().split('T')[0],
+        desc: 'ACH MGA Net Remittance: ' + partnerName,
+        amount: -balance
+      });
+      localStorage.setItem('agency_pas_bank_txns', JSON.stringify(agencyBank));
+
+      let mgaBank = JSON.parse(localStorage.getItem('mga_pas_bank_txns') || '[]');
+      mgaBank.unshift({
+        date: new Date().toISOString().split('T')[0],
+        desc: 'ACH Broker Settlement Received: ' + (active ? active.name : 'HIT'),
+        amount: balance
+      });
+      localStorage.setItem('mga_pas_bank_txns', JSON.stringify(mgaBank));
+
+      // Post MGA Step 1.4 GL receipt entry into MGA ledger
+      let mgaList = JSON.parse(localStorage.getItem('mga_v_gl_journal_entries') || '[]');
+      let mgaNextNum = 'JE-' + new Date().getFullYear() + '-' + String(mgaList.length + 1).padStart(4, '0');
+      let mgaJE = {
+        id: 'JE-MGA-RECV-' + invoiceId,
+        number: mgaNextNum,
+        entityId: 'ENT-MINE',
+        date: new Date().toISOString().split('T')[0],
+        status: 'draft',
+        postedAt: new Date().toISOString(),
+        createdBy: 'NTA Operations',
+        description: `Broker premium settlement payment received from ${active ? active.name : 'HIT'} (${invoiceId}) for ${policyNum}`,
+        source: 'INSURANCE',
+        lines: [
+          { acct: '1001', debit: balance, credit: 0, desc: `Broker premium settlement receipt — ${active ? active.name : 'HIT'}`, dims: { location: 'HQ' } },
+          { acct: '1100', debit: 0, credit: balance, desc: `Clear Broker Premium Receivable — ${active ? active.name : 'HIT'}`, dims: { broker: active ? active.name : 'HIT', lob: 'Commercial Trucking' } }
+        ]
+      };
+      const existIdx = mgaList.findIndex(x => x.id === mgaJE.id || x.description === mgaJE.description);
+      if (existIdx === -1) {
+        mgaList.unshift(mgaJE);
+      } else {
+        mgaList[existIdx] = Object.assign(mgaList[existIdx], mgaJE);
+      }
+      localStorage.setItem('mga_v_gl_journal_entries', JSON.stringify(mgaList));
+
+      const allIdxM = allList.findIndex(x => x.id === mgaJE.id || (x.description === mgaJE.description && x.entityId === 'ENT-MINE'));
+      if (allIdxM === -1) allList.unshift(mgaJE);
+      else allList[allIdxM] = mgaJE;
+      localStorage.setItem('v_gl_journal_entries', JSON.stringify(allList));
+    } else {
+      // MGA paying Carrier
+      let MGAInvoices = JSON.parse(localStorage.getItem('mga_pas_invoices') || '[]');
+      let mgaTarget = MGAInvoices.find(inv => inv.id === invoiceId);
+      if (mgaTarget) {
+        mgaTarget.paidAmount = (mgaTarget.paidAmount || 0) + balance;
+        mgaTarget.status = 'Paid';
+        localStorage.setItem('mga_pas_invoices', JSON.stringify(MGAInvoices));
+      }
+
+      let CarrierInvoices = JSON.parse(localStorage.getItem('carrier_pas_invoices') || '[]');
+      let carrierTarget = CarrierInvoices.find(inv => inv.policyNum === policyNum && inv.status !== 'Paid');
+      if (carrierTarget) {
+        carrierTarget.paidAmount = carrierTarget.amount;
+        carrierTarget.status = 'Paid';
+        localStorage.setItem('carrier_pas_invoices', JSON.stringify(CarrierInvoices));
+      }
+      
+      let MGAbank = JSON.parse(localStorage.getItem('mga_pas_bank_txns') || '[]');
+      MGAbank.unshift({
+        date: new Date().toISOString().split('T')[0],
+        desc: 'ACH Carrier Settlement: ' + partnerName,
+        amount: -balance
+      });
+      localStorage.setItem('mga_pas_bank_txns', JSON.stringify(MGAbank));
+      
+      let Carrierbank = JSON.parse(localStorage.getItem('carrier_pas_bank_txns') || '[]');
+      Carrierbank.unshift({
+        date: new Date().toISOString().split('T')[0],
+        desc: 'ACH MGA Settlement: ' + mgaName,
+        amount: balance
+      });
+      localStorage.setItem('carrier_pas_bank_txns', JSON.stringify(Carrierbank));
+
+      localStorage.setItem('v_mga_settlement_paid_POL-V8NHT', 'true');
+      localStorage.setItem('v_carrier_wire_matched_POL-V8NHT', 'true');
+      let paidList = JSON.parse(localStorage.getItem('v_settlements_paid') || '[]');
+      if (!paidList.includes('SEL-2026-0020')) paidList.push('SEL-2026-0020');
+      if (!paidList.includes(invoiceId)) paidList.push(invoiceId);
+      localStorage.setItem('v_settlements_paid', JSON.stringify(paidList));
+
+      // 1. Post MGA Stage 5 disbursement entry into MGA ledger
+      let mgaList = JSON.parse(localStorage.getItem('mga_v_gl_journal_entries') || '[]');
+      let mgaNextNum = 'JE-' + new Date().getFullYear() + '-' + String(mgaList.length + 1).padStart(4, '0');
+      let mgaJE = {
+        id: 'JE-MGA-DISB-' + invoiceId,
+        number: mgaNextNum,
+        entityId: 'ENT-MINE',
+        date: new Date().toISOString().split('T')[0],
+        status: 'draft',
+        postedAt: new Date().toISOString(),
+        createdBy: 'NTA Operations',
+        description: `Settlement disburse to Carrier: Southlake Insurance Co. (${invoiceId}) for ${policyNum}`,
+        source: 'INSURANCE',
+        lines: [
+          { acct: '2200', debit: balance, credit: 0, desc: 'Clear Net Premium Payable to Southlake Insurance Co.', dims: { cost_center: '00 - Corporate', lob: 'Commercial Trucking' } },
+          { acct: '1001', debit: 0, credit: balance, desc: 'Carrier settlement cash disburse (ACH)', dims: { location: 'HQ' } }
+        ]
+      };
+      const existIdxM = mgaList.findIndex(x => x.id === mgaJE.id || ((x.description || '').includes('Carrier') && (x.description || '').includes(policyNum)));
+      if (existIdxM === -1) mgaList.unshift(mgaJE);
+      else mgaList[existIdxM] = Object.assign(mgaList[existIdxM], mgaJE);
+      localStorage.setItem('mga_v_gl_journal_entries', JSON.stringify(mgaList));
+
+      // 2. Post Carrier Stage 5 receipt entry into Carrier ledger
+      let carrierList = JSON.parse(localStorage.getItem('carrier_v_gl_journal_entries') || '[]');
+      let carrierNextNum = 'JE-' + new Date().getFullYear() + '-' + String(carrierList.length + 1).padStart(4, '0');
+      let carrierJE = {
+        id: 'JE-CAR-RECV-' + invoiceId,
+        number: carrierNextNum,
+        entityId: 'ENT-CAR-01',
+        date: new Date().toISOString().split('T')[0],
+        status: 'draft',
+        postedAt: new Date().toISOString(),
+        createdBy: 'Carrier Operations',
+        description: `MGA premium settlement payment received from ${mgaName || 'NTA'} (${invoiceId}) for ${policyNum}`,
+        source: 'INSURANCE',
+        lines: [
+          { acct: '1001', debit: balance, credit: 0, desc: `MGA premium settlement receipt — ${mgaName || 'NTA'}`, dims: { location: 'HQ' } },
+          { acct: '1100', debit: 0, credit: balance, desc: `Clear MGA Premium Receivable — ${mgaName || 'NTA'}`, dims: { mga: mgaName || 'NTA', lob: 'Commercial Trucking' } }
+        ]
+      };
+      const existIdxC = carrierList.findIndex(x => x.id === carrierJE.id || ((x.description || '').includes('received') && (x.description || '').includes(policyNum)));
+      if (existIdxC === -1) carrierList.unshift(carrierJE);
+      else carrierList[existIdxC] = Object.assign(carrierList[existIdxC], carrierJE);
+      localStorage.setItem('carrier_v_gl_journal_entries', JSON.stringify(carrierList));
+
+      // 3. Sync both entries into global journal entries
+      let allList = JSON.parse(localStorage.getItem('v_gl_journal_entries') || '[]');
+      const allIdxM = allList.findIndex(x => x.id === mgaJE.id || ((x.description || '').includes('Carrier') && (x.description || '').includes('disburse') && x.entityId === 'ENT-MINE'));
+      if (allIdxM === -1) allList.unshift(mgaJE);
+      else allList[allIdxM] = mgaJE;
+
+      const allIdxC = allList.findIndex(x => x.id === carrierJE.id || ((x.description || '').includes('received') && (x.description || '').includes(policyNum) && x.entityId === 'ENT-CAR-01'));
+      if (allIdxC === -1) allList.unshift(carrierJE);
+      else allList[allIdxC] = carrierJE;
+
+      localStorage.setItem('v_gl_journal_entries', JSON.stringify(allList));
+    }
+    
+    showToast('Settlement disburse completed. Ledger updated.', 'success');
+    renderAP();
+  }
+
+  function switchTab(id, btn) {
+    SUB_PANELS.forEach(p => { document.getElementById(p).style.display = 'none'; });
+    document.getElementById(id).style.display = '';
+    document.querySelectorAll('.sub-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  function toggleAllCb(masterCb, cls) {
+    document.querySelectorAll('.' + cls).forEach(cb => cb.checked = masterCb.checked);
+  }
+
+  function bulkApproveAP() {
+    let invoices = JSON.parse(localStorage.getItem(getAPInvoicesKey()) || '[]');
+    let count = 0;
+    invoices.forEach(inv => {
+      if (inv.status === 'Pending Approval') {
+        inv.status = 'Approved';
+        count++;
+      }
+    });
+    localStorage.setItem(getAPInvoicesKey(), JSON.stringify(invoices));
+    showToast(count + ' invoice(s) approved', 'success');
+    renderAP();
+  }
+
+  function requestW9(btn) {
+    btn.disabled = true;
+    btn.textContent = 'W9 Requested ✓';
+    showToast('W9 request sent to vendor', 'success');
+  }
+
+  function handleHashTab() {
+    const hash = location.hash.replace('#','');
+    if (hash && SUB_PANELS.includes(hash)) {
+      SUB_PANELS.forEach(p => { document.getElementById(p).style.display = 'none'; });
+      document.getElementById(hash).style.display = '';
+      document.querySelectorAll('.sub-tab').forEach(b => {
+        if (b.getAttribute('onclick')?.includes(hash)) b.classList.add('active');
+        else b.classList.remove('active');
+      });
+    } else {
+      SUB_PANELS.forEach(p => { document.getElementById(p).style.display = 'none'; });
+      const defaultPanel = 'ap-invoices';
+      document.getElementById(defaultPanel).style.display = '';
+      document.querySelectorAll('.sub-tab').forEach(b => {
+        if (b.getAttribute('onclick')?.includes(defaultPanel)) b.classList.add('active');
+        else b.classList.remove('active');
+      });
+    }
+    
+    // Dynamically update the active highlight class in the left sidebar menu
+    document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => {
+      const href = item.getAttribute('href') || '';
+      const [page, itemHash] = href.split('#');
+      const currentPage = window.location.pathname.split('/').pop();
+      const currentHash = window.location.hash.replace('#', '');
+      
+      const isPageMatch = page === currentPage || page === 'accounts-payable.html';
+      const isHashMatch = (!itemHash && !currentHash) || itemHash === currentHash;
+      
+      if (isPageMatch && isHashMatch) {
+        item.classList.add('active');
+        const group = item.closest('.sidebar-group');
+        if (group) group.classList.add('expanded');
+      } else {
+        item.classList.remove('active');
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    renderAP();
+    handleHashTab();
+  });
+
+  window.addEventListener('hashchange', () => {
+    handleHashTab();
+  });
+
+  function toggleApAnalytics() {
+    const section = document.getElementById('ap-analytics-section');
+    const btn = document.getElementById('ap-toggle-analytics-btn');
+    if (section && btn) {
+      const isHidden = section.style.display === 'none';
+      section.style.display = isHidden ? 'block' : 'none';
+      btn.textContent = isHidden ? 'Hide Analytics' : 'Show Analytics';
+    }
+  }
+</script>
+</body>
+</html>

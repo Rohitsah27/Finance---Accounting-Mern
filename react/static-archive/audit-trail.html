@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audit Trail — Audit & Controls | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/layout.js"></script>
+</head>
+<body>
+  <main class="main-content" id="main-content">
+
+    <div class="page-header">
+      <div>
+        <div class="page-title">Audit Trail &amp; Controls</div>
+        <div class="page-subtitle">Field-level audit trail · Every action logged with user, timestamp &amp; reason · Immutable</div>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-outline" onclick="exportAuditPack()">Export Audit Pack</button>
+        <button class="btn btn-primary" onclick="showToast('Generating compliance report...','info')">Compliance Report</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon si-navy"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h14M3 15h8" stroke="#0d1b4b" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        <div class="stat-info">
+          <div class="stat-value">18,482</div>
+          <div class="stat-label">Total Events (30 days)</div>
+          <div class="stat-change text-muted">All modules</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-coral"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 5v6M10 14v1" stroke="#e05470" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="stat-info">
+          <div class="stat-value">3</div>
+          <div class="stat-label">Override Events</div>
+          <div class="stat-change" style="color:var(--orange);">All documented</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-orange"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 10l3.5 3.5L15 6" stroke="#e65100" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="stat-info">
+          <div class="stat-value">6</div>
+          <div class="stat-label">Active Users (today)</div>
+          <div class="stat-change text-muted">2 concurrent sessions</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-green"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M4 10h12M10 4v12" stroke="#2e7d32" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        <div class="stat-info">
+          <div class="stat-value">100%</div>
+          <div class="stat-label">Audit Coverage</div>
+          <div class="stat-change text-green">All modules covered</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filter Bar -->
+    <div class="filter-bar">
+      <span class="filter-bar-label">Filters:</span>
+      <select class="filter-select">
+        <option>All Actions</option>
+        <option>Create</option>
+        <option>Edit</option>
+        <option>Approve</option>
+        <option>Post</option>
+        <option>Void</option>
+        <option>Override</option>
+        <option>Login</option>
+        <option>Export</option>
+      </select>
+      <select class="filter-select">
+        <option>All Modules</option>
+        <option>Journal Entry</option>
+        <option>Bank Reconciliation</option>
+        <option>Accounts Payable</option>
+        <option>Period Locking</option>
+        <option>User Management</option>
+      </select>
+      <select class="filter-select">
+        <option>All Users</option>
+        <option>John Doe (Controller)</option>
+        <option>Jane Smith (Accountant)</option>
+        <option>M. Johnson (Actuary)</option>
+        <option>CFO</option>
+      </select>
+      <input type="date" class="filter-input" value="2026-05-01">
+      <span style="font-size:12px;color:var(--gray-500);">to</span>
+      <input type="date" class="filter-input" value="2026-05-21">
+      <div class="filter-spacer"></div>
+      <input type="text" class="filter-input" placeholder="Search audit trail..." id="audit-search" data-filter-input="audit-table" style="width:200px;">
+    </div>
+
+    <!-- Tab Navigation -->
+    <div id="audit-tabs">
+      <div class="page-tabs" style="border-radius:8px 8px 0 0;">
+        <div class="page-tab active" data-tab="activity-log" onclick="switchTab('audit-tabs','activity-log')">Activity Log</div>
+        <div class="page-tab" data-tab="overrides" onclick="switchTab('audit-tabs','overrides')">Overrides &amp; Escalations</div>
+        <div class="page-tab" data-tab="logins" onclick="switchTab('audit-tabs','logins')">Login Events</div>
+        <div class="page-tab" data-tab="config" onclick="switchTab('audit-tabs','config')">Config Changes</div>
+      </div>
+
+      <!-- Activity Log -->
+      <div class="tab-panel active" data-panel="activity-log">
+        <div class="table-wrap" style="border-radius:0 0 8px 8px;">
+          <table class="data-table" id="audit-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>User</th>
+                <th>Role</th>
+                <th>Action</th>
+                <th>Module</th>
+                <th>Record</th>
+                <th>Before</th>
+                <th>After</th>
+                <th>IP Address</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-size:11.5px;">21/05/2026 14:32:18</td>
+                <td class="font-semibold">John Doe</td>
+                <td><span class="badge badge-navy">Controller</span></td>
+                <td><span class="badge badge-blue">Approve</span></td>
+                <td>Journal Entry</td>
+                <td class="cell-link">JE-2026-0048</td>
+                <td style="font-size:11px;color:var(--gray-500);">Status: Submitted</td>
+                <td style="font-size:11px;color:var(--green);">Status: Posted</td>
+                <td style="font-size:11px;color:var(--gray-400);">192.168.1.42</td>
+              </tr>
+              <tr>
+                <td style="font-size:11.5px;">21/05/2026 13:18:44</td>
+                <td class="font-semibold">Jane Smith</td>
+                <td><span class="badge badge-gray">Accountant</span></td>
+                <td><span class="badge badge-navy">Create</span></td>
+                <td>Journal Entry</td>
+                <td class="cell-link">JE-2026-0048</td>
+                <td style="font-size:11px;color:var(--gray-500);"> - </td>
+                <td style="font-size:11px;color:var(--green);">New JE Created</td>
+                <td style="font-size:11px;color:var(--gray-400);">192.168.1.24</td>
+              </tr>
+              <tr>
+                <td style="font-size:11.5px;">21/05/2026 11:24:08</td>
+                <td class="font-semibold">M. Johnson</td>
+                <td><span class="badge badge-gray">Actuary</span></td>
+                <td><span class="badge badge-orange">Edit</span></td>
+                <td>Premium &amp; Claims</td>
+                <td class="cell-link">CLM-2024-1847</td>
+                <td style="font-size:11px;color:var(--gray-500);">Reserve: $10,00,000</td>
+                <td style="font-size:11px;color:var(--coral);">Reserve: $12,40,000</td>
+                <td style="font-size:11px;color:var(--gray-400);">192.168.1.38</td>
+              </tr>
+              <tr>
+                <td style="font-size:11.5px;">21/05/2026 09:42:51</td>
+                <td class="font-semibold">John Doe</td>
+                <td><span class="badge badge-navy">Controller</span></td>
+                <td><span class="badge badge-blue">Approve</span></td>
+                <td>AP</td>
+                <td class="cell-link">INV-2026-0282</td>
+                <td style="font-size:11px;color:var(--gray-500);">Status: Pending</td>
+                <td style="font-size:11px;color:var(--green);">Status: Approved</td>
+                <td style="font-size:11px;color:var(--gray-400);">192.168.1.42</td>
+              </tr>
+              <tr>
+                <td style="font-size:11.5px;">20/05/2026 16:58:22</td>
+                <td class="font-semibold">CFO</td>
+                <td><span class="badge badge-navy">Super Admin</span></td>
+                <td><span class="badge badge-red">Override</span></td>
+                <td>Period Locking</td>
+                <td class="cell-link">March 2026</td>
+                <td style="font-size:11px;color:var(--gray-500);">Status: Hard Closed</td>
+                <td style="font-size:11px;color:var(--coral);">Break-glass: Audit adj.</td>
+                <td style="font-size:11px;color:var(--gray-400);">192.168.1.10</td>
+              </tr>
+              <tr>
+                <td style="font-size:11.5px;">20/05/2026 14:24:11</td>
+                <td class="font-semibold">Jane Smith</td>
+                <td><span class="badge badge-gray">Accountant</span></td>
+                <td><span class="badge badge-green">Export</span></td>
+                <td>Financial Statements</td>
+                <td>P&amp;L YTD 2026</td>
+                <td style="font-size:11px;color:var(--gray-500);"> - </td>
+                <td style="font-size:11px;color:var(--green);">Exported to Excel</td>
+                <td style="font-size:11px;color:var(--gray-400);">192.168.1.24</td>
+              </tr>
+              <tr>
+                <td style="font-size:11.5px;">20/05/2026 10:08:33</td>
+                <td class="font-semibold">Jane Smith</td>
+                <td><span class="badge badge-gray">Accountant</span></td>
+                <td><span class="badge badge-navy">Post</span></td>
+                <td>Bank Reconciliation</td>
+                <td class="cell-link">BNK-24812</td>
+                <td style="font-size:11px;color:var(--gray-500);">Status: Matched</td>
+                <td style="font-size:11px;color:var(--green);">Status: Reconciled</td>
+                <td style="font-size:11px;color:var(--gray-400);">192.168.1.24</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Overrides -->
+      <div class="tab-panel" data-panel="overrides">
+        <div class="table-wrap" style="border-radius:0 0 8px 8px;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>User</th>
+                <th>Override Type</th>
+                <th>Module</th>
+                <th>Record</th>
+                <th>Reason</th>
+                <th>Approved By</th>
+                <th>Risk Level</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-size:11.5px;">20/05/2026 16:58:22</td>
+                <td class="font-semibold">CFO</td>
+                <td><span class="badge badge-red">Period Reopen</span></td>
+                <td>Period Locking</td>
+                <td>March 2026</td>
+                <td style="font-size:11.5px;">Audit adjustment required by external auditor</td>
+                <td>Board Director</td>
+                <td><span class="badge badge-red">High</span></td>
+              </tr>
+              <tr>
+                <td style="font-size:11.5px;">14/05/2026 11:24:18</td>
+                <td class="font-semibold">John Doe</td>
+                <td><span class="badge badge-orange">Approval Override</span></td>
+                <td>AP</td>
+                <td>INV-2026-0278</td>
+                <td style="font-size:11.5px;">Checker unavailable - urgent payment</td>
+                <td>CFO</td>
+                <td><span class="badge badge-orange">Medium</span></td>
+              </tr>
+              <tr>
+                <td style="font-size:11.5px;">08/05/2026 09:42:06</td>
+                <td class="font-semibold">Jane Smith</td>
+                <td><span class="badge badge-blue">Manual Recon Match</span></td>
+                <td>Bank Reconciliation</td>
+                <td>BNK-24692</td>
+                <td style="font-size:11.5px;">Fuzzy match below threshold - manual confirmation</td>
+                <td>Controller</td>
+                <td><span class="badge badge-blue">Low</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Login Events -->
+      <div class="tab-panel" data-panel="logins">
+        <div class="table-wrap" style="border-radius:0 0 8px 8px;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>User</th>
+                <th>Event</th>
+                <th>IP Address</th>
+                <th>Device</th>
+                <th>Location</th>
+                <th>MFA</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-size:11.5px;">21/05/2026 08:32:14</td>
+                <td class="font-semibold">John Doe</td>
+                <td><span class="badge badge-green">Login</span></td>
+                <td>192.168.1.42</td>
+                <td>Chrome / macOS</td>
+                <td>Austin, TX</td>
+                <td><span class="badge badge-green">OTP ✓</span></td>
+                <td><span class="badge badge-green">Success</span></td>
+              </tr>
+              <tr>
+                <td style="font-size:11.5px;">21/05/2026 08:18:42</td>
+                <td class="font-semibold">Jane Smith</td>
+                <td><span class="badge badge-green">Login</span></td>
+                <td>192.168.1.24</td>
+                <td>Firefox / Windows</td>
+                <td>Austin, TX</td>
+                <td><span class="badge badge-green">OTP ✓</span></td>
+                <td><span class="badge badge-green">Success</span></td>
+              </tr>
+              <tr>
+                <td style="font-size:11.5px;">20/05/2026 22:14:08</td>
+                <td class="font-semibold">unknown</td>
+                <td><span class="badge badge-red">Failed Login</span></td>
+                <td>45.32.18.191</td>
+                <td>Unknown</td>
+                <td>Moscow, RU</td>
+                <td>N/A</td>
+                <td><span class="badge badge-red">Blocked</span></td>
+              </tr>
+              <tr>
+                <td style="font-size:11.5px;">20/05/2026 18:24:52</td>
+                <td class="font-semibold">John Doe</td>
+                <td><span class="badge badge-gray">Logout</span></td>
+                <td>192.168.1.42</td>
+                <td>Chrome / macOS</td>
+                <td>Austin, TX</td>
+                <td>N/A</td>
+                <td><span class="badge badge-green">Success</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Config Changes -->
+      <div class="tab-panel" data-panel="config">
+        <div class="table-wrap" style="border-radius:0 0 8px 8px;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>User</th>
+                <th>Config Area</th>
+                <th>Change Description</th>
+                <th>Before</th>
+                <th>After</th>
+                <th>Approved By</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td style="font-size:11.5px;">18/05/2026 14:24:08</td>
+                <td class="font-semibold">CFO</td>
+                <td>Approval Matrix</td>
+                <td>AP approval threshold increased</td>
+                <td>$5,00,000</td>
+                <td>$10,00,000</td>
+                <td>Board</td>
+              </tr>
+              <tr>
+                <td style="font-size:11.5px;">12/05/2026 09:18:44</td>
+                <td class="font-semibold">IT Admin</td>
+                <td>User Management</td>
+                <td>New user M. Rodriguez added as Actuary</td>
+                <td> - </td>
+                <td>Active: Actuary role</td>
+                <td>CFO</td>
+              </tr>
+              <tr>
+                <td style="font-size:11.5px;">01/05/2026 10:42:18</td>
+                <td class="font-semibold">IT Admin</td>
+                <td>State Rules</td>
+                <td>Texas premium tax rate updated for Q2</td>
+                <td>1.6%</td>
+                <td>1.7%</td>
+                <td>Compliance</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="js/app.js"></script>
+  <script>
+    initLayout('audit-trail');
+    (function(){
+      var h = location.hash.replace('#','');
+      var tabs = ['activity-log','overrides','logins','config'];
+      if (tabs.indexOf(h) !== -1) switchTab('audit-tabs', h);
+    })();
+
+    function exportAuditPack() {
+      showToast('Assembling audit pack - this may take a moment...', 'info');
+      setTimeout(() => showToast('Audit pack ready for download', 'success'), 2000);
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MGA Workspace — Dashboard | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/layout.js"></script>
+  <style>
+    .kpi-metrics-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px;}
+    @media(max-width:1100px){.kpi-metrics-row{grid-template-columns:repeat(2,1fr);}}
+    @media(max-width:640px){.kpi-metrics-row{grid-template-columns:1fr;}}
+    .kpi-mc{background:#fff;border:1.5px solid var(--gray-200);border-radius:10px;padding:12px 12px 10px;display:flex;flex-direction:column;gap:2px;position:relative;overflow:hidden;}
+    .kpi-mc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+    .kpi-mc.c-bound::before{background:#0d1b4b;}
+    .kpi-mc.c-bdx::before{background:#e65100;}
+    .kpi-mc.c-comm::before{background:#2e7d32;}
+    .kpi-mc.c-credit::before{background:#6a1b9a;}
+    .kpi-mc.c-sub::before{background:#1565c0;}
+    .kpi-mc.c-loss::before{background:#e05470;}
+    .kpi-mc-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);}
+    .kpi-mc-value{font-size:20px;font-weight:800;color:var(--navy);line-height:1.1;margin:3px 0 1px;}
+    .kpi-mc-delta{font-size:11px;font-weight:600;}
+    .kpi-mc-delta.up{color:#2e7d32;} .kpi-mc-delta.warn{color:#e65100;} .kpi-mc-delta.down{color:var(--red);}
+    .kpi-mc-sublabel{font-size:9.5px;color:var(--gray-400);}
+    .kpi-mc-status{display:inline-block;font-size:9px;font-weight:700;border-radius:4px;padding:1px 6px;margin-top:5px;text-transform:uppercase;letter-spacing:.3px;}
+    .s-ontrack{background:#e8f5e9;color:#2e7d32;} .s-watch{background:#fff3e0;color:#e65100;} .s-breach{background:#fde8e8;color:#b71c1c;}
+    .kpi-progress-bg{background:var(--gray-100);border-radius:4px;height:6px;margin-top:6px;}
+    .kpi-progress-fill{height:6px;border-radius:4px;}
+
+    .mga-cards-row{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px;}
+    @media(max-width:900px){.mga-cards-row{grid-template-columns:1fr 1fr;}}
+    @media(max-width:600px){.mga-cards-row{grid-template-columns:1fr;}}
+    .mga-card{background:#fff;border:1.5px solid var(--gray-200);border-radius:10px;padding:14px;}
+    .mga-card-hd{display:flex;align-items:center;gap:9px;margin-bottom:10px;}
+    .mga-icon{width:32px;height:32px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+    .mga-name{font-size:12.5px;font-weight:800;color:var(--navy);}
+    .mga-full{font-size:10px;color:var(--gray-400);}
+    .mga-stats{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:8px;}
+    .mga-stat-lbl{font-size:9.5px;color:var(--gray-500);text-transform:uppercase;letter-spacing:.3px;}
+    .mga-stat-val{font-size:14px;font-weight:700;color:var(--navy);}
+    .mga-stat-val.warn{color:#e65100;} .mga-stat-val.ok{color:#2e7d32;} .mga-stat-val.bad{color:var(--red);}
+    .mga-bar-bg{background:var(--gray-100);border-radius:4px;height:6px;margin:4px 0 2px;}
+    .mga-bar-fill{height:6px;border-radius:4px;}
+    .mga-bar-lbl{font-size:9.5px;color:var(--gray-400);}
+
+    .chart-card{background:#fff;border:1.5px solid var(--gray-200);border-radius:10px;padding:14px;margin-bottom:18px;}
+    .chart-card-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;}
+    .chart-title{font-size:12.5px;font-weight:700;color:var(--navy);}
+    .chart-sub{font-size:10.5px;color:var(--gray-400);margin-top:2px;}
+    .chart-legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;}
+    .legend-item{display:flex;align-items:center;gap:4px;font-size:10.5px;color:var(--gray-600);}
+    .legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+  </style>
+</head>
+<body>
+<main class="main-content" id="main-content">
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">MGA Operations Dashboard</div>
+      <div class="page-subtitle" id="dash-subtitle">Loading entity context…</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline btn-sm" onclick="showToast('Commission statement exported','success')">Export Statement</button>
+      <button class="btn btn-primary btn-sm" onclick="refreshDash()">Refresh</button>
+    </div>
+  </div>
+
+  <div class="filter-bar" style="margin-bottom:18px;">
+    <span class="filter-bar-label">Period</span>
+    <select class="filter-select" id="sel-period" onchange="setFilter('period',this.value)">
+      <option value="mtd">MTD Aug 2026</option>
+      <option value="ytd">YTD 2026</option>
+      <option value="q2">Q2 2026</option>
+    </select>
+    <span class="filter-bar-label">Carrier Program</span>
+    <select class="filter-select" id="sel-carrier" onchange="setFilter('carrier',this.value)">
+      <option value="all">All Carriers</option>
+      <option value="Southlake">Southlake Insurance Co.</option>
+      <option value="Meridian">Meridian Insurance Group</option>
+      <option value="Atlas">Atlas Specialty Underwriters</option>
+    </select>
+    <span class="filter-bar-label">LOB</span>
+    <select class="filter-select" id="sel-lob" onchange="setFilter('lob',this.value)">
+      <option value="all">All LOBs</option>
+      <option value="Property">Property</option>
+      <option value="Casualty">Casualty</option>
+      <option value="Auto">Auto</option>
+    </select>
+    <div id="fbar-applied" style="font-size:11px;color:var(--gray-400);margin-left:auto;"></div>
+    <button class="btn btn-outline btn-sm" onclick="resetFilters()">Clear Filters</button>
+  </div>
+
+  <div class="kpi-metrics-row" id="kpi-row"></div>
+
+  <div class="chart-card">
+    <div class="chart-card-hdr">
+      <div><div class="chart-title">Bound Premium Trend</div><div class="chart-sub" id="prem-sub">Bound Premium · filtered view</div></div>
+      <button class="btn btn-outline btn-sm" id="prem-toggle-btn" onclick="togglePremChart()">Line View</button>
+    </div>
+    <div id="prem-chart-wrap"></div>
+    <div class="chart-legend"><div class="legend-item"><div class="legend-dot" style="background:#0d1b4b;"></div>Bound Premium</div></div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-card-hdr"><div><div class="chart-title">Carrier Program Directory</div><div class="chart-sub">Binding authority &amp; credit limit utilization</div></div></div>
+    <div class="mga-cards-row" id="carrier-cards"></div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-card-hdr">
+      <div><div class="chart-title">Bordereau Submission Status</div><div class="chart-sub">Premium &amp; loss bordereaux due to carriers</div></div>
+      <button class="btn btn-outline btn-sm" onclick="showToast('Bordereau calendar exported','success')">Export</button>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table" id="bdx-table">
+        <thead><tr><th>Carrier</th><th>Bordereau Type</th><th>Period</th><th>Due Date</th><th>Status</th><th>Action</th></tr></thead>
+        <tbody id="bdx-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="chart-card" style="margin-bottom:4px;">
+    <div class="chart-card-hdr"><div><div class="chart-title">Commission Statement Summary</div><div class="chart-sub">Flat vs sliding-scale contingent commission</div></div></div>
+    <div class="table-wrap">
+      <table class="data-table" id="comm-table">
+        <thead><tr><th>Carrier</th><th>Structure</th><th>Base Rate</th><th>Contingent Trigger</th><th>Commission Earned</th></tr></thead>
+        <tbody id="comm-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<script src="js/app.js"></script>
+<script>
+/* ═══════════════════ SEED DATA ═══════════════════ */
+const IS_DEMO = true;
+const CARRIERS = IS_DEMO ? [
+  {id:'Southlake', name:'Southlake Insurance Co.', full:'Program: Commercial Property', icon:'🏛️', color:'#0d1b4b', bg:'#e8f0ff', limit:8.0, structure:'Flat 18%', trigger:'Loss ratio ≤ 55%'},
+  {id:'Meridian',  name:'Meridian Insurance Group', full:'Program: General Casualty', icon:'⚖️', color:'#6a1b9a', bg:'#f3e5f5', limit:5.0, structure:'Sliding Scale 15–22%', trigger:'Loss ratio 45–60% band'},
+  {id:'Atlas',     name:'Atlas Specialty Underwriters', full:'Program: Excess Auto', icon:'🚗', color:'#2e7d32', bg:'#e8f5e9', limit:3.5, structure:'Flat 16%', trigger:'Loss ratio ≤ 58%'}
+] : [];
+// [carrier, lob, base_bound_per_month_M, loss_rate]
+const SEED = IS_DEMO ? [
+  ['Southlake','Property', 0.92, 0.512],
+  ['Southlake','Casualty', 0.34, 0.548],
+  ['Southlake','Auto',     0.18, 0.560],
+  ['Meridian','Property',  0.28, 0.502],
+  ['Meridian','Casualty',  0.61, 0.538],
+  ['Meridian','Auto',      0.15, 0.575],
+  ['Atlas','Property',     0.20, 0.490],
+  ['Atlas','Casualty',     0.22, 0.520],
+  ['Atlas','Auto',         0.44, 0.555]
+] : [];
+const MTDF = [0.22,0.26,0.24,0.28]; // weeks
+const MTDL = ['Wk 1','Wk 2','Wk 3','Wk 4'];
+const YTDF = [0.85,0.92,1.05,0.88,1.10,0.95,1.02,1.08];
+const YTDL = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'];
+const Q2F = [0.88,1.10,0.95];
+const Q2L = ['Apr','May','Jun'];
+const COMM_RATE = { Southlake:0.18, Meridian:0.185, Atlas:0.16 };
+
+function buildRecs() {
+  const out = { mtd:[], ytd:[], q2:[] };
+  SEED.forEach(([carrier,lob,base,lr]) => {
+    MTDF.forEach((f,i)=>out.mtd.push({carrier,lob,slot:i,bound:+(base*4.3*f).toFixed(3),lr}));
+    YTDF.forEach((f,i)=>out.ytd.push({carrier,lob,slot:i,bound:+(base*f).toFixed(3),lr}));
+    Q2F.forEach((f,i)=>out.q2.push({carrier,lob,slot:i,bound:+(base*f).toFixed(3),lr}));
+  });
+  return out;
+}
+const RECS = buildRecs();
+const F = { period:'mtd', carrier:'all', lob:'all', premMode:'bar' };
+
+function getRecs(){ return RECS[F.period].filter(r=>(F.carrier==='all'||r.carrier===F.carrier)&&(F.lob==='all'||r.lob===F.lob)); }
+
+function agg(recs){
+  let bound=0, lrW=0;
+  recs.forEach(r=>{bound+=r.bound; lrW+=r.bound*r.lr;});
+  const lr = bound>0?lrW/bound*100:0;
+  return {bound, lr};
+}
+function aggBySlot(recs){
+  const labels = F.period==='mtd'?MTDL:F.period==='ytd'?YTDL:Q2L;
+  return labels.map((_,i)=>{
+    const sr = recs.filter(r=>r.slot===i);
+    let bound=0; sr.forEach(r=>bound+=r.bound);
+    return {v:bound};
+  });
+}
+function fUSD(v){ return v>=1 ? '$'+v.toFixed(2)+'M' : '$'+Math.round(v*1000)+'K'; }
+function fPct(v){ return v.toFixed(1)+'%'; }
+
+const PERIOD_META = { mtd:{label:'MTD Aug 2026',chartLabels:MTDL}, ytd:{label:'YTD 2026',chartLabels:YTDL}, q2:{label:'Q2 2026',chartLabels:Q2L} };
+
+const BDX_ITEMS = [
+  {carrier:'Southlake Insurance Co.', type:'Premium Bordereau', period:'Jul 2026', due:'5 Aug', status:'submitted'},
+  {carrier:'Southlake Insurance Co.', type:'Loss Bordereau', period:'Jul 2026', due:'10 Aug', status:'submitted'},
+  {carrier:'Meridian Insurance Group', type:'Premium Bordereau', period:'Jul 2026', due:'8 Aug', status:'pending'},
+  {carrier:'Meridian Insurance Group', type:'Loss Bordereau', period:'Jul 2026', due:'12 Aug', status:'pending'},
+  {carrier:'Atlas Specialty Underwriters', type:'Premium Bordereau', period:'Jun 2026', due:'2 Aug', status:'overdue'},
+  {carrier:'Atlas Specialty Underwriters', type:'Loss Bordereau', period:'Jul 2026', due:'20 Aug', status:'pending'}
+];
+
+function renderKPIs(){
+  const recs=getRecs(), k=agg(recs), pm=PERIOD_META[F.period];
+  const bdxCounts = {submitted:0,pending:0,overdue:0};
+  BDX_ITEMS.forEach(b=>bdxCounts[b.status]++);
+  const utilPct = 74; // credit limit utilization, blended
+  const utilCls = utilPct>=100?'bad':utilPct>=80?'warn':'ok';
+  const utilBarColor = utilPct>=100?'var(--red)':utilPct>=80?'#e65100':'#2e7d32';
+  const defs = [
+    {label:'Bound Premium', cls:'c-bound', value:fUSD(k.bound), delta:'+6.4%', dcls:'up', meta:pm.label},
+    {label:'Bordereau Status', cls:'c-bdx', value:bdxCounts.submitted+'/'+BDX_ITEMS.length+' Submitted', delta:bdxCounts.overdue>0?bdxCounts.overdue+' overdue':'On schedule', dcls:bdxCounts.overdue>0?'down':'up', meta:bdxCounts.pending+' pending review'},
+    {label:'Commission Earned', cls:'c-comm', value:fUSD(k.bound*0.178), delta:'+5.1%', dcls:'up', meta:'Blended rate 17.8%'},
+    {label:'Credit Limit Utilization', cls:'c-credit', value:fPct(utilPct), delta:utilPct>=80?'Approaching cap':'Within limit', dcls:utilPct>=80?'warn':'up', meta:'Aggregate across 3 programs', progress:utilPct, progressColor:utilBarColor},
+    {label:'Sub-Producer Count', cls:'c-sub', value:'47', delta:'+3 this quarter', dcls:'up', meta:'Licensed &amp; appointed'},
+    {label:'Loss Ratio (Contingent)', cls:'c-loss', value:fPct(k.lr), delta:k.lr>55?'Above trigger':'Within band', dcls:k.lr>55?'warn':'up', meta:'Sliding-scale relevant metric'}
+  ];
+  document.getElementById('kpi-row').innerHTML = defs.map(d=>`
+    <div class="kpi-mc ${d.cls}">
+      <div class="kpi-mc-label">${d.label}</div>
+      <div class="kpi-mc-value">${d.value}</div>
+      <div class="kpi-mc-delta ${d.dcls}">${d.dcls==='up'?'↑':d.dcls==='warn'?'→':'↓'} ${d.delta}</div>
+      <div class="kpi-mc-sublabel">${d.meta}</div>
+      ${d.progress!==undefined?`<div class="kpi-progress-bg"><div class="kpi-progress-fill" style="width:${Math.min(d.progress,100)}%;background:${d.progressColor};"></div></div>`:''}
+    </div>`).join('');
+}
+
+function togglePremChart(){
+  F.premMode = F.premMode==='bar'?'line':'bar';
+  document.getElementById('prem-toggle-btn').textContent = F.premMode==='bar'?'Line View':'Bar View';
+  renderPremiumChart();
+}
+function renderPremiumChart(){
+  const slots=aggBySlot(getRecs());
+  const labels=PERIOD_META[F.period].chartLabels;
+  const data=slots.map(s=>+s.v.toFixed(2));
+  document.getElementById('prem-sub').textContent='Bound Premium · '+PERIOD_META[F.period].label;
+  document.getElementById('prem-chart-wrap').innerHTML =
+    F.premMode==='bar'?svgBar(data,labels,{color:'#0d1b4b',accent:'#1565c0',h:150}):svgLine([{data,color:'#0d1b4b',fill:'rgba(13,27,75,.08)'}],labels,{h:150});
+}
+
+function renderCarrierCards(){
+  document.getElementById('carrier-cards').innerHTML = CARRIERS.map(c=>{
+    if (F.carrier!=='all' && F.carrier!==c.id) return '';
+    const recs = RECS.ytd.filter(r=>r.carrier===c.id);
+    const bound = recs.reduce((a,r)=>a+r.bound,0);
+    const util = Math.min(Math.round((bound/c.limit)*100),120);
+    const barColor = util>=100?'var(--red)':util>=80?'#e65100':'#2e7d32';
+    return `<div class="mga-card">
+      <div class="mga-card-hd">
+        <div class="mga-icon" style="background:${c.bg};color:${c.color};">${c.icon}</div>
+        <div><div class="mga-name">${c.name}</div><div class="mga-full">${c.full}</div></div>
+      </div>
+      <div class="mga-stats">
+        <div><div class="mga-stat-lbl">YTD Bound</div><div class="mga-stat-val">${fUSD(bound)}</div></div>
+        <div><div class="mga-stat-lbl">Credit Limit</div><div class="mga-stat-val">${fUSD(c.limit)}</div></div>
+      </div>
+      <div class="mga-bar-bg"><div class="mga-bar-fill" style="width:${Math.min(util,100)}%;background:${barColor};"></div></div>
+      <div class="mga-bar-lbl">${util}% of credit limit utilized</div>
+    </div>`;
+  }).join('');
+}
+
+function renderBdxTable(){
+  const sc = {submitted:'badge-green',pending:'badge-orange',overdue:'badge-red'};
+  const sl = {submitted:'Submitted',pending:'Pending',overdue:'Overdue'};
+  const list = BDX_ITEMS.filter(b=>F.carrier==='all'||b.carrier.indexOf(F.carrier)===0||b.carrier.includes(CARRIERS.find(c=>c.id===F.carrier)?.name.split(' ')[0]||''));
+  document.getElementById('bdx-tbody').innerHTML = list.map(b=>`
+    <tr>
+      <td>${b.carrier}</td>
+      <td>${b.type}</td>
+      <td>${b.period}</td>
+      <td>${b.due}</td>
+      <td><span class="badge ${sc[b.status]}">${sl[b.status]}</span></td>
+      <td><button class="btn btn-outline btn-sm" onclick="showToast('Opening ${b.type} for ${b.carrier}','info')">${b.status==='submitted'?'View':'Submit'}</button></td>
+    </tr>`).join('');
+}
+
+function renderCommTable(){
+  document.getElementById('comm-tbody').innerHTML = CARRIERS.map(c=>{
+    const recs = RECS.ytd.filter(r=>r.carrier===c.id);
+    const bound = recs.reduce((a,r)=>a+r.bound,0);
+    return `<tr>
+      <td>${c.name}</td>
+      <td>${c.structure}</td>
+      <td>${(COMM_RATE[c.id]*100).toFixed(1)}%</td>
+      <td>${c.trigger}</td>
+      <td>${fUSD(bound*COMM_RATE[c.id])}</td>
+    </tr>`;
+  }).join('');
+}
+
+function setFilter(key,val){ F[key]=val; updateAppliedLabel(); renderAll(); }
+function resetFilters(){
+  F.period='mtd'; F.carrier='all'; F.lob='all';
+  document.getElementById('sel-period').value='mtd';
+  document.getElementById('sel-carrier').value='all';
+  document.getElementById('sel-lob').value='all';
+  updateAppliedLabel(); renderAll();
+  showToast('Filters cleared','info');
+}
+function updateAppliedLabel(){
+  const chips=[];
+  if(F.carrier!=='all') chips.push(F.carrier);
+  if(F.lob!=='all') chips.push(F.lob);
+  document.getElementById('fbar-applied').textContent = chips.length ? 'Active filters: '+chips.join(', ') : 'Showing all programs';
+}
+function renderAll(){ renderKPIs(); renderPremiumChart(); renderCarrierCards(); renderBdxTable(); renderCommTable(); }
+function refreshDash(){
+  const t=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('dash-subtitle').textContent = entitySubtitle()+' · Updated '+t;
+  showToast('Dashboard refreshed','success');
+}
+function entitySubtitle(){
+  const entity = getActiveEntity();
+  return (entity?entity.name:'MGA') + ' · Program Manager with Binding Authority';
+}
+
+/* ═══════════════════ SVG CHARTS ═══════════════════ */
+function svgBar(data,labels,opts={}){
+  const h=opts.h||150,w=520,px=28,gap=6;
+  const mx=Math.max(...data)*1.18||1;
+  const n=data.length, bw=(w-px*2-gap*(n-1))/n;
+  const toY=v=>px+(h-px*2)*(1-v/mx);
+  let out='';
+  data.forEach((v,i)=>{
+    const x=px+i*(bw+gap), y=toY(v), bh=h-px-y;
+    const last=i===n-1;
+    out+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(bh,1).toFixed(1)}" rx="3" fill="${last?opts.accent||opts.color:opts.color}" opacity="${last?1:0.72}"/>`;
+    out+=`<text x="${(x+bw/2).toFixed(1)}" y="${(h-7).toFixed(1)}" text-anchor="middle" font-size="9.5" fill="#9aa">${labels[i]}</text>`;
+    if(v>0)out+=`<text x="${(x+bw/2).toFixed(1)}" y="${(y-3).toFixed(1)}" text-anchor="middle" font-size="9" fill="${last?opts.accent||opts.color:'#666'}" font-weight="600">${v.toFixed(1)}</text>`;
+  });
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" style="display:block;">${out}</svg>`;
+}
+function svgLine(datasets,labels,opts={}){
+  const h=opts.h||150,w=520,px=34,py=18;
+  const allV=datasets.flatMap(d=>d.data);
+  const mn=opts.yMin!==undefined?opts.yMin:Math.floor(Math.min(...allV)*0.92);
+  const mx=opts.yMax!==undefined?opts.yMax:Math.ceil(Math.max(...allV)*1.08)||100;
+  const n=labels.length, xS=(w-px*2)/(n>1?n-1:1);
+  const toX=i=>px+i*xS, toY=v=>py+(h-py*2)*(1-(v-mn)/(mx-mn));
+  let out='';
+  datasets.forEach(ds=>{
+    const pts=ds.data.map((v,i)=>`${toX(i).toFixed(1)},${toY(v).toFixed(1)}`).join(' ');
+    const aP=`M${toX(0).toFixed(1)},${toY(ds.data[0]).toFixed(1)} `+
+      ds.data.slice(1).map((v,i)=>`L${toX(i+1).toFixed(1)},${toY(v).toFixed(1)}`).join(' ')+
+      ` L${toX(n-1).toFixed(1)},${toY(mn).toFixed(1)} L${toX(0).toFixed(1)},${toY(mn).toFixed(1)} Z`;
+    out+=`<path d="${aP}" fill="${ds.fill||'transparent'}"/>`;
+    out+=`<polyline points="${pts}" fill="none" stroke="${ds.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    ds.data.forEach((v,i)=>{ out+=`<circle cx="${toX(i).toFixed(1)}" cy="${toY(v).toFixed(1)}" r="2.8" fill="${ds.color}"/>`; });
+  });
+  labels.forEach((l,i)=>{ out+=`<text x="${toX(i).toFixed(1)}" y="${(h-5).toFixed(1)}" text-anchor="middle" font-size="9.5" fill="#9aa">${l}</text>`; });
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" style="display:block;">${out}</svg>`;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('dash-subtitle').textContent = entitySubtitle();
+  updateAppliedLabel();
+  renderAll();
+});
+</script>
+<script>
+  initLayout('dashboard');
+</script>
+</body>
+</html>

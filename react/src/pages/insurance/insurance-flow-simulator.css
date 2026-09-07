@@ -1,0 +1,311 @@
+/* Insurance Accounting Flow Simulator Styles */
+.sim-grid {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 24px;
+  margin-bottom: 24px;
+}
+@media (max-width: 1024px) {
+  .sim-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Model Selector Pills */
+.model-selector-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+  padding: 6px;
+  background: var(--color-surface, #ffffff);
+  border: 1.5px solid var(--color-border, #e5e7eb);
+  border-radius: 10px;
+  width: fit-content;
+  flex-wrap: wrap;
+}
+
+.model-pill {
+  padding: 8px 18px;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: var(--color-muted, #4b5563);
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.model-pill.active {
+  background: #0d1b4b;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(13, 27, 75, 0.25);
+}
+
+.model-pill:hover:not(.active) {
+  background: var(--color-bg, #f3f4f6);
+  color: var(--color-ink, #111827);
+}
+
+/* 4-Tier Chain Summary Banner */
+.chain-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: linear-gradient(135deg, #0d1b4b 0%, #102a2e 100%);
+  color: #fff;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  overflow-x: auto;
+  gap: 12px;
+}
+
+.chain-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 120px;
+}
+
+.chain-node-title {
+  font-size: 10.5px;
+  text-transform: uppercase;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.5px;
+}
+
+.chain-node-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: #fff;
+  margin: 2px 0;
+}
+
+.chain-node-take {
+  font-size: 11px;
+  color: #26a69a;
+  font-weight: 600;
+}
+
+.chain-arrow {
+  font-size: 18px;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 700;
+}
+
+/* Stepper Styling */
+.sim-stepper {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  background: #fff;
+  border: 1.5px solid var(--color-border, #e5e7eb);
+  border-radius: 12px;
+  padding: 20px 16px;
+  margin-bottom: 24px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+  overflow-x: auto;
+  gap: 8px;
+}
+
+.sim-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 6px;
+  flex: 1;
+  min-width: 90px;
+  position: relative;
+  cursor: pointer;
+}
+
+.sim-step::after {
+  content: '';
+  position: absolute;
+  top: 16px;
+  left: calc(50% + 16px);
+  width: calc(100% - 32px);
+  height: 2px;
+  background: #e5e7eb;
+  z-index: 1;
+}
+
+.sim-step:last-child::after {
+  display: none;
+}
+
+.sim-step-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #f3f4f6;
+  border: 2px solid #d1d5db;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  color: #6b7280;
+  font-size: 12.5px;
+  z-index: 2;
+  transition: all 0.3s ease;
+}
+
+.sim-step-label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  transition: all 0.3s ease;
+}
+
+.sim-step-desc {
+  font-size: 9.5px;
+  color: #9ca3af;
+  max-width: 110px;
+  line-height: 1.2;
+}
+
+.sim-step.active .sim-step-icon {
+  background: #e0f2fe;
+  border-color: #0284c7;
+  color: #0369a1;
+  box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.2);
+}
+
+.sim-step.active .sim-step-label {
+  color: #0d1b4b;
+}
+
+.sim-step.completed .sim-step-icon {
+  background: #e8f5e9;
+  border-color: #2e7d32;
+  color: #2e7d32;
+}
+
+.sim-step.completed .sim-step-label {
+  color: #2e7d32;
+}
+
+.sim-step.completed::after {
+  background: #2e7d32;
+}
+
+/* Double Entry Box */
+.ledger-card {
+  background: #0d1b4b;
+  color: #fff;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(13, 27, 75, 0.2);
+  position: relative;
+  overflow: hidden;
+  margin-top: 16px;
+}
+
+.ledger-card::before {
+  content: 'JOURNAL ENTRY PREVIEW';
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-size: 9px;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.25);
+  letter-spacing: 1px;
+}
+
+.ledger-title {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: #26a69a;
+  margin-bottom: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding-bottom: 8px;
+}
+
+.ledger-row {
+  display: grid;
+  grid-template-columns: 2.2fr 1fr 1fr;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: 12.5px;
+  border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+}
+
+.ledger-row:last-child {
+  border-bottom: none;
+}
+
+.ledger-row.header {
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.5);
+  font-size: 10px;
+  border-bottom: 1.5px solid rgba(255, 255, 255, 0.15);
+}
+
+.dr-val {
+  color: #81c784;
+  font-weight: 700;
+  text-align: right;
+}
+
+.cr-val {
+  color: #ffb74d;
+  font-weight: 700;
+  text-align: right;
+}
+
+.dr-indent {
+  padding-left: 16px;
+}
+
+/* Alert / Action Box */
+.role-warning {
+  background: #fff8e1;
+  border: 1px solid #ffe082;
+  border-radius: 8px;
+  padding: 12px;
+  font-size: 12px;
+  color: #b7791f;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+/* Mini Table */
+.mini-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.mini-table th {
+  text-align: left;
+  padding: 8px;
+  background: #f8fafc;
+  color: #64748b;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 10px;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.mini-table td {
+  padding: 8px;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.mini-table tr:last-child td {
+  border-bottom: none;
+}

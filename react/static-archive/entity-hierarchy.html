@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Entity Hierarchy — Structure | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/layout.js"></script>
+</head>
+<body>
+  <main class="main-content" id="main-content">
+
+    <div class="page-header">
+      <div>
+        <div class="page-title">Entity Hierarchy &amp; Consolidation</div>
+        <div class="page-subtitle">Multi-entity structure, intercompany relationships, and consolidated position across every business the tenant runs.</div>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-outline" onclick="showToast('Exporting consolidation workbook...','info')">Export</button>
+        <button class="btn btn-primary" onclick="showToast('New Legal Entity wizard - coming soon','info')">+ New Entity</button>
+      </div>
+    </div>
+
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon si-navy"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="#102a2e" stroke-width="1.6"/></svg></div>
+        <div class="stat-info"><div class="stat-value" id="stat-entity-count">7</div><div class="stat-label">Legal Entities</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-green"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 10l3.5 3.5L15 6" stroke="#2e7d32" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="stat-info"><div class="stat-value">$18.42M</div><div class="stat-label">Consolidated Net Assets</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-orange"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 5v6M10 14v1" stroke="#e65100" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="stat-info"><div class="stat-value">$2.16M</div><div class="stat-label">Intercompany Balances</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-coral"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="#c9791f" stroke-width="1.8"/><path d="M10 7v3l2 2" stroke="#c9791f" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        <div class="stat-info"><div class="stat-value">Nov 30, 2026</div><div class="stat-label">Last Consolidation Run</div></div>
+      </div>
+    </div>
+
+    <div class="tab-panel active" data-panel="insurance" style="margin-top:16px;">
+      <div class="form-card" style="margin-bottom:16px;">
+        <div style="font-size:12.5px;color:var(--gray-600);line-height:1.6;">
+          The insurance distribution chain is modeled as four Party roles sharing one core master-data model:
+          <strong>Insured</strong> → <strong>Agency</strong> → <strong>MGA</strong> → <strong>Carrier</strong>.
+          Each level keeps its own books; premium cash and commission flow down the chain.
+          Expand a node to see its share of a representative $10,000 gross premium placement.
+        </div>
+      </div>
+      <div class="v-tree" id="insurance-tree"></div>
+    </div>
+
+  </main>
+
+  <script src="js/app.js"></script>
+  <script>
+    initLayout('entity-hierarchy');
+
+    const INSURANCE_CHAIN = [
+      { name: 'Insured (Policyholder)', badge: 'Customer', amount: '$10,000', desc: 'Pays $10,000 gross premium for the policy period.', children: [
+        { name: 'Links Insurance Agency', badge: 'Agency', amount: 'Retains $1,000 (10%)', desc: 'Keeps a 10% agency commission; remits $9,000 to the MGA. JE: Dr Cash/Trust, Cr Premium Payable to MGA; Dr Commission Receivable, Cr Commission Income.', children: [
+          { name: 'FUT Program Managers', badge: 'MGA', amount: 'Retains $1,350 (15%)', desc: 'Keeps 15% MGA commission ($1,350); remits $7,650 to the Carrier. Manages binding authority, bordereaux, and credit limits ($2M per carrier, $50M annual aggregate).', children: [
+            { name: 'Southlake Insurance Co.', badge: 'Carrier', amount: 'Retains $7,650 (Net)', desc: 'Books Gross Written Premium; sets up Unearned Premium Reserve, earning 1/12th monthly.', children: [] }
+          ]}
+        ]}
+      ]}
+    ];
+
+    function renderTree(nodes) {
+      return nodes.map(n => `
+        <div class="v-tree-node" onclick="toggleTree(this, event)">
+          <div class="v-tree-row">
+            <span class="v-tree-toggle">${n.children && n.children.length ? '▶' : '•'}</span>
+            <strong>${n.name}</strong>
+            <span class="v-tree-badge">${n.badge}</span>
+            <span class="v-tree-amount">${n.amount}</span>
+          </div>
+          <div class="v-tree-children">
+            <div style="font-size:11.5px;color:var(--gray-500);padding:2px 0 8px;line-height:1.55;">${n.desc}</div>
+            ${n.children && n.children.length ? renderTree(n.children) : ''}
+          </div>
+        </div>`).join('');
+    }
+
+    document.getElementById('insurance-tree').innerHTML = renderTree(INSURANCE_CHAIN);
+    // Open the top node of the tree by default
+    document.querySelectorAll('.v-tree-node').forEach((n, i) => { if (i === 0) n.classList.add('open'); });
+
+    document.getElementById('stat-entity-count').textContent = getTenantConfig().secondaryEntities.length;
+  </script>
+</body>
+</html>

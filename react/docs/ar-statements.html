@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Customer Statements — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Accounts Receivable</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Statements</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-file-lines" style="color: var(--teal);"></i> Customer Billing Statements <span class="file-tag">accounts-receivable.html#ar-statements</span></h1>
+      <p>
+        Generates comprehensive monthly customer statement PDFs summarizing all invoiced policies, applied cash payments, open credits, and remaining balance due for commercial policyholders and broker agencies.
+      </p>
+    </div>
+
+    <div class="module-card">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-teal">PDF Generation</span>
+            <span class="badge badge-blue">Monthly Run</span>
+          </div>
+          <h2 class="module-title">Batch Statement Generation</h2>
+        </div>
+        <a href="../accounts-receivable.html#ar-statements" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Statements</a>
+      </div>
+
+      <p class="section-p">
+        Statements can be filtered by:
+      </p>
+      <ul style="margin-left: 20px; font-size: 13px; color: var(--text-secondary); line-height: 1.8;">
+        <li><strong>Policyholder Name:</strong> E.g. `Ayushi` / `Commercial Insured Corp`.</li>
+        <li><strong>Broker Agency:</strong> E.g. `HIT Agency` / `Links Insurance Agency`.</li>
+        <li><strong>Date Range:</strong> Month-to-date or Year-to-date activity.</li>
+      </ul>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="ar-collections.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">Collections &amp; Dunning</span>
+      </a>
+      <a href="invoices-billing-plans.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Submodule &rarr;</span>
+        <span class="nav-page-title">Invoices &amp; Billing Plans</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('ar-statements');
+</script>
+</body>
+</html>

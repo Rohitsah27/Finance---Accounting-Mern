@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accounts Receivable — AR Hub | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/layout.js"></script>
+  <script src="js/gl-engine.js"></script>
+  <style>
+    .sub-tabbar{display:flex;gap:2px;background:var(--gray-100);border-radius:7px;padding:3px;margin-bottom:18px;width:fit-content;}
+    .sub-tab{padding:6px 16px;font-size:12px;font-weight:600;border-radius:5px;cursor:pointer;color:var(--gray-500);border:none;background:transparent;transition:all .15s;}
+    .sub-tab.active{background:#fff;color:var(--navy);box-shadow:0 1px 4px rgba(0,0,0,.1);}
+    .kpi-strip-5{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;margin-bottom:20px;}
+    @media(max-width:900px){.kpi-strip-5{grid-template-columns:repeat(2,1fr);}}
+    .kpi-tile{background:#fff;border:1.5px solid var(--border);border-radius:9px;padding:14px 16px;}
+    .kpi-tile-lbl{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);}
+    .kpi-tile-val{font-size:22px;font-weight:800;color:var(--navy);margin:4px 0 2px;}
+    .kpi-tile-sub{font-size:11px;color:var(--gray-400);}
+    .kpi-tile-sub.up{color:#2e7d32;} .kpi-tile-sub.warn{color:#e65100;}
+    .pipeline{display:flex;align-items:stretch;gap:0;margin-bottom:20px;border:1.5px solid var(--border);border-radius:9px;overflow:hidden;}
+    .pipe-step{flex:1;padding:14px 12px;text-align:center;position:relative;background:#fff;}
+    .pipe-step+.pipe-step::before{content:'›';position:absolute;left:-10px;top:50%;transform:translateY(-50%);font-size:20px;color:var(--gray-300);font-weight:700;}
+    .pipe-step-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);margin-bottom:6px;}
+    .pipe-step-val{font-size:18px;font-weight:800;color:var(--navy);}
+    .pipe-step-amt{font-size:11px;color:var(--gray-400);margin-top:2px;}
+    .pipe-step.active-pipe{background:#f0f4ff;}
+    .pipe-step.done-pipe{background:#f0faf3;}
+    .pipe-step.warn-pipe{background:#fff8f0;}
+    .tbl-wrap{background:#ffffff;border:1.5px solid var(--border);border-radius:9px;overflow:hidden;}
+    .tbl-hdr{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f8f9fb;border-bottom:1.5px solid var(--border);}
+    .tbl-hdr-title{font-size:13px;font-weight:700;color:var(--navy);}
+    .tbl-wrap table{width:100%;border-collapse:collapse;}
+    .tbl-wrap th{background:#f8f9fb;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-500);padding:8px 12px;border-bottom:1.5px solid var(--border);white-space:nowrap;}
+    .tbl-wrap td{font-size:12.5px;color:var(--gray-700);padding:9px 12px;border-bottom:1px solid var(--gray-100);vertical-align:middle;}
+    .tbl-wrap tr:last-child td{border-bottom:none;}
+    .tbl-wrap tr:hover td{background:#fafbff;}
+    .chip{display:inline-block;font-size:10px;font-weight:700;border-radius:4px;padding:2px 8px;text-transform:uppercase;}
+    .chip-green{background:#e8f5e9;color:#2e7d32;}
+    .chip-blue{background:#e3f2fd;color:#1565c0;}
+    .chip-orange{background:#fff3e0;color:#e65100;}
+    .chip-red{background:#ffebee;color:#c62828;}
+    .ar-bottom{display:grid;grid-template-columns:1fr 280px;gap:16px;align-items:start;}
+    @media(max-width:900px){.ar-bottom{grid-template-columns:1fr;}}
+    .donut-wrap{background:#fff;border:1.5px solid var(--border);border-radius:9px;padding:16px;text-align:center;}
+    .donut-legend{display:flex;flex-direction:column;gap:8px;margin-top:12px;text-align:left;}
+    .donut-leg-row{display:flex;align-items:center;gap:8px;font-size:12px;}
+    .donut-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+  </style>
+</head>
+<body>
+<main class="main-content" id="main-content">
+
+  <div class="page-header" style="margin-bottom:16px;">
+    <div>
+      <div class="page-title">Accounts Receivable</div>
+      <div class="page-subtitle">Veridex Finance System · Period: May 2026</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline btn-sm" id="ar-toggle-analytics-btn" onclick="toggleArAnalytics()">Show Analytics</button>
+      <button class="btn btn-outline btn-sm" onclick="handleHeaderExport(this)">Export</button>
+      <button class="btn btn-primary btn-sm" onclick="addNewInvoice(this)">+ New Invoice</button>
+    </div>
+  </div>
+
+  <div id="ar-analytics-section" style="display:none;margin-top:16px;">
+  <!-- KPI Strip -->
+  <div class="kpi-strip-5">
+    <div class="kpi-tile">
+      <div class="kpi-tile-lbl">Outstanding AR</div>
+      <div class="kpi-tile-val">$1,241,800</div>
+      <div class="kpi-tile-sub">52 open invoices</div>
+    </div>
+    <div class="kpi-tile">
+      <div class="kpi-tile-lbl">Collected MTD</div>
+      <div class="kpi-tile-val" style="color:#2e7d32;">$469,500</div>
+      <div class="kpi-tile-sub up">↑ 8.4% vs prior month</div>
+    </div>
+    <div class="kpi-tile">
+      <div class="kpi-tile-lbl">Overdue &gt; 60 Days</div>
+      <div class="kpi-tile-val" style="color:#c62828;">$87,400</div>
+      <div class="kpi-tile-sub warn">6 accounts</div>
+    </div>
+    <div class="kpi-tile">
+      <div class="kpi-tile-lbl">Avg Days Outstanding</div>
+      <div class="kpi-tile-val">24</div>
+      <div class="kpi-tile-sub up">↓ 3 days vs prior</div>
+    </div>
+    <div class="kpi-tile">
+      <div class="kpi-tile-lbl">Collection Rate</div>
+      <div class="kpi-tile-val" style="color:#2e7d32;">94.2%</div>
+      <div class="kpi-tile-sub up">↑ 1.1 pts vs prior</div>
+    </div>
+  </div>
+
+  <!-- Collection Pipeline -->
+  <div style="font-size:12px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.4px;margin-bottom:8px;">Collection Pipeline</div>
+  <div class="pipeline">
+    <div class="pipe-step active-pipe">
+      <div class="pipe-step-lbl">Invoiced</div>
+      <div class="pipe-step-val">52</div>
+      <div class="pipe-step-amt">$1,241,800</div>
+    </div>
+    <div class="pipe-step active-pipe">
+      <div class="pipe-step-lbl">Partial Payment</div>
+      <div class="pipe-step-val">8</div>
+      <div class="pipe-step-amt">$142,600</div>
+    </div>
+    <div class="pipe-step done-pipe">
+      <div class="pipe-step-lbl">Collected</div>
+      <div class="pipe-step-val">214</div>
+      <div class="pipe-step-amt">$4.4M YTD</div>
+    </div>
+    <div class="pipe-step warn-pipe">
+      <div class="pipe-step-lbl">Overdue</div>
+      <div class="pipe-step-val">6</div>
+      <div class="pipe-step-amt">$87,400</div>
+    </div>
+  </div>
+
+  <!-- AR Charts Row -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;">
+
+    <!-- Monthly Collections Trend -->
+    <div style="background:#fff;border:1.5px solid var(--border);border-radius:9px;padding:16px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="font-size:12px;font-weight:700;color:var(--navy);">Monthly Collections - 2026</div>
+        <div style="font-size:10.5px;color:var(--gray-400);">Jan – May</div>
+      </div>
+      <svg viewBox="0 0 380 110" width="100%" height="110" style="overflow:visible;">
+        <line x1="36" y1="10" x2="36" y2="86" stroke="#e5e7eb" stroke-width="1"/>
+        <line x1="36" y1="10" x2="368" y2="10" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="4,3"/>
+        <line x1="36" y1="34" x2="368" y2="34" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="4,3"/>
+        <line x1="36" y1="58" x2="368" y2="58" stroke="#e5e7eb" stroke-width="1" stroke-dasharray="4,3"/>
+        <line x1="36" y1="86" x2="368" y2="86" stroke="#e5e7eb" stroke-width="1"/>
+        <text x="30" y="14" text-anchor="end" font-size="9" fill="#9ca3af">600K</text>
+        <text x="30" y="38" text-anchor="end" font-size="9" fill="#9ca3af">400K</text>
+        <text x="30" y="62" text-anchor="end" font-size="9" fill="#9ca3af">200K</text>
+        <text x="30" y="90" text-anchor="end" font-size="9" fill="#9ca3af">0</text>
+        <!-- Jan 280K → h=280/600*76=35.5≈36 → y=50 -->
+        <rect x="42"  y="50" width="44" height="36" rx="3" fill="#1565c0" opacity=".75"/>
+        <!-- Feb 318K → h=318/600*76=40.3≈40 → y=46 -->
+        <rect x="108" y="46" width="44" height="40" rx="3" fill="#1565c0" opacity=".8"/>
+        <!-- Mar 385K → h=385/600*76=48.8≈49 → y=37 -->
+        <rect x="174" y="37" width="44" height="49" rx="3" fill="#1565c0" opacity=".85"/>
+        <!-- Apr 425K → h=425/600*76=53.8≈54 → y=32 -->
+        <rect x="240" y="32" width="44" height="54" rx="3" fill="#1565c0" opacity=".9"/>
+        <!-- May 469K → h=469/600*76=59.4≈59 → y=27 (current) -->
+        <rect x="306" y="27" width="44" height="59" rx="3" fill="#2e7d32"/>
+        <!-- trend line -->
+        <polyline points="64,50 130,46 196,37 262,32 328,27" fill="none" stroke="#2e7d32" stroke-width="1.5" stroke-dasharray="3,2" opacity=".6"/>
+        <text x="64"  y="47" text-anchor="middle" font-size="9" fill="#6b7280">$280K</text>
+        <text x="130" y="43" text-anchor="middle" font-size="9" fill="#6b7280">$318K</text>
+        <text x="196" y="34" text-anchor="middle" font-size="9" fill="#6b7280">$385K</text>
+        <text x="262" y="29" text-anchor="middle" font-size="9" fill="#6b7280">$425K</text>
+        <text x="328" y="24" text-anchor="middle" font-size="9" font-weight="700" fill="#2e7d32">$469K</text>
+        <text x="64"  y="100" text-anchor="middle" font-size="10" fill="#6b7280">Jan</text>
+        <text x="130" y="100" text-anchor="middle" font-size="10" fill="#6b7280">Feb</text>
+        <text x="196" y="100" text-anchor="middle" font-size="10" fill="#6b7280">Mar</text>
+        <text x="262" y="100" text-anchor="middle" font-size="10" fill="#6b7280">Apr</text>
+        <text x="328" y="100" text-anchor="middle" font-size="10" font-weight="700" fill="#2e7d32">May</text>
+      </svg>
+      <div style="display:flex;gap:14px;margin-top:4px;">
+        <div style="display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--gray-500);"><span style="width:10px;height:10px;border-radius:2px;background:#1565c0;display:inline-block;"></span>Prior months</div>
+        <div style="display:flex;align-items:center;gap:5px;font-size:10.5px;color:var(--gray-500);"><span style="width:10px;height:10px;border-radius:2px;background:#2e7d32;display:inline-block;"></span>Current month</div>
+      </div>
+    </div>
+
+    <!-- AR Aging Distribution + DSO -->
+    <div style="background:#fff;border:1.5px solid var(--border);border-radius:9px;padding:16px;">
+      <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:14px;">AR Aging Distribution &amp; DSO Trend</div>
+      <div style="display:flex;align-items:center;gap:18px;margin-bottom:16px;">
+        <!-- Proper donut chart using single-arc approach -->
+        <svg viewBox="0 0 130 130" width="130" height="130" style="flex-shrink:0;">
+          <!-- r=46, circumference=2π×46=289.0 -->
+          <!-- 0-30 days: 58% → dasharray=167.6 289.0, offset=0 -->
+          <circle cx="65" cy="65" r="46" fill="none" stroke="#2e7d32" stroke-width="22" stroke-dasharray="167.6 289.0" stroke-dashoffset="72.3" transform="rotate(-90 65 65)"/>
+          <!-- 31-60 days: 22% → 63.6, offset=-(167.6) → -167.6 → dashoffset=72.3-167.6=-95.3 → 289-95.3=193.7 (use positive via rotate) -->
+          <circle cx="65" cy="65" r="46" fill="none" stroke="#e65100" stroke-width="22" stroke-dasharray="63.6 289.0" stroke-dashoffset="-95.3" transform="rotate(-90 65 65)"/>
+          <!-- 61-90 days: 13% → 37.6, offset=-(167.6+63.6)=-231.2 -->
+          <circle cx="65" cy="65" r="46" fill="none" stroke="#c62828" stroke-width="22" stroke-dasharray="37.6 289.0" stroke-dashoffset="-231.2" transform="rotate(-90 65 65)"/>
+          <!-- 90+ days: 7% → 20.2, offset=-(231.2+37.6)=-268.8 -->
+          <circle cx="65" cy="65" r="46" fill="none" stroke="#6a1b9a" stroke-width="22" stroke-dasharray="20.2 289.0" stroke-dashoffset="-268.8" transform="rotate(-90 65 65)"/>
+          <text x="65" y="61" text-anchor="middle" font-size="13" font-weight="800" fill="#0d1b4b">$1.2M</text>
+          <text x="65" y="75" text-anchor="middle" font-size="8.5" fill="#9ca3af">Total AR</text>
+        </svg>
+        <div style="flex:1;">
+          <div style="display:flex;align-items:center;gap:7px;font-size:12px;margin-bottom:8px;"><span style="width:11px;height:11px;border-radius:50%;background:#2e7d32;flex-shrink:0;"></span><span style="flex:1;">0–30 days</span><span style="font-weight:700;">58% · $720K</span></div>
+          <div style="display:flex;align-items:center;gap:7px;font-size:12px;margin-bottom:8px;"><span style="width:11px;height:11px;border-radius:50%;background:#e65100;flex-shrink:0;"></span><span style="flex:1;">31–60 days</span><span style="font-weight:700;">22% · $273K</span></div>
+          <div style="display:flex;align-items:center;gap:7px;font-size:12px;margin-bottom:8px;"><span style="width:11px;height:11px;border-radius:50%;background:#c62828;flex-shrink:0;"></span><span style="flex:1;">61–90 days</span><span style="font-weight:700;">13% · $161K</span></div>
+          <div style="display:flex;align-items:center;gap:7px;font-size:12px;"><span style="width:11px;height:11px;border-radius:50%;background:#6a1b9a;flex-shrink:0;"></span><span style="flex:1;">90+ days</span><span style="font-weight:700;">7% · $87K</span></div>
+        </div>
+      </div>
+      <!-- DSO Trend mini bar chart -->
+      <div style="font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px;">DSO Trend (Days Sales Outstanding)</div>
+      <div style="display:flex;align-items:flex-end;gap:8px;">
+        <div style="flex:1;text-align:center;"><div style="background:#1565c0;border-radius:3px 3px 0 0;height:28px;opacity:.6;"></div><div style="font-size:10px;color:#6b7280;margin-top:3px;">Jan<br><b style="color:#0d1b4b;">29</b></div></div>
+        <div style="flex:1;text-align:center;"><div style="background:#1565c0;border-radius:3px 3px 0 0;height:26px;opacity:.7;"></div><div style="font-size:10px;color:#6b7280;margin-top:3px;">Feb<br><b style="color:#0d1b4b;">27</b></div></div>
+        <div style="flex:1;text-align:center;"><div style="background:#1565c0;border-radius:3px 3px 0 0;height:25px;opacity:.8;"></div><div style="font-size:10px;color:#6b7280;margin-top:3px;">Mar<br><b style="color:#0d1b4b;">26</b></div></div>
+        <div style="flex:1;text-align:center;"><div style="background:#1565c0;border-radius:3px 3px 0 0;height:24px;opacity:.9;"></div><div style="font-size:10px;color:#6b7280;margin-top:3px;">Apr<br><b style="color:#0d1b4b;">25</b></div></div>
+        <div style="flex:1;text-align:center;"><div style="background:#2e7d32;border-radius:3px 3px 0 0;height:23px;"></div><div style="font-size:10px;color:#6b7280;margin-top:3px;">May<br><b style="color:#2e7d32;">24</b></div></div>
+        <div style="font-size:10px;color:#6b7280;padding-bottom:20px;">days</div>
+      </div>
+    </div>
+
+  </div>
+  </div> <!-- End of Analytics Section -->
+
+  <!-- Sub-tabs -->
+  <div class="sub-tabbar">
+    <button class="sub-tab active" onclick="switchTab('ar-register',this)">Receivables Register</button>
+    <button class="sub-tab" onclick="switchTab('ar-aging',this)">AR Aging</button>
+    <button class="sub-tab" onclick="switchTab('ar-collections',this)">Collections</button>
+    <button class="sub-tab" onclick="switchTab('ar-statements',this)">Statements</button>
+  </div>
+
+  <!-- RECEIVABLES REGISTER -->
+  <div id="ar-register">
+    <div class="ar-bottom" style="display:block;">
+      <div class="tbl-wrap">
+        <div class="tbl-hdr">
+          <span class="tbl-hdr-title">Receivables Register</span>
+          <div style="display:flex;gap:8px;">
+            <input class="filter-input" placeholder="Search…" data-filter-input="ar-table" style="width:180px;">
+            <button class="btn btn-outline btn-sm" onclick="exportTableCSV('ar-table','ar-register.csv')">Export</button>
+          </div>
+        </div>
+        <table class="data-table" id="ar-table">
+          <thead><tr><th>Invoice #</th><th>Partner / Agent</th><th class="text-right">Invoice Amt</th><th class="text-right">Paid</th><th class="text-right">Balance</th><th>Due Date</th><th>Days Out</th><th>Status</th><th>Action</th></tr></thead>
+          <tbody>
+            <!-- Rendered dynamically from localStorage -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- AR AGING TAB -->
+  <div id="ar-aging" style="display:none;">
+    <div style="display:block;">
+      <div class="tbl-wrap">
+        <div class="tbl-hdr"><span class="tbl-hdr-title">AR Aging Summary by Partner</span></div>
+        <table class="data-table">
+          <thead><tr><th>Partner / Agent</th><th class="text-right">0–30 Days</th><th class="text-right">31–60 Days</th><th class="text-right">61–90 Days</th><th class="text-right">90+ Days</th><th class="text-right">Total</th></tr></thead>
+          <tbody>
+            <tr><td class="font-semibold">RSA Partners</td><td class="text-right" style="color:#2e7d32;">$420,000</td><td class="text-right">$0</td><td class="text-right">$0</td><td class="text-right">$0</td><td class="text-right font-semibold">$420,000</td></tr>
+            <tr><td class="font-semibold">LMI Associates</td><td class="text-right" style="color:#2e7d32;">$180,000</td><td class="text-right" style="color:#e65100;">$80,000</td><td class="text-right">$0</td><td class="text-right">$0</td><td class="text-right font-semibold">$260,000</td></tr>
+            <tr><td class="font-semibold">Nationwide Partners</td><td class="text-right" style="color:#2e7d32;">$128,400</td><td class="text-right">$0</td><td class="text-right">$0</td><td class="text-right">$0</td><td class="text-right font-semibold">$128,400</td></tr>
+            <tr><td class="font-semibold">AXIS Direct</td><td class="text-right">$0</td><td class="text-right" style="color:#e65100;">$57,100</td><td class="text-right">$0</td><td class="text-right">$0</td><td class="text-right font-semibold">$57,100</td></tr>
+            <tr><td class="font-semibold">Mega Insurance Group</td><td class="text-right">$0</td><td class="text-right">$0</td><td class="text-right" style="color:#c62828;">$44,200</td><td class="text-right" style="color:#6a1b9a;">$43,200</td><td class="text-right font-semibold">$87,400</td></tr>
+            <tr><td class="font-semibold">State Farm Agency</td><td class="text-right">$0</td><td class="text-right">$0</td><td class="text-right" style="color:#c62828;">$38,100</td><td class="text-right" style="color:#6a1b9a;">$0</td><td class="text-right font-semibold">$38,100</td></tr>
+            <tr style="font-weight:700;background:#f8f9fb;border-top:2px solid var(--border);">
+              <td style="color:var(--navy);">Total</td>
+              <td class="text-right" style="color:#2e7d32;">$728,400</td>
+              <td class="text-right" style="color:#e65100;">$137,100</td>
+              <td class="text-right" style="color:#c62828;">$82,300</td>
+              <td class="text-right" style="color:#6a1b9a;">$43,200</td>
+              <td class="text-right" style="color:var(--navy);">$991,000</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- COLLECTIONS TAB -->
+  <div id="ar-collections" style="display:none;">
+    <div class="tbl-wrap">
+      <div class="tbl-hdr">
+        <span class="tbl-hdr-title">Collections Activity</span>
+        <button class="btn btn-primary btn-sm" onclick="logCollectionAction(this)">+ Log Action</button>
+      </div>
+      <table class="data-table" id="ar-collections-table">
+        <thead><tr><th>Invoice #</th><th>Partner</th><th class="text-right">Balance</th><th>Days Overdue</th><th>Last Contact</th><th>Action Taken</th><th>Next Step</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td class="font-semibold">AR-2026-0228</td><td>Mega Insurance Group</td><td class="text-right" style="color:#c62828;">$44,200</td><td style="color:#c62828;font-weight:600;">67</td><td>05/18/2026</td><td>Email + Call</td><td>Legal Notice</td><td><span class="chip chip-red">Critical</span></td></tr>
+          <tr><td class="font-semibold">AR-2026-0234</td><td>State Farm Agency</td><td class="text-right" style="color:#c62828;">$38,100</td><td style="color:#c62828;font-weight:600;">60</td><td>05/20/2026</td><td>Email sent</td><td>Follow-up call</td><td><span class="chip chip-red">Overdue</span></td></tr>
+          <tr><td class="font-semibold">AR-2026-0215</td><td>AXIS Direct</td><td class="text-right" style="color:#e65100;">$14,275</td><td style="color:#e65100;">6</td><td>05/21/2026</td><td>Invoice resent</td><td>Awaiting payment</td><td><span class="chip chip-orange">Partial</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- STATEMENTS TAB -->
+  <div id="ar-statements" style="display:none;">
+    <div class="tbl-wrap">
+      <div class="tbl-hdr">
+        <span class="tbl-hdr-title">Account Statements</span>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-outline btn-sm" onclick="generateAllStatements(this)">Generate All</button>
+          <button class="btn btn-primary btn-sm" onclick="emailAllStatements(this)">Email All</button>
+        </div>
+      </div>
+      <table class="data-table" id="ar-statements-table">
+        <thead><tr><th>Partner</th><th>Statement Period</th><th class="text-right">Opening Balance</th><th class="text-right">Invoiced</th><th class="text-right">Payments</th><th class="text-right">Closing Balance</th><th>Generated</th><th>Action</th></tr></thead>
+        <tbody>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<script src="js/reports-utils.js"></script>
+<script src="js/app.js"></script>
+<script>
+  initLayout('accounts-receivable');
+  renderImportResultBanner('customer');
+
+  const AR_PANELS = ['ar-register','ar-aging','ar-collections','ar-statements'];
+
+  const fmtM = n => '$' + Math.round(n).toLocaleString('en-US');
+
+  function handleHeaderExport(btn) {
+    btn.disabled = true;
+    const original = btn.textContent;
+    btn.textContent = 'Exporting…';
+    showToast('Exporting AR register…', 'info');
+    setTimeout(() => {
+      btn.textContent = 'Exported ✓';
+      showToast('AR export ready for download', 'success');
+      setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 1500);
+    }, 800);
+  }
+
+  function today() {
+    return new Date().toLocaleDateString('en-US', {month: '2-digit', day: '2-digit', year: 'numeric'});
+  }
+  function dueIn30Days() {
+    return new Date(Date.now() + 30*24*60*60*1000).toLocaleDateString('en-US', {month: '2-digit', day: '2-digit', year: 'numeric'});
+  }
+
+  function getARInvoicesKey() {
+    const active = typeof getActiveEntity === 'function' ? getActiveEntity() : null;
+    const bType = active ? active.businessType : 'mga';
+    return bType + '_pas_invoices';
+  }
+
+  function getARInvoices() {
+    let stored = JSON.parse(localStorage.getItem(getARInvoicesKey()) || '[]');
+    stored = stored.filter(inv => inv.type !== 'Carrier Payable');
+    
+    // Resolve MGA name dynamically
+    let mgaName = 'My Business (MGA)';
+    try {
+      const mgaRaw = localStorage.getItem('mga_v_tenant_config');
+      if (mgaRaw) {
+        const mgaCfg = JSON.parse(mgaRaw);
+        if (mgaCfg.companyName) mgaName = mgaCfg.companyName;
+      }
+    } catch(e) {}
+
+    const active = typeof getActiveEntity === 'function' ? getActiveEntity() : null;
+    const isCarrier = active ? active.businessType === 'carrier' : false;
+    const isOnboard = typeof isOnboarded === 'function' ? isOnboarded() : false;
+
+    const defaults = isOnboard ? [] : (isCarrier ? [
+      { id: 'INV-V8NHT-1', policyNum: 'POL-V8NHT', customer: 'NTA', type: 'Commercial Trucking Premium', amount: 29757.00, paidAmount: 0, status: 'Sent', issueDate: '08/20/2026', dueDate: '09/19/2026' },
+      { id: 'REC-MGA-001', policyNum: 'POL-2026-0428', customer: mgaName, type: 'Premium', amount: 71621.00, paidAmount: 0, status: 'Sent', issueDate: '05/14/2026', dueDate: '06/14/2026' },
+      { id: 'REC-MGA-002', policyNum: 'POL-2026-1934', customer: mgaName, type: 'Premium', amount: 41004.00, paidAmount: 0, status: 'Sent', issueDate: '05/13/2026', dueDate: '06/13/2026' }
+    ] : [
+      { id: 'INV-V8NHT-1', policyNum: 'POL-V8NHT', customer: 'Ayushi', type: 'Commercial Trucking Premium', amount: 39260.00, paidAmount: 0, status: 'Sent', issueDate: '08/20/2026', dueDate: '09/19/2026' },
+      { id: 'AR-2026-0241', customer: 'Nationwide Partners', amount: 128400, paidAmount: 0, status: 'Sent', issueDate: '05/10/2026', dueDate: '06/10/2026' },
+      { id: 'AR-2026-0234', customer: 'State Farm Agency', amount: 38100, paidAmount: 0, status: 'Overdue', issueDate: '03/22/2026', dueDate: '04/22/2026' }
+    ]);
+    
+    const merged = [...stored];
+    defaults.forEach(d => {
+      if (!merged.some(m => m.id === d.id)) {
+        merged.push(d);
+      }
+    });
+    return merged;
+  }
+
+  function addNewInvoice(btn) {
+    const partner = (prompt('Partner / Agent name for new invoice:', 'RSA Partners') || '').trim();
+    if (!partner) return;
+    const amount = parseFloat(prompt('Invoice amount ($):', '10000')) || 0;
+    if (amount <= 0) return;
+
+    let stored = JSON.parse(localStorage.getItem(getARInvoicesKey()) || '[]');
+    const nextNum = 200 + Math.floor(Math.random() * 800);
+    const invoiceId = `AR-2026-${nextNum}`;
+
+    stored.unshift({
+      id: invoiceId,
+      policyNum: 'POL-2026-' + Math.floor(1000 + Math.random() * 9000),
+      customer: partner,
+      type: 'Premium',
+      issueDate: today(),
+      dueDate: dueIn30Days(),
+      amount: amount,
+      paidAmount: 0,
+      status: 'Sent'
+    });
+    localStorage.setItem(getARInvoicesKey(), JSON.stringify(stored));
+    
+    if (typeof createJournalEntry === 'function') {
+      let je = createJournalEntry({
+        description: 'Premium Invoice Manual: ' + partner + ' (' + invoiceId + ')',
+        lines: [
+          { acct: '1100', debit: amount, credit: 0, desc: 'Premium receivable manual' },
+          { acct: '4100', debit: 0, credit: amount, desc: 'Written premium manual' }
+        ]
+      });
+      submitJournalEntry(je.id);
+    }
+    
+    showToast(`Invoice ${invoiceId} created for ${partner}`, 'success');
+    renderAR();
+  }
+
+  function openRecordPaymentModal(invoiceId, balance) {
+    document.getElementById('pay-inv-id').value = invoiceId;
+    document.getElementById('pay-inv-id-display').value = invoiceId;
+    document.getElementById('pay-inv-bal-display').value = balance.toFixed(2);
+    document.getElementById('pay-recv-amt').value = balance.toFixed(2);
+    document.getElementById('ar-payment-modal').classList.add('open');
+  }
+
+  function closeRecordPaymentModal() {
+    document.getElementById('ar-payment-modal').classList.remove('open');
+  }
+
+  function submitRecordPayment() {
+    const invoiceId = document.getElementById('pay-inv-id').value;
+    const paid = parseFloat(document.getElementById('pay-recv-amt').value || 0);
+    if (paid <= 0) {
+      showToast('Payment amount must be greater than zero', 'error');
+      return;
+    }
+    
+    let invoices = JSON.parse(localStorage.getItem(getARInvoicesKey()) || '[]');
+    let target = invoices.find(inv => inv.id === invoiceId);
+    let customerName = target ? target.customer : 'Agent / Partner';
+    let policyNum = target ? target.policyNum : 'POL-2026';
+    
+    if (target) {
+      target.paidAmount = (target.paidAmount || 0) + paid;
+      target.status = (Math.abs(target.amount - target.paidAmount) < 0.01 || target.paidAmount >= target.amount) ? 'Paid' : 'Partial';
+      localStorage.setItem(getARInvoicesKey(), JSON.stringify(invoices));
+    } else {
+      invoices.unshift({
+        id: invoiceId,
+        policyNum: policyNum,
+        customer: customerName,
+        type: 'Premium',
+        issueDate: today(),
+        dueDate: today(),
+        amount: paid,
+        paidAmount: paid,
+        status: 'Paid'
+      });
+      localStorage.setItem(getARInvoicesKey(), JSON.stringify(invoices));
+    }
+    
+    // If Agency/Broker receiving money, ensure MGA Payable is created and ready in Accounts Payable
+    const active = typeof getActiveEntity === 'function' ? getActiveEntity() : null;
+    const isAgency = active ? (active.businessType === 'agency' || active.businessType === 'broker' || active.id === 'ENT-AGY-01') : false;
+    if (isAgency) {
+      let agencyInvoices = JSON.parse(localStorage.getItem('agency_pas_invoices') || '[]');
+      let existingPay = agencyInvoices.find(i => i.policyNum === policyNum && (i.type === 'MGA Payable' || (i.type && i.type.includes('Payable'))));
+      if (!existingPay) {
+        // Gross minus estimated 8-10% or $2,500 commission
+        const commAmt = 2500;
+        const netToMGA = paid > commAmt ? (paid - commAmt) : (paid * 0.9);
+        agencyInvoices.unshift({
+          id: 'PAY-MGA-' + Math.floor(1000 + Math.random() * 9000),
+          policyNum: policyNum,
+          customer: 'NTA',
+          type: 'MGA Payable',
+          issueDate: today(),
+          dueDate: dueIn30Days(),
+          amount: netToMGA,
+          paidAmount: 0,
+          status: 'Approved',
+          category: 'MGA Settlement',
+          glAcct: '2200',
+          method: 'ACH'
+        });
+        localStorage.setItem('agency_pas_invoices', JSON.stringify(agencyInvoices));
+      }
+    }
+
+    // Native GL Entry for Payment
+    if (typeof createJournalEntry === 'function') {
+      createJournalEntry({
+        entityId: active ? active.id : undefined,
+        description: 'Payment Receipt: ' + customerName + ' (' + invoiceId + ')',
+        lines: [
+          { acct: '1001', debit: paid, credit: 0, desc: 'Premium receipt — ' + customerName, dims: { location: 'HQ' } },
+          { acct: '1100', debit: 0, credit: paid, desc: 'Clear Premium Receivable — ' + customerName, dims: { broker: active ? active.name : 'HIT' } }
+        ]
+      }, 'draft');
+    }
+    
+    const bankKey = (active ? active.businessType : 'mga') + '_pas_bank_txns';
+    let bankTxns = JSON.parse(localStorage.getItem(bankKey) || localStorage.getItem('pas_bank_txns') || '[]');
+    bankTxns.unshift({
+      date: new Date().toISOString().split('T')[0],
+      desc: 'ACH Premium ' + customerName,
+      amount: paid
+    });
+    localStorage.setItem(bankKey, JSON.stringify(bankTxns));
+    localStorage.setItem('pas_bank_txns', JSON.stringify(bankTxns));
+    
+    showToast('Payment of $' + paid.toLocaleString() + ' posted. Ledger updated.', 'success');
+    closeRecordPaymentModal();
+    renderAR();
+  }
+
+  function renderAR() {
+    const invoices = getARInvoices();
+    
+    let totalAR = 0;
+    let collectedMTD = 0;
+    let overdueAmt = 0;
+    let totalInvoiced = 0;
+    let openCount = 0;
+    let overdueCount = 0;
+    
+    let aging0_30 = 0;
+    let aging31_60 = 0;
+    let aging61_90 = 0;
+    let aging90_plus = 0;
+    
+    let partnerAging = {};
+    
+    invoices.forEach(inv => {
+      const amt = Number(inv.amount || 0);
+      const paid = Number(inv.paidAmount || 0);
+      const bal = amt - paid;
+      
+      totalInvoiced += amt;
+      collectedMTD += paid;
+      
+      const cName = inv.customer;
+      if (!partnerAging[cName]) {
+        partnerAging[cName] = { name: cName, a0_30: 0, a31_60: 0, a61_90: 0, a90_plus: 0, total: 0 };
+      }
+      
+      if (bal > 0) {
+        totalAR += bal;
+        openCount++;
+        
+        const due = new Date(inv.dueDate);
+        const diffTime = new Date() - due;
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        
+        let isOverdue = diffDays > 0 || inv.status === 'Overdue';
+        if (isOverdue) {
+          overdueAmt += bal;
+          overdueCount++;
+        }
+        
+        if (diffDays <= 0) {
+          aging0_30 += bal;
+          partnerAging[cName].a0_30 += bal;
+        } else if (diffDays <= 30) {
+          aging0_30 += bal;
+          partnerAging[cName].a0_30 += bal;
+        } else if (diffDays <= 60) {
+          aging31_60 += bal;
+          partnerAging[cName].a31_60 += bal;
+        } else if (diffDays <= 90) {
+          aging61_90 += bal;
+          partnerAging[cName].a61_90 += bal;
+        } else {
+          aging90_plus += bal;
+          partnerAging[cName].a90_plus += bal;
+        }
+        
+        partnerAging[cName].total += bal;
+      }
+    });
+    
+    const collectionRate = totalInvoiced > 0 ? ((collectedMTD / totalInvoiced) * 100) : 100;
+    
+    const tiles = document.querySelectorAll('.kpi-tile');
+    if (tiles.length >= 5) {
+      tiles[0].querySelector('.kpi-tile-val').textContent = fmtM(totalAR);
+      tiles[0].querySelector('.kpi-tile-sub').textContent = openCount + ' open invoices';
+      tiles[1].querySelector('.kpi-tile-val').textContent = fmtM(collectedMTD);
+      tiles[2].querySelector('.kpi-tile-val').textContent = fmtM(overdueAmt);
+      tiles[2].querySelector('.kpi-tile-sub').textContent = overdueCount + ' account(s)';
+      tiles[4].querySelector('.kpi-tile-val').textContent = collectionRate.toFixed(1) + '%';
+    }
+    
+    const steps = document.querySelectorAll('.pipe-step-val');
+    const stepAmts = document.querySelectorAll('.pipe-step-amt');
+    if (steps.length >= 4) {
+      steps[0].textContent = invoices.length;
+      stepAmts[0].textContent = fmtM(totalInvoiced);
+      
+      const partials = invoices.filter(i => i.status === 'Partial');
+      steps[1].textContent = partials.length;
+      stepAmts[1].textContent = fmtM(partials.reduce((sum, i) => sum + (i.amount - i.paidAmount), 0));
+      
+      const paids = invoices.filter(i => i.status === 'Paid');
+      steps[2].textContent = paids.length;
+      stepAmts[2].textContent = fmtM(collectedMTD) + ' YTD';
+      
+      steps[3].textContent = overdueCount;
+      stepAmts[3].textContent = fmtM(overdueAmt);
+    }
+    
+    const tbody = document.querySelector('#ar-table tbody');
+    if (tbody) {
+      tbody.innerHTML = invoices.map(inv => {
+        const amt = Number(inv.amount || 0);
+        const paid = Number(inv.paidAmount || 0);
+        const bal = amt - paid;
+        
+        let chipClass = 'chip-blue';
+        let statusLabel = inv.status;
+        if (bal === 0) { chipClass = 'chip-green'; statusLabel = 'Paid'; }
+        else if (paid > 0) { chipClass = 'chip-orange'; statusLabel = 'Partial'; }
+        else if (inv.status === 'Overdue') { chipClass = 'chip-red'; statusLabel = 'Overdue'; }
+        else {
+          const dueDate = new Date(inv.dueDate);
+          if (dueDate < new Date()) { chipClass = 'chip-red'; statusLabel = 'Overdue'; }
+          else { chipClass = 'chip-blue'; statusLabel = 'Current'; }
+        }
+        
+        let daysOut = ' - ';
+        if (bal > 0) {
+          const due = new Date(inv.dueDate);
+          const diffTime = new Date() - due;
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          daysOut = diffDays > 0 ? diffDays : ' - ';
+        }
+
+        const actionBtn = bal > 0 
+          ? `<button class="btn btn-primary btn-xs" onclick="openRecordPaymentModal('${inv.id}', ${bal})">Record Pay</button>` 
+          : `<span style="color:var(--gray-400);font-size:11px;">Completed</span>`;
+
+        return `
+          <tr>
+            <td class="font-semibold">${inv.id}</td>
+            <td>${inv.customer}</td>
+            <td class="text-right">${fmtM(amt)}</td>
+            <td class="text-right">${fmtM(paid)}</td>
+            <td class="text-right" style="color:${bal === 0 ? '#2e7d32' : (paid > 0 ? '#e65100' : '#c62828')}">${fmtM(bal)}</td>
+            <td>${inv.dueDate}</td>
+            <td>${daysOut}</td>
+            <td><span class="chip ${chipClass}">${statusLabel}</span></td>
+            <td>${actionBtn}</td>
+          </tr>
+        `;
+      }).join('') || `<tr><td colspan="9" style="text-align:center;color:var(--gray-400);padding:24px;">No receivables recorded yet. Go to Policy Admin to bind policies and generate JEs!</td></tr>`;
+    }
+    
+    const agingTbody = document.querySelector('#ar-aging tbody');
+    if (agingTbody) {
+      let t0_30 = 0, t31_60 = 0, t61_90 = 0, t90_plus = 0, tTotal = 0;
+      let rows = Object.values(partnerAging).filter(p => p.total > 0).map(p => {
+        t0_30 += p.a0_30;
+        t31_60 += p.a31_60;
+        t61_90 += p.a61_90;
+        t90_plus += p.a90_plus;
+        tTotal += p.total;
+        
+        return `
+          <tr>
+            <td class="font-semibold">${p.name}</td>
+            <td class="text-right" style="color:${p.a0_30 > 0 ? '#2e7d32' : '#9ca3af'}">${fmtM(p.a0_30)}</td>
+            <td class="text-right" style="color:${p.a31_60 > 0 ? '#e65100' : '#9ca3af'}">${fmtM(p.a31_60)}</td>
+            <td class="text-right" style="color:${p.a61_90 > 0 ? '#c62828' : '#9ca3af'}">${fmtM(p.a61_90)}</td>
+            <td class="text-right" style="color:${p.a90_plus > 0 ? '#6a1b9a' : '#9ca3af'}">${fmtM(p.a90_plus)}</td>
+            <td class="text-right font-semibold">${fmtM(p.total)}</td>
+          </tr>
+        `;
+      });
+      
+      rows.push(`
+        <tr style="font-weight:700;background:#f8f9fb;border-top:2px solid var(--border);">
+          <td style="color:var(--navy);">Total</td>
+          <td class="text-right" style="color:#2e7d32;">${fmtM(t0_30)}</td>
+          <td class="text-right" style="color:#e65100;">${fmtM(t31_60)}</td>
+          <td class="text-right" style="color:#c62828;">${fmtM(t61_90)}</td>
+          <td class="text-right" style="color:#6a1b9a;">${fmtM(t90_plus)}</td>
+          <td class="text-right" style="color:var(--navy);">${fmtM(tTotal)}</td>
+        </tr>
+      `);
+      agingTbody.innerHTML = rows.join('');
+    }
+    
+    const donuts = document.querySelectorAll('.donut-wrap svg');
+    donuts.forEach(svg => {
+      const textVal = svg.querySelector('text[font-weight="800"]');
+      if (textVal) { textVal.textContent = fmtM(totalAR); }
+    });
+    
+    const legends = document.querySelectorAll('.donut-wrap');
+    legends.forEach(legendWrap => {
+      const rows = legendWrap.querySelectorAll('.donut-leg-row');
+      if (rows.length >= 4) {
+        let pct0_30 = totalAR > 0 ? (aging0_30 / totalAR * 100) : 0;
+        let pct31_60 = totalAR > 0 ? (aging31_60 / totalAR * 100) : 0;
+        let pct61_90 = totalAR > 0 ? (aging61_90 / totalAR * 100) : 0;
+        let pct90_plus = totalAR > 0 ? (aging90_plus / totalAR * 100) : 0;
+        
+        rows[0].querySelector('span:last-child').textContent = pct0_30.toFixed(0) + '% · ' + fmtM(aging0_30);
+        rows[1].querySelector('span:last-child').textContent = pct31_60.toFixed(0) + '% · ' + fmtM(aging31_60);
+        rows[2].querySelector('span:last-child').textContent = pct61_90.toFixed(0) + '% · ' + fmtM(aging61_90);
+        rows[3].querySelector('span:last-child').textContent = pct90_plus.toFixed(0) + '% · ' + fmtM(aging90_plus);
+      }
+    });
+
+    const colTbody = document.querySelector('#ar-collections-table tbody');
+    if (colTbody) {
+      const overdueInvoices = invoices.filter(inv => {
+        const bal = inv.amount - inv.paidAmount;
+        if (bal <= 0) return false;
+        const due = new Date(inv.dueDate);
+        return due < new Date() || inv.status === 'Overdue';
+      });
+      
+      colTbody.innerHTML = overdueInvoices.map(inv => {
+        const bal = inv.amount - inv.paidAmount;
+        const due = new Date(inv.dueDate);
+        const diffDays = Math.ceil((new Date() - due) / (1000 * 60 * 60 * 24));
+        
+        return `
+          <tr>
+            <td class="font-semibold">${inv.id}</td>
+            <td>${inv.customer}</td>
+            <td class="text-right" style="color:#c62828;">${fmtM(bal)}</td>
+            <td style="color:#c62828;font-weight:600;">${diffDays > 0 ? diffDays : 30}</td>
+            <td>05/20/2026</td>
+            <td>System Notice Sent</td>
+            <td>Awaiting payment clearing</td>
+            <td><span class="chip ${diffDays > 60 ? 'chip-red' : 'chip-orange'}">${diffDays > 60 ? 'Critical' : 'Overdue'}</span></td>
+          </tr>
+        `;
+      }).join('') || `<tr><td colspan="8" style="text-align:center;color:var(--gray-400);padding:24px;">No outstanding collection actions. All accounts are current.</td></tr>`;
+    }
+
+    const stmtTbody = document.querySelector('#ar-statements-table tbody');
+    if (stmtTbody) {
+      let partnerStatements = {};
+      invoices.forEach(inv => {
+        const cName = inv.customer;
+        if (!partnerStatements[cName]) {
+          partnerStatements[cName] = { name: cName, invoiced: 0, paid: 0, bal: 0 };
+        }
+        partnerStatements[cName].invoiced += Number(inv.amount || 0);
+        partnerStatements[cName].paid += Number(inv.paidAmount || 0);
+        partnerStatements[cName].bal += Number(inv.amount || 0) - Number(inv.paidAmount || 0);
+      });
+      
+      const stmtList = Object.values(partnerStatements);
+      if (stmtList.length === 0) {
+        stmtTbody.innerHTML = '<tr><td colspan="8" class="text-muted" style="text-align:center;padding:20px;">No statements available.</td></tr>';
+      } else {
+        stmtTbody.innerHTML = stmtList.map(p => {
+          return `
+            <tr>
+              <td class="font-semibold">${p.name}</td>
+              <td>May 2026</td>
+              <td class="text-right">$0</td>
+              <td class="text-right">${fmtM(p.invoiced)}</td>
+              <td class="text-right" style="color:#2e7d32;">${fmtM(p.paid)}</td>
+              <td class="text-right" style="color:${p.bal > 0 ? '#e65100' : '#2e7d32'};">${fmtM(p.bal)}</td>
+              <td>${today()}</td>
+              <td>
+                <div style="display:flex;gap:3px;">
+                  <button class="btn btn-ghost btn-sm" style="font-size:11px;">View</button>
+                  <button class="btn btn-ghost btn-sm" style="font-size:11px;" onclick="emailStatement(this,'${p.name}',false)">Email</button>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+    }
+  }
+
+  function escalateInvoice(btn, invoiceId, partner, balance, daysOverdue) {
+    btn.disabled = true;
+    btn.textContent = 'Escalated';
+    showToast(`Escalation notice sent to ${partner}`, 'warning');
+  }
+
+  function logCollectionAction(btn) {
+    const partner = prompt('Account / Partner name:');
+    if (!partner) return;
+    const action = prompt('Action taken:', 'Email reminder sent') || 'Email reminder';
+    const tbody = document.querySelector('#ar-collections-table tbody');
+    if (!tbody) return;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td class="font-semibold"> - </td><td>${partner}</td><td class="text-right"> - </td><td> - </td><td>${today()}</td><td>${action}</td><td>Review in 7 days</td><td><span class="chip chip-blue">Logged</span></td>`;
+    tbody.appendChild(tr);
+    showToast(`Logged collection check for ${partner}`, 'success');
+  }
+
+  function generateAllStatements(btn) {
+    showToast('Statements compiled for all accounts', 'success');
+  }
+
+  function emailStatement(btn, partner, warn) {
+    btn.disabled = true;
+    btn.textContent = 'Emailed ✓';
+    showToast(`Account statement sent to ${partner}`, 'success');
+  }
+
+  function switchTab(id, btn) {
+    AR_PANELS.forEach(p => { document.getElementById(p).style.display = 'none'; });
+    document.getElementById(id).style.display = '';
+    document.querySelectorAll('.sub-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+  }
+
+  function handleHashTab() {
+    const hash = location.hash.replace('#','');
+    if (hash && AR_PANELS.includes(hash)) {
+      const targetBtn = Array.from(document.querySelectorAll('.sub-tab')).find(b => b.getAttribute('onclick')?.includes(hash));
+      if (targetBtn) switchTab(hash, targetBtn);
+    } else {
+      const defaultBtn = Array.from(document.querySelectorAll('.sub-tab')).find(b => b.getAttribute('onclick')?.includes('ar-register'));
+      if (defaultBtn) switchTab('ar-register', defaultBtn);
+    }
+    
+    // Dynamically update the active highlight class in the left sidebar menu
+    document.querySelectorAll('.sidebar-nav .nav-item').forEach(item => {
+      const href = item.getAttribute('href') || '';
+      const [page, itemHash] = href.split('#');
+      const currentPage = window.location.pathname.split('/').pop();
+      const currentHash = window.location.hash.replace('#', '');
+      
+      const isPageMatch = page === currentPage || page === 'accounts-receivable.html';
+      const isHashMatch = (!itemHash && !currentHash) || itemHash === currentHash;
+      
+      if (isPageMatch && isHashMatch) {
+        item.classList.add('active');
+        // If it is child of expanded menu, ensure parent group expanded
+        const group = item.closest('.sidebar-group');
+        if (group) group.classList.add('expanded');
+      } else {
+        item.classList.remove('active');
+      }
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    renderAR();
+    handleHashTab();
+  });
+
+  window.addEventListener('hashchange', () => {
+    handleHashTab();
+  });
+
+  function toggleArAnalytics() {
+    const section = document.getElementById('ar-analytics-section');
+    const btn = document.getElementById('ar-toggle-analytics-btn');
+    if (section && btn) {
+      const isHidden = section.style.display === 'none';
+      section.style.display = isHidden ? 'block' : 'none';
+      btn.textContent = isHidden ? 'Hide Analytics' : 'Show Analytics';
+    }
+  }
+</script>
+
+<!-- Record Payment Modal -->
+<div id="ar-payment-modal" class="v-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+  <style>
+    .v-modal.open { display: flex !important; }
+  </style>
+  <div class="form-card" style="width:380px;padding:24px;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.15);border:none;">
+    <div style="font-size:16px; font-weight:800; color:var(--navy); margin-bottom:16px;">Record Cash Receipt</div>
+    <div style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px;">
+      <input type="hidden" id="pay-inv-id">
+      <div class="info-item">
+        <label class="info-label">Invoice ID</label>
+        <input class="info-input" id="pay-inv-id-display" disabled>
+      </div>
+      <div class="info-item">
+        <label class="info-label">Outstanding Balance ($)</label>
+        <input class="info-input" id="pay-inv-bal-display" disabled>
+      </div>
+      <div class="info-item">
+        <label class="info-label">Amount Received ($) *</label>
+        <input class="info-input" type="number" id="pay-recv-amt" required>
+      </div>
+      <div class="info-item">
+        <label class="info-label">Payment Method</label>
+        <select class="info-input" id="pay-recv-method">
+          <option>ACH Transfer</option>
+          <option>Check</option>
+          <option>Wire Transfer</option>
+        </select>
+      </div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;">
+      <button class="btn btn-outline btn-sm" onclick="closeRecordPaymentModal()">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="submitRecordPayment()">Post Receipt</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

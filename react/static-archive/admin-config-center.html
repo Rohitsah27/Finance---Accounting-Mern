@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Config Centre — Administration | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/gl-engine.js"></script>
+  <script src="js/layout.js"></script>
+</head>
+<body>
+
+<main class="main-content" id="main-content">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Configuration Centre</div>
+      <div class="page-subtitle">Every module, field, sequence, dimension and posting rule in the platform is configurable from here, no code, no support ticket.</div>
+    </div>
+    <div class="page-actions" style="align-items:center;">
+      <div id="readiness-badge" style="display:flex;align-items:center;gap:8px;background:var(--gray-50);border:1px solid var(--gray-200);border-radius:20px;padding:6px 14px;">
+        <span style="font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.04em;">Configuration Readiness</span>
+        <span id="readiness-score" style="font-size:15px;font-weight:800;"></span>
+      </div>
+      <button class="btn btn-outline" onclick="location.href='setup-wizard.html'">Open Setup Wizard</button>
+      <button class="btn btn-primary" id="continue-to-mapping-btn" style="display:none;" onclick="advanceSetupStage('mapping');location.href='excel-onboarding.html';">Continue to Data Mapping →</button>
+    </div>
+  </div>
+
+  <div id="ac-tabs">
+    <div class="page-tabs">
+      <div class="page-tab active" data-tab="modules"    onclick="switchTab('ac-tabs','modules')">Module Catalogue</div>
+      <div class="page-tab"        data-tab="dimensions"  onclick="switchTab('ac-tabs','dimensions')">Dimension Manager</div>
+      <div class="page-tab"        data-tab="coa"         onclick="switchTab('ac-tabs','coa')">COA Template Library</div>
+      <div class="page-tab"        data-tab="fields"      onclick="switchTab('ac-tabs','fields')">Field Manager</div>
+      <div class="page-tab"        data-tab="sequences"   onclick="switchTab('ac-tabs','sequences')">Sequence Manager</div>
+      <div class="page-tab"        data-tab="glmapping"   onclick="switchTab('ac-tabs','glmapping')">GL Mapping Rules</div>
+      <div class="page-tab"        data-tab="fiscal"      onclick="switchTab('ac-tabs','fiscal')">Fiscal Year &amp; Notifications</div>
+    </div>
+
+    <!-- MODULE CATALOGUE -->
+    <div class="tab-panel active" data-panel="modules">
+      <div class="form-card" style="padding:20px;border-radius:0 0 8px 8px;">
+        <div class="card-title">Module Catalogue</div>
+        <div style="font-size:12px;color:var(--gray-500);margin:2px 0 16px;">25 platform modules. Toggle any non-core module on or off for the active entity's business type. Locked modules underpin the accounting engine and cannot be disabled.</div>
+        <div id="module-groups"></div>
+      </div>
+    </div>
+
+    <!-- DIMENSION MANAGER -->
+    <div class="tab-panel" data-panel="dimensions">
+      <div class="form-card" style="padding:20px;border-radius:0 0 8px 8px;">
+        <div class="card-title">Dimension Manager</div>
+        <p style="font-size:12.5px;color:var(--gray-600);line-height:1.6;margin:4px 0 16px;max-width:820px;">
+          Dimensions post alongside every transaction across every module, echoing the QuickBooks "Class" and "Location" model that most finance teams already know. Enable a dimension here and it immediately becomes available in the filter bar of every ledger, AR, AP, billing and reporting screen, no per-module setup required.
+        </p>
+        <div style="border:1px solid var(--color-border);border-radius:8px;overflow:hidden;background:#fff;box-shadow:var(--shadow-sm);">
+          <div class="v-config-row head">
+            <div>Dimension</div><div>Reference</div><div>Applies To</div><div>Description</div><div style="text-align:center;">Enabled</div>
+          </div>
+          <div id="dimension-rows"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- COA TEMPLATE LIBRARY -->
+    <div class="tab-panel" data-panel="coa">
+      <div class="form-card" style="padding:20px;border-radius:0 0 8px 8px;">
+        <div class="card-title">Chart of Accounts Template Library</div>
+        <div style="font-size:12px;color:var(--gray-500);margin:2px 0 16px;">Apply a pre-built COA template to the active entity. Applying a template records a new configuration version; existing account balances are preserved.</div>
+        <div class="v-module-grid" id="coa-grid"></div>
+      </div>
+    </div>
+
+    <!-- FIELD MANAGER -->
+    <div class="tab-panel" data-panel="fields">
+      <div class="form-card" style="padding:20px;border-radius:0 0 8px 8px;">
+        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
+          <span>Field Manager</span>
+          <button class="btn btn-primary btn-sm" onclick="addField()">+ Add Field</button>
+        </div>
+        <div style="font-size:12px;color:var(--gray-500);margin:2px 0 16px;">Rename, show/hide, require or lock any field across the platform, generic accounting fields and industry-specific fields side by side.</div>
+        <div style="border:1px solid var(--color-border);border-radius:8px;overflow:hidden;background:#fff;box-shadow:var(--shadow-sm);">
+          <div class="v-config-row head" style="grid-template-columns:2.2fr 1.3fr 90px 90px 90px 50px;">
+            <div>Field Label</div><div>Module</div><div style="text-align:center;">Show</div><div style="text-align:center;">Required</div><div style="text-align:center;">Read-only</div><div></div>
+          </div>
+          <div id="field-rows"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SEQUENCE MANAGER -->
+    <div class="tab-panel" data-panel="sequences">
+      <div class="form-card" style="padding:20px;border-radius:0 0 8px 8px;">
+        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
+          <span>Document Numbering Sequences</span>
+          <button class="btn btn-primary btn-sm" onclick="addSequence()">+ Add Sequence</button>
+        </div>
+        <div style="font-size:12px;color:var(--gray-500);margin:2px 0 16px;">Every document type in the platform numbers itself off a configurable sequence. Edit the prefix, the zero-padded width and the next number, then watch the live preview update.</div>
+        <table class="data-table">
+          <thead><tr><th>Document Type</th><th>Prefix</th><th>Year Token</th><th>Next Number</th><th>Digits</th><th>Live Preview</th><th></th></tr></thead>
+          <tbody id="sequence-rows"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- GL MAPPING RULES -->
+    <div class="tab-panel" data-panel="glmapping">
+      <div class="form-card" style="padding:20px;border-radius:0 0 8px 8px;">
+        <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
+          <span>Business Event &rarr; Posting Rules</span>
+          <button class="btn btn-primary btn-sm" onclick="addGlRule()">+ Add Rule</button>
+        </div>
+        <div style="font-size:12px;color:var(--gray-500);margin:2px 0 16px;">The Accounting Engine never lets a module post to the GL directly. Every business event is routed through a rule like these; edit any rule to change how it books.</div>
+        <div style="border:1px solid var(--color-border);border-radius:8px;overflow:hidden;background:#fff;box-shadow:var(--shadow-sm);">
+          <div class="v-config-row head" style="grid-template-columns:1.8fr 2.5fr 110px;">
+            <div>Business Event Trigger</div><div>GL Accounting Rule / Posting Impact</div><div style="text-align:right;">Actions</div>
+          </div>
+          <div id="glmapping-rows"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- FISCAL YEAR & NOTIFICATIONS -->
+    <div class="tab-panel" data-panel="fiscal">
+      <div class="form-card" style="padding:20px;border-radius:0 0 8px 8px;margin-bottom:16px;">
+        <div class="card-title">Fiscal Year</div>
+        <div style="display:flex;gap:24px;flex-wrap:wrap;margin-top:14px;">
+          <div>
+            <label class="filter-bar-label" style="display:block;margin-bottom:6px;">Fiscal Year Start Month</label>
+            <select class="filter-select" id="fiscal-start" onchange="updateFiscalStart(this.value)" style="min-width:180px;"></select>
+          </div>
+          <div>
+            <label class="filter-bar-label" style="display:block;margin-bottom:6px;">Fiscal Periods</label>
+            <select class="filter-select" id="fiscal-periods" onchange="updateFiscalPeriods(this.value)" style="min-width:220px;">
+              <option value="12">12 periods (calendar months)</option>
+              <option value="13">13 periods (4-4-5 / retail calendar)</option>
+            </select>
+          </div>
+        </div>
+        <div class="v-lock-note" style="margin-top:14px;">
+          Changing these settings above only affects new fiscal periods. <button class="btn btn-outline btn-sm" onclick="regenerateFiscalPeriods()">Regenerate periods from current settings</button>
+        </div>
+      </div>
+      <div class="table-wrap" style="margin-bottom:16px;">
+        <div class="table-head-row">
+          <div class="table-head-title">Fiscal Periods <span class="v-badge-config">Journal Entry checks this before posting</span></div>
+        </div>
+        <table class="data-table">
+          <thead><tr><th>Period</th><th>Status</th><th></th></tr></thead>
+          <tbody id="fiscal-periods-rows"></tbody>
+        </table>
+      </div>
+      <div class="form-card" style="padding:20px;border-radius:0 0 8px 8px;">
+        <div class="card-title">Notification Engine</div>
+        <div style="font-size:12px;color:var(--gray-500);margin:2px 0 16px;">Configure which channel fires for each system notification rule.</div>
+        <table class="data-table">
+          <thead><tr><th>Rule</th><th>Trigger</th><th style="text-align:center;">Email</th><th style="text-align:center;">In-App</th><th style="text-align:center;">SMS</th></tr></thead>
+          <tbody id="notification-rows"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="js/app.js"></script>
+<script>
+initLayout('admin-config');
+
+if (isSetupGuardActive() && getTenantConfig().setupStage === 'config') {
+  const btn = document.getElementById('continue-to-mapping-btn');
+  if (btn) btn.style.display = '';
+}
+
+const GROUP_ORDER =['Core Financials','Treasury','People','Operations','Revenue','Compliance','Planning','Governance','Configuration','Industry'];
+
+function renderReadiness() {
+  const cfg = getTenantConfig();
+  const pct = cfg.readinessScore;
+  const cls = confidenceClass(pct);
+  const color = cls === 'high' ? 'var(--green)' : (cls === 'med' ? 'var(--v-amber)' : 'var(--red)');
+  const el = document.getElementById('readiness-score');
+  el.textContent = pct + '%';
+  el.style.color = color;
+}
+
+function renderModuleGroups() {
+  const wrap = document.getElementById('module-groups');
+  let html = '';
+  GROUP_ORDER.forEach(group => {
+    const mods = MODULE_CATALOG.filter(m => m.group === group);
+    if (!mods.length) return;
+    html += `<div style="margin-bottom:22px;">
+      <div style="font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--gray-400);margin-bottom:10px;">${group}</div>
+      <div class="v-module-grid">${mods.map(moduleCardHtml).join('')}</div>
+    </div>`;
+  });
+  wrap.innerHTML = html;
+}
+
+function moduleCardHtml(m) {
+  const enabled = isModuleEnabled(m.id);
+  const disabledAttr = m.locked ? 'disabled' : '';
+  return `
+    <div class="v-module-card ${!enabled ? 'disabled' : ''}">
+      <div class="v-module-card-top">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div class="v-module-card-icon">${m.no}</div>
+          <div class="v-module-card-title">${m.label}</div>
+        </div>
+        <label class="v-switch">
+          <input type="checkbox" ${enabled ? 'checked' : ''} ${disabledAttr} onchange="onModuleToggle('${m.id}', this.checked, '${m.label}')">
+          <span class="v-slider"></span>
+        </label>
+      </div>
+      <div class="v-module-card-desc">${m.desc}</div>
+      <div class="v-module-card-meta">
+        ${m.industryOnly ? '<span class="v-badge-industry-only">Industry Only</span>' : ''}
+        ${m.core ? '<span class="v-badge-config">Core</span>' : ''}
+      </div>
+      ${m.locked ? `<div class="v-lock-note">🔒 Core to the accounting engine, cannot be disabled.</div>` : ''}
+    </div>`;
+}
+
+function onModuleToggle(id, checked, label) {
+  toggleModule(id, checked);
+  showToast(`${label} ${checked ? 'enabled' : 'disabled'}`, checked ? 'success' : 'info');
+}
+
+function renderDimensions() {
+  const cfg = getTenantConfig();
+  document.getElementById('dimension-rows').innerHTML = DIMENSION_LIBRARY.map(d => {
+    const enabled = !!cfg.enabledDimensions[d.id];
+    return `<div class="v-config-row">
+      <div><strong>${d.label}</strong><div style="font-size:11.5px;color:var(--gray-500);margin-top:2px;">${d.desc}</div></div>
+      <div style="font-size:12px;">${d.quickbooksRef ? `<em>${d.quickbooksRef}</em>` : '<span style="color:var(--gray-400);">Native to Veridex</span>'}</div>
+      <div>${d.appliesTo.map(a => `<span class="badge badge-gray" style="margin-right:3px;">${a}</span>`).join('')}</div>
+      <div style="font-size:12px;color:var(--gray-500);">Filterable everywhere</div>
+      <div style="display:flex;justify-content:center;">
+        <label class="v-switch">
+          <input type="checkbox" ${enabled ? 'checked' : ''} onchange="onDimensionToggle('${d.id}', this.checked, '${d.label}')">
+          <span class="v-slider"></span>
+        </label>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function onDimensionToggle(id, checked, label) {
+  const cfg = getTenantConfig();
+  cfg.enabledDimensions[id] = checked;
+  saveTenantConfig({ enabledDimensions: cfg.enabledDimensions });
+  showToast(`Dimension "${label}" ${checked ? 'enabled' : 'disabled'} across all modules`, checked ? 'success' : 'info');
+}
+
+function renderCoaTemplates() {
+  const cfg = getTenantConfig();
+  document.getElementById('coa-grid').innerHTML = COA_TEMPLATES.map(t => {
+    const applied = cfg.coaTemplate === t.id;
+    return `<div class="v-module-card ${applied ? '' : ''}" style="${applied ? 'border-color:var(--v-teal);box-shadow:0 0 0 1px var(--v-teal) inset;' : ''}">
+      <div class="v-module-card-top">
+        <div class="v-module-card-title">${t.label}</div>
+        ${applied ? '<span class="v-badge-config">Applied</span>' : ''}
+      </div>
+      <div class="v-module-card-desc">${t.accounts} pre-built accounts. Business types: ${t.businessTypes.join(', ')}.</div>
+      <div class="v-module-card-meta">
+        <button class="btn ${applied ? 'btn-outline' : 'btn-primary'} btn-sm" ${applied ? 'disabled' : ''} onclick="applyCoaTemplate('${t.id}','${t.label}')">${applied ? 'Currently Applied' : 'Apply to Active Entity'}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function applyCoaTemplate(id, label) {
+  const cfg = saveTenantConfig({ coaTemplate: id, configVersion: getTenantConfig().configVersion + 1 });
+  renderCoaTemplates();
+  showToast(`"${label}" applied to the active entity (config v${cfg.configVersion})`, 'success');
+}
+
+/* ---------- Field Manager (visual only) ---------- */
+const FIELD_MANAGER_ROWS = [
+  { field: 'Account Code',          module: 'General Ledger', show: true, required: true,  readonly: false },
+  { field: 'Account Name',          module: 'General Ledger', show: true, required: true,  readonly: false },
+  { field: 'Vendor Tax ID',         module: 'Accounts Payable', show: true, required: true,  readonly: false },
+  { field: 'Customer Credit Limit', module: 'Accounts Receivable', show: true, required: false, readonly: false },
+  { field: 'Policy Number',         module: 'Insurance Extension', show: true, required: true,  readonly: true },
+];
+
+function renderFieldManager() {
+  document.getElementById('field-rows').innerHTML = FIELD_MANAGER_ROWS.map((f, i) => `
+    <div class="v-config-row" style="grid-template-columns:2.2fr 1.3fr 90px 90px 90px 50px;">
+      <div><input class="filter-input" style="width:100%;font-weight:600;" value="${f.field}" onchange="renameField(${i}, this.value)"></div>
+      <div><span class="badge badge-gray">${f.module}</span></div>
+      <div style="display:flex;justify-content:center;"><label class="v-switch"><input type="checkbox" ${f.show ? 'checked' : ''} onchange="toggleFieldFlag(${i},'show',this.checked)"><span class="v-slider"></span></label></div>
+      <div style="display:flex;justify-content:center;"><label class="v-switch"><input type="checkbox" ${f.required ? 'checked' : ''} onchange="toggleFieldFlag(${i},'required',this.checked)"><span class="v-slider"></span></label></div>
+      <div style="display:flex;justify-content:center;"><label class="v-switch"><input type="checkbox" ${f.readonly ? 'checked' : ''} onchange="toggleFieldFlag(${i},'readonly',this.checked)"><span class="v-slider"></span></label></div>
+      <div style="display:flex;justify-content:center;"><button class="btn btn-ghost btn-sm" style="color:var(--color-danger);padding:4px 8px;font-size:14px;" title="Remove field" onclick="removeField(${i})">✕</button></div>
+    </div>`).join('');
+}
+function renameField(i, val) {
+  FIELD_MANAGER_ROWS[i].field = val;
+  showToast(`Field renamed to "${val}"`, 'success');
+}
+function toggleFieldFlag(i, flag, val) {
+  FIELD_MANAGER_ROWS[i][flag] = val;
+  showToast(`${FIELD_MANAGER_ROWS[i].field}: ${flag} ${val ? 'on' : 'off'}`, 'info');
+}
+function addField() {
+  FIELD_MANAGER_ROWS.push({ field: 'New Custom Field', module: 'General Ledger', show: true, required: false, readonly: false });
+  renderFieldManager();
+  showToast('Custom field added, rename it below', 'success');
+}
+function removeField(i) {
+  const removed = FIELD_MANAGER_ROWS.splice(i, 1)[0];
+  renderFieldManager();
+  showToast(`Field "${removed.field}" removed`, 'info');
+}
+
+/* ---------- Sequence Manager ---------- */
+const SEQUENCES = [
+  { doc: 'Invoice',        prefix: 'INV-', yearToken: 'YYYY', next: 1042, digits: 5 },
+  { doc: 'Journal Entry',  prefix: 'JE-',  yearToken: 'YYYY', next: 8891, digits: 6 },
+  { doc: 'Policy',         prefix: 'POL-', yearToken: 'YYYY', next: 204,  digits: 6 },
+  { doc: 'Purchase Order', prefix: 'PO-',  yearToken: '',     next: 317,  digits: 5 },
+];
+function sequencePreview(s) {
+  const year = s.yearToken ? new Date().getFullYear() + '-' : '';
+  return s.prefix + year + String(s.next).padStart(s.digits, '0');
+}
+function renderSequences() {
+  document.getElementById('sequence-rows').innerHTML = SEQUENCES.map((s, i) => `
+    <tr>
+      <td class="font-semibold"><input class="filter-input" style="width:140px;" value="${s.doc}" onchange="updateSeq(${i},'doc',this.value)"></td>
+      <td><input class="filter-input" style="width:80px;" value="${s.prefix}" onchange="updateSeq(${i},'prefix',this.value)"></td>
+      <td><input class="filter-input" style="width:70px;" value="${s.yearToken}" onchange="updateSeq(${i},'yearToken',this.value)"></td>
+      <td><input class="filter-input" type="number" style="width:90px;" value="${s.next}" onchange="updateSeq(${i},'next',this.value)"></td>
+      <td><input class="filter-input" type="number" style="width:60px;" value="${s.digits}" onchange="updateSeq(${i},'digits',this.value)"></td>
+      <td><code id="seq-preview-${i}" style="font-weight:700;color:var(--v-teal);">${sequencePreview(s)}</code></td>
+      <td><button class="btn btn-outline btn-sm" title="Remove sequence" onclick="removeSequence(${i})">✕</button></td>
+    </tr>`).join('');
+}
+function updateSeq(i, field, val) {
+  SEQUENCES[i][field] = (field === 'next' || field === 'digits') ? parseInt(val, 10) || 0 : val;
+  document.getElementById('seq-preview-' + i).textContent = sequencePreview(SEQUENCES[i]);
+  showToast(`${SEQUENCES[i].doc} sequence updated`, 'success');
+}
+function addSequence() {
+  SEQUENCES.push({ doc: 'New Document Type', prefix: 'DOC-', yearToken: 'YYYY', next: 1, digits: 5 });
+  renderSequences();
+  showToast('Sequence added, configure its prefix and numbering below', 'success');
+}
+function removeSequence(i) {
+  const removed = SEQUENCES.splice(i, 1)[0];
+  renderSequences();
+  showToast(`"${removed.doc}" sequence removed`, 'info');
+}
+
+/* ---------- GL Mapping Rules ---------- */
+const GL_MAPPING_RULES = [
+  { event: 'A customer invoice is issued',        posting: 'Dr Accounts Receivable, Cr Sales Revenue' },
+  { event: 'Premium received from an MGA',        posting: 'Dr Premium Trust, Cr Gross Premium Written' },
+  { event: 'A vendor bill is approved for payment', posting: 'Dr Expense / Inventory, Cr Accounts Payable' },
+  { event: 'A claim reserve is established',       posting: 'Dr Loss & LAE Expense, Cr Claim Reserves' },
+  { event: 'Payroll is run',                        posting: 'Dr Payroll Expense, Cr Cash / Payroll Liabilities' },
+  { event: 'A fixed asset depreciation run completes', posting: 'Dr Depreciation Expense, Cr Accumulated Depreciation' },
+];
+let glEditingIndex = null;
+function renderGlMapping() {
+  document.getElementById('glmapping-rows').innerHTML = GL_MAPPING_RULES.map((r, i) => {
+    if (glEditingIndex === i) {
+      return `
+      <div class="v-config-row" style="grid-template-columns:1.8fr 2.5fr 110px;background:#FFF7ED;border-left:3px solid var(--color-brand);">
+        <div><input class="filter-input" style="width:100%;font-weight:600;" id="gl-edit-event-${i}" value="${r.event}"></div>
+        <div><input class="filter-input" style="width:100%;font-family:'IBM Plex Mono',monospace;font-size:12px;" id="gl-edit-posting-${i}" value="${r.posting}"></div>
+        <div style="display:flex;gap:6px;justify-content:flex-end;">
+          <button class="btn btn-primary btn-sm" onclick="saveGlRule(${i})">Save</button>
+          <button class="btn btn-outline btn-sm" onclick="cancelGlEdit()">Cancel</button>
+        </div>
+      </div>`;
+    }
+    return `
+    <div class="v-config-row" style="grid-template-columns:1.8fr 2.5fr 110px;">
+      <div><span class="badge badge-blue" style="font-size:10px;font-weight:700;margin-right:8px;text-transform:uppercase;">TRIGGER</span> <strong>${r.event}</strong></div>
+      <div><code style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#0F766E;background:#F0FDFA;padding:4px 10px;border-radius:4px;border:1px solid #CCFBF1;font-weight:600;display:inline-block;">&rarr; ${r.posting}</code></div>
+      <div style="display:flex;gap:6px;justify-content:flex-end;">
+        <button class="btn btn-outline btn-sm" onclick="editGlRule(${i})">Edit</button>
+        <button class="btn btn-ghost btn-sm" style="color:var(--color-danger);padding:4px 8px;" title="Remove rule" onclick="removeGlRule(${i})">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function editGlRule(i) {
+  glEditingIndex = i;
+  renderGlMapping();
+}
+function saveGlRule(i) {
+  const event = document.getElementById(`gl-edit-event-${i}`).value.trim() || GL_MAPPING_RULES[i].event;
+  const posting = document.getElementById(`gl-edit-posting-${i}`).value.trim() || GL_MAPPING_RULES[i].posting;
+  GL_MAPPING_RULES[i].event = event;
+  GL_MAPPING_RULES[i].posting = posting;
+  glEditingIndex = null;
+  renderGlMapping();
+  showToast(`Posting rule for "${event}" updated`, 'success');
+}
+function cancelGlEdit() {
+  glEditingIndex = null;
+  renderGlMapping();
+}
+function addGlRule() {
+  GL_MAPPING_RULES.push({ event: 'A new business event occurs', posting: 'Dr [Account], Cr [Account]' });
+  glEditingIndex = GL_MAPPING_RULES.length - 1;
+  renderGlMapping();
+  showToast('New posting rule added, edit it below', 'success');
+}
+function removeGlRule(i) {
+  const removed = GL_MAPPING_RULES.splice(i, 1)[0];
+  if (glEditingIndex === i) glEditingIndex = null;
+  renderGlMapping();
+  showToast(`Posting rule for "${removed.event}" removed`, 'info');
+}
+
+/* ---------- Fiscal Year & Notifications ---------- */
+const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+function renderFiscal() {
+  const cfg = getTenantConfig();
+  document.getElementById('fiscal-start').innerHTML = MONTHS.map(m => `<option value="${m}" ${cfg.fiscalYearStart === m ? 'selected' : ''}>${m}</option>`).join('');
+  document.getElementById('fiscal-periods').value = String(cfg.fiscalPeriods);
+  renderFiscalPeriods();
+}
+function updateFiscalStart(val) {
+  saveTenantConfig({ fiscalYearStart: val });
+  showToast(`Fiscal year now starts in ${val}, click "Regenerate periods" to apply`, 'success');
+}
+function updateFiscalPeriods(val) {
+  saveTenantConfig({ fiscalPeriods: parseInt(val, 10) });
+  showToast(`Fiscal calendar set to ${val} periods, click "Regenerate periods" to apply`, 'success');
+}
+
+const FISCAL_PERIOD_BADGE = { open: 'badge-green', closed: 'badge-gray', future: 'badge-blue' };
+
+function renderFiscalPeriods() {
+  const periods = getFiscalPeriods();
+  document.getElementById('fiscal-periods-rows').innerHTML = periods.map(p => `
+    <tr>
+      <td>${p.label}</td>
+      <td><span class="badge ${FISCAL_PERIOD_BADGE[p.status] || 'badge-gray'}">${p.status.charAt(0).toUpperCase() + p.status.slice(1)}</span></td>
+      <td>
+        ${p.status === 'closed'
+          ? `<button class="btn btn-outline btn-sm" onclick="toggleFiscalPeriod('${p.label}','open')">Reopen</button>`
+          : `<button class="btn btn-outline btn-sm" onclick="toggleFiscalPeriod('${p.label}','closed')">Close</button>`}
+      </td>
+    </tr>`).join('');
+}
+
+function toggleFiscalPeriod(label, status) {
+  setPeriodStatus(label, status);
+  renderFiscalPeriods();
+  showToast(`${label} marked ${status}. Journal Entry blocks new postings dated in closed periods.`, status === 'closed' ? 'warning' : 'success');
+}
+
+function regenerateFiscalPeriods() {
+  localStorage.removeItem('v_gl_periods');
+  renderFiscalPeriods();
+  showToast('Fiscal periods regenerated from the current fiscal year settings', 'success');
+}
+
+const NOTIFICATION_RULES = [
+  { rule: 'Invoice overdue',            trigger: 'AR invoice passes due date', channels: { email: true,  inapp: true,  sms: false } },
+  { rule: 'Credit limit 80% reached',   trigger: 'Customer balance vs credit limit', channels: { email: true,  inapp: true,  sms: false } },
+  { rule: '1099 threshold reached',     trigger: 'Vendor YTD payments cross $600', channels: { email: true,  inapp: false, sms: false } },
+  { rule: 'Period ready to close',      trigger: 'All close checklist items pass', channels: { email: true,  inapp: true,  sms: true } },
+];
+function renderNotifications() {
+  document.getElementById('notification-rows').innerHTML = NOTIFICATION_RULES.map((n, i) => `
+    <tr>
+      <td class="font-semibold">${n.rule}</td>
+      <td style="font-size:12px;color:var(--gray-500);">${n.trigger}</td>
+      <td style="text-align:center;"><input type="checkbox" ${n.channels.email ? 'checked' : ''} onchange="toggleNotifChannel(${i},'email',this.checked)"></td>
+      <td style="text-align:center;"><input type="checkbox" ${n.channels.inapp ? 'checked' : ''} onchange="toggleNotifChannel(${i},'inapp',this.checked)"></td>
+      <td style="text-align:center;"><input type="checkbox" ${n.channels.sms ? 'checked' : ''} onchange="toggleNotifChannel(${i},'sms',this.checked)"></td>
+    </tr>`).join('');
+}
+function toggleNotifChannel(i, channel, val) {
+  NOTIFICATION_RULES[i].channels[channel] = val;
+  showToast(`${NOTIFICATION_RULES[i].rule}: ${channel} ${val ? 'enabled' : 'disabled'}`, 'info');
+}
+
+renderReadiness();
+renderModuleGroups();
+renderDimensions();
+renderCoaTemplates();
+renderFieldManager();
+renderSequences();
+renderGlMapping();
+renderFiscal();
+renderNotifications();
+</script>
+</body>
+</html>

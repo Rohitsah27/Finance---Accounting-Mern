@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Period Close & Locking — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>General Ledger</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Period Close</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-lock" style="color: var(--red);"></i> Period Close &amp; Locking <span class="file-tag">period-locking.html</span></h1>
+      <p>
+        The Period Close module enforces strict financial governance by locking closed accounting periods (e.g. Q1, Q2, FY2025). Locking prevents unauthorized retroactive journal entries from distorting previously audited financial statements and tax returns.
+      </p>
+    </div>
+
+    <div class="module-card">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-red">Internal Controls</span>
+            <span class="badge badge-purple">Month-End Checklist</span>
+          </div>
+          <h2 class="module-title">The Month-End Close Sequence</h2>
+        </div>
+        <a href="../period-locking.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Period Close</a>
+      </div>
+
+      <div class="flow-steps">
+        <div class="flow-step-item">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <strong>Subledger Reconciliation</strong>
+            <span>Ensure all MGA Bordereaux (BX files) and broker commission statements for the month have been ingested and verified.</span>
+          </div>
+        </div>
+        <div class="flow-step-item">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <strong>Bank Reconciliation Sign-Off</strong>
+            <span>Confirm that all Operating (1001) and Trust (1020) bank accounts have a zero variance against the GL trial balance.</span>
+          </div>
+        </div>
+        <div class="flow-step-item">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <strong>Lock Accounting Period</strong>
+            <span>Controller / CFO clicks "Lock Period". All post, edit, and delete actions for that date range become permanently read-only.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="financial-statements.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">Financial Statements</span>
+      </a>
+      <a href="ar-register.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Submodule &rarr;</span>
+        <span class="nav-page-title">AR Register</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('period-close');
+</script>
+</body>
+</html>

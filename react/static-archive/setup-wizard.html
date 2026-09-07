@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Setup Wizard — Administration | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/layout.js"></script>
+</head>
+<body>
+
+<main class="main-content" id="main-content">
+  <div class="page-header">
+    <div>
+      <div class="page-title">Self-Service Setup Wizard</div>
+      <div class="page-subtitle">Ten stages, no consultant required. Every step below writes straight into the same configuration engine that powers the Configuration Centre.</div>
+    </div>
+  </div>
+
+  <div class="form-card" style="padding:22px;">
+    <div class="v-wizard-steps" id="wizard-steps"></div>
+    <div id="wizard-panel"></div>
+    <div style="display:flex;justify-content:space-between;margin-top:22px;border-top:1px solid var(--gray-100);padding-top:16px;">
+      <button class="btn btn-outline" id="wiz-back" onclick="wizardBack()">&larr; Back</button>
+      <button class="btn btn-primary" id="wiz-next" onclick="wizardNext()">Next &rarr;</button>
+    </div>
+  </div>
+</main>
+
+<script src="js/app.js"></script>
+<script>
+initLayout('admin-config');
+
+const WIZARD_STEPS = [
+  'Company','Business Type','Accounting','Tax','Masters','Documents','Security','Workflows','Integrations','Go Live'
+];
+const cfg = getTenantConfig();
+let currentStep = cfg.v_wizard_step || 0;
+let wizardState = cfg.v_wizard_state || {
+  companyName: '', legalEntity: '', address: '',
+  businessType: null,
+  coaTemplate: null,
+  taxRegimes: { sales: true, premium: false, payroll: true, filing1099: true },
+  roles: [],
+  mfa: true,
+};
+
+function saveCurrentStepInputs() {
+  if (currentStep === 0) {
+    if (document.getElementById('wz-company')) wizardState.companyName = document.getElementById('wz-company').value;
+    if (document.getElementById('wz-legal')) wizardState.legalEntity = document.getElementById('wz-legal').value;
+    if (document.getElementById('wz-address')) wizardState.address = document.getElementById('wz-address').value;
+  }
+}
+
+function saveWizardProgress() {
+  saveTenantConfig({
+    v_wizard_state: wizardState,
+    v_wizard_step: currentStep
+  });
+}
+
+function renderStepper() {
+  document.getElementById('wizard-steps').innerHTML = WIZARD_STEPS.map((label, i) => {
+    const cls = i < currentStep ? 'done' : (i === currentStep ? 'active' : '');
+    return `<div class="v-wizard-step ${cls}">
+      <div class="v-wizard-dot">${i < currentStep ? '&#10003;' : i + 1}</div>
+      <div class="v-wizard-label">${label}</div>
+    </div>`;
+  }).join('');
+}
+
+function wizardNext() {
+  saveCurrentStepInputs();
+  if (currentStep < WIZARD_STEPS.length - 1) { currentStep++; saveWizardProgress(); renderWizard(); }
+}
+function wizardBack() {
+  saveCurrentStepInputs();
+  if (currentStep > 0) { currentStep--; saveWizardProgress(); renderWizard(); }
+}
+
+function renderWizard() {
+  renderStepper();
+  document.getElementById('wiz-back').style.visibility = currentStep === 0 ? 'hidden' : 'visible';
+  document.getElementById('wiz-next').textContent = currentStep === WIZARD_STEPS.length - 1 ? 'Finish' : 'Next →';
+  document.getElementById('wiz-next').onclick = currentStep === WIZARD_STEPS.length - 1 ? publishConfig : wizardNext;
+  document.getElementById('wizard-panel').innerHTML = STEP_RENDERERS[currentStep]();
+  if (currentStep === 2) initUploadZone('upload-zone', 'upload-input');
+}
+
+const STEP_RENDERERS = [
+  renderStepCompany, renderStepBusinessType, renderStepAccounting, renderStepTax, renderStepMasters,
+  renderStepDocuments, renderStepSecurity, renderStepWorkflows, renderStepIntegrations, renderStepGoLive
+];
+
+function renderStepCompany() {
+  return `
+    <div class="card-title mb-12">Company Details</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:720px;">
+      <div>
+        <label class="filter-bar-label" style="display:block;margin-bottom:6px;">Company Name *</label>
+        <input class="filter-input" style="width:100%;" id="wz-company" value="${wizardState.companyName || getTenantConfig().companyName}">
+      </div>
+      <div>
+        <label class="filter-bar-label" style="display:block;margin-bottom:6px;">Legal Entity Name</label>
+        <input class="filter-input" style="width:100%;" id="wz-legal" value="${wizardState.legalEntity}" placeholder="e.g. Veridex Sandbox Co. LLC">
+      </div>
+      <div style="grid-column:1/-1;">
+        <label class="filter-bar-label" style="display:block;margin-bottom:6px;">Registered Address</label>
+        <input class="filter-input" style="width:100%;" id="wz-address" value="${wizardState.address}" placeholder="Street, City, State, ZIP">
+      </div>
+    </div>`;
+}
+
+function renderStepBusinessType() {
+  const groups = { insurance: 'Insurance Chain', general: 'General Business' };
+  let html = `<div class="card-title mb-12">What kind of business is this entity?</div>`;
+  ['insurance', 'general'].forEach(g => {
+    html += `<div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--gray-400);margin:14px 0 8px;">${groups[g]}</div>
+      <div class="v-role-grid">${BUSINESS_TYPES.filter(b => b.group === g).map(b => `
+        <div class="v-role-card" style="${wizardState.businessType === b.id ? 'border-color:var(--v-teal);box-shadow:0 0 0 1px var(--v-teal) inset;' : ''}" onclick="selectBusinessType('${b.id}')">
+          <div class="v-role-card-icon" style="background:var(--v-teal-bg);">${b.icon}</div>
+          <h4>${b.label}</h4>
+          <p>${b.desc}</p>
+        </div>`).join('')}</div>`;
+  });
+  if (wizardState.businessType) {
+    const bt = getBusinessType(wizardState.businessType);
+    const mods = modulesForBusinessType(wizardState.businessType);
+    const hidden = MODULE_CATALOG.filter(m => !mods.includes(m));
+    const templates = coaTemplatesForBusinessType(wizardState.businessType);
+    html += `
+      <div class="v-lock-note" style="margin-top:18px;align-items:flex-start;">
+        <div>
+          <strong>${bt.label}</strong> auto-enables <strong>${mods.length}</strong> of 25 modules${hidden.length ? ` (hides ${hidden.map(m=>m.label).join(', ')})` : ''}.<br>
+          Suggested COA templates: ${templates.length ? templates.map(t => t.label).join(', ') : 'US GAAP Standard'}.
+        </div>
+      </div>`;
+  }
+  return html;
+}
+function selectBusinessType(id) {
+  wizardState.businessType = id;
+  wizardState.coaTemplate = null;
+  saveWizardProgress();
+  renderWizard();
+}
+
+function renderStepAccounting() {
+  const templates = wizardState.businessType ? coaTemplatesForBusinessType(wizardState.businessType) : COA_TEMPLATES;
+  const list = templates.length ? templates : COA_TEMPLATES;
+  return `
+    <div class="card-title mb-12">Chart of Accounts &amp; Fiscal Calendar</div>
+    <div class="v-module-grid" style="margin-bottom:18px;">
+      ${list.map(t => `
+        <div class="v-module-card" style="${wizardState.coaTemplate === t.id ? 'border-color:var(--v-teal);box-shadow:0 0 0 1px var(--v-teal) inset;' : ''}cursor:pointer;" onclick="selectCoaTemplate('${t.id}')">
+          <div class="v-module-card-title">${t.label}</div>
+          <div class="v-module-card-desc">${t.accounts} accounts</div>
+        </div>`).join('')}
+    </div>
+    <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-end;margin-bottom:18px;">
+      <div>
+        <label class="filter-bar-label" style="display:block;margin-bottom:6px;">Fiscal Year Start</label>
+        <select class="filter-select" id="wz-fiscal-start">${['January','April','July','October'].map(m => `<option>${m}</option>`).join('')}</select>
+      </div>
+    </div>
+    <div class="card-title mb-12" style="font-size:13px;">Opening Balances (optional)</div>
+    <div class="v-map-dropzone" id="upload-zone" data-upload-zone="upload-input">
+      <div style="font-size:13px;font-weight:600;color:var(--gray-700);">Drag &amp; drop an opening trial balance, or click to browse</div>
+      <div style="font-size:11.5px;color:var(--gray-400);margin-top:4px;">.xlsx, .xls or .csv</div>
+    </div>
+    <input type="file" id="upload-input" style="display:none;">`;
+}
+function selectCoaTemplate(id) { wizardState.coaTemplate = id; saveWizardProgress(); renderWizard(); }
+
+function renderStepTax() {
+  const t = wizardState.taxRegimes;
+  const opts = [
+    ['sales','Sales &amp; Use Tax'], ['premium','Insurance Premium Tax'],
+    ['payroll','Payroll Tax'], ['filing1099','1099 Filing'],
+  ];
+  return `
+    <div class="card-title mb-12">Tax Regimes</div>
+    <div style="display:flex;flex-direction:column;gap:10px;max-width:420px;">
+      ${opts.map(([key,label]) => `
+        <label style="display:flex;align-items:center;gap:10px;font-size:13px;color:var(--gray-700);">
+          <input type="checkbox" ${t[key] ? 'checked' : ''} onchange="toggleTaxRegime('${key}', this.checked)"> ${label}
+        </label>`).join('')}
+    </div>`;
+}
+function toggleTaxRegime(key, val) { wizardState.taxRegimes[key] = val; saveWizardProgress(); showToast(`${key} ${val ? 'enabled' : 'disabled'}`, 'info'); }
+
+function renderStepMasters() {
+  const cards = [
+    ['Vendors', 'Vendor master with EIN/TIN, terms, 1099 status', 'v_master_vendors'],
+    ['Customer / Insured', 'Customer / insured master with credit limits', 'v_master_customers'],
+    ['Brokers', 'Broker/Agent master with licensing, commission agreements', 'v_master_brokers'],
+    ['Carriers', 'Insurance Carrier partners with NAIC codes and treaty settings', 'v_master_carriers'],
+    ['Employees', 'Employee master, triggers onboarding workflow', 'v_master_employees'],
+  ];
+  return `
+    <div class="card-title mb-12">Load Your Masters</div>
+    <div class="v-module-grid">
+      ${cards.map(([title, desc, key]) => {
+        const list = JSON.parse(localStorage.getItem(key) || '[]');
+        const countText = list.length ? `<div style="font-size:11px;font-weight:700;color:var(--v-teal);margin-top:6px;">${list.length} item(s) manually added</div>` : '';
+        const listHtml = list.length ? `
+          <div style="margin-top:8px;max-height:80px;overflow-y:auto;border:1px solid var(--gray-100);border-radius:6px;padding:4px 8px;background:#fafbff;display:flex;flex-direction:column;gap:4px;">
+            ${list.map(item => `
+              <div style="display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--gray-700);line-height:1.2;">
+                <span style="text-overflow:ellipsis;white-space:nowrap;overflow:hidden;max-width:180px;" title="${item.legal_name}">${item.legal_name}</span>
+                <span style="cursor:pointer;color:var(--red-600);font-weight:bold;margin-left:6px;font-size:14px;" onclick="deleteMasterItem('${title}', '${item.id}')">&times;</span>
+              </div>
+            `).join('')}
+          </div>
+        ` : '';
+        
+        return `
+          <div class="v-module-card" style="height:auto;min-height:170px;display:flex;flex-direction:column;justify-content:space-between;">
+            <div>
+              <div class="v-module-card-title">${title}</div>
+              <div class="v-module-card-desc">${desc}</div>
+              ${countText}
+              ${listHtml}
+            </div>
+            <div class="v-module-card-meta" style="margin-top:12px;display:flex;gap:6px;width:100%;">
+              <button class="btn btn-outline btn-sm" style="flex:1;font-size:11px;padding:5px 4px;" onclick="openManualAddModal('${title}')">+ Manually Add</button>
+              <button class="btn btn-outline btn-sm" style="font-size:11px;padding:5px 6px;" onclick="location.href='excel-onboarding.html'">Excel &rarr;</button>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>`;
+}
+
+function renderStepDocuments() {
+  return `
+    <div class="card-title mb-12">Numbering &amp; Document Branding</div>
+    <table class="data-table" style="max-width:640px;margin-bottom:18px;">
+      <thead><tr><th>Document</th><th>Preview</th></tr></thead>
+      <tbody>
+        <tr><td>Invoice</td><td><code style="color:var(--v-teal);">INV-2026-01043</code></td></tr>
+        <tr><td>Journal Entry</td><td><code style="color:var(--v-teal);">JE-2026-008892</code></td></tr>
+        <tr><td>Purchase Order</td><td><code style="color:var(--v-teal);">PO-00318</code></td></tr>
+      </tbody>
+    </table>
+    <div class="v-map-dropzone" onclick="showToast('Logo upload stub','info')">
+      <div style="font-size:13px;font-weight:600;color:var(--gray-700);">Upload company logo &amp; document templates</div>
+    </div>`;
+}
+
+function renderStepSecurity() {
+  const roles = wizardState.businessType ? rolesForBusinessType(wizardState.businessType) : ROLE_CATALOG;
+  return `
+    <div class="card-title mb-12">Roles &amp; Security</div>
+    <div style="columns:2;gap:24px;max-width:640px;">
+      ${roles.map(r => `
+        <label style="display:flex;align-items:center;gap:10px;font-size:12.5px;color:var(--gray-700);margin-bottom:8px;break-inside:avoid;">
+          <input type="checkbox" ${wizardState.roles.includes(r.id) ? 'checked' : ''} onchange="toggleWizardRole('${r.id}', this.checked)"> ${r.label}
+        </label>`).join('')}
+    </div>
+    <div class="tog-wrap" style="margin-top:16px;display:flex;align-items:center;gap:10px;">
+      <label class="v-switch"><input type="checkbox" ${wizardState.mfa ? 'checked' : ''} onchange="wizardState.mfa=this.checked; saveWizardProgress();"><span class="v-slider"></span></label>
+      <span style="font-size:13px;color:var(--gray-700);">Require MFA for all users</span>
+    </div>`;
+}
+function toggleWizardRole(id, val) {
+  if (val) wizardState.roles.push(id); else wizardState.roles = wizardState.roles.filter(r => r !== id);
+  saveWizardProgress();
+}
+
+function renderStepWorkflows() {
+  return `
+    <div class="card-title mb-12">Approval Thresholds</div>
+    <div style="display:flex;flex-direction:column;gap:12px;max-width:480px;">
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px;">
+        Journal entries above $ <input class="filter-input" style="width:110px;" type="number" value="50000"> require <select class="filter-select"><option>CFO</option><option>Controller</option></select> approval
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px;">
+        Vendor bills above $ <input class="filter-input" style="width:110px;" type="number" value="10000"> require <select class="filter-select"><option>Controller</option><option>CFO</option></select> approval
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px;">
+        Reinsurance cessions above $ <input class="filter-input" style="width:110px;" type="number" value="250000"> require <select class="filter-select"><option>CFO</option></select> approval
+      </div>
+    </div>`;
+}
+
+function renderStepIntegrations() {
+  const connectors = ['QuickBooks Import','Bank Feed / Open Banking','Payment Gateway','Slack / Email Notifications'];
+  return `
+    <div class="card-title mb-12">Connect Integrations</div>
+    <div class="v-module-grid">
+      ${connectors.map(c => `
+        <div class="v-module-card">
+          <div class="v-module-card-title">${c}</div>
+          <div class="v-module-card-meta"><button class="btn btn-outline btn-sm" onclick="showToast('${c} connected (sandbox)','success')">Connect</button></div>
+        </div>`).join('')}
+    </div>`;
+}
+
+function renderStepGoLive() {
+  const cfg = getTenantConfig();
+  const checks = [
+    { label: 'Company profile complete', pass: !!(wizardState.companyName || cfg.companyName) },
+    { label: 'Business type selected', pass: !!wizardState.businessType },
+    { label: 'Default payment terms set', pass: false, blocking: true },
+    { label: 'COA template applied', pass: !!wizardState.coaTemplate || !!cfg.coaTemplate },
+    { label: 'At least one role assigned', pass: wizardState.roles.length > 0 },
+  ];
+  return `
+    <div class="card-title mb-12">Review &amp; Publish</div>
+    <div style="display:flex;flex-direction:column;gap:8px;max-width:640px;margin-bottom:20px;">
+      ${checks.map(c => `
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:9px 12px;border:1px solid var(--gray-200);border-radius:8px;">
+          <span style="font-size:12.5px;color:var(--gray-700);">${c.label}</span>
+          <span class="badge ${c.pass ? 'badge-green' : 'badge-red'}">${c.pass ? 'Pass' : (c.blocking ? 'Blocking' : 'Warning')}</span>
+        </div>`).join('')}
+    </div>
+    <div style="font-size:11.5px;color:var(--gray-500);margin-bottom:16px;">Example of a real blocking rule: "Default payment terms not set, required before invoicing can be enabled." Resolve blocking items in the Configuration Centre before go-live for a production tenant.</div>
+    <button class="btn btn-primary" onclick="publishConfig()">Publish Configuration</button>
+    <div id="publish-result" style="margin-top:14px;"></div>`;
+}
+
+function publishConfig() {
+  const cfg = saveTenantConfig({
+    companyName: document.getElementById('wz-company') ? document.getElementById('wz-company').value : getTenantConfig().companyName,
+    businessType: wizardState.businessType || getTenantConfig().businessType,
+    coaTemplate: wizardState.coaTemplate || getTenantConfig().coaTemplate,
+    configStatus: 'Published',
+    configVersion: getTenantConfig().configVersion + 1,
+    setupStage: 'done', // Unlock the system on publishing config!
+    v_wizard_state: null, // Clear wizard progress on successful publish
+    v_wizard_step: 0
+  });
+  showToast(`Configuration published (v${cfg.configVersion})`, 'success');
+  const result = document.getElementById('publish-result');
+  if (result) {
+    result.innerHTML = `<div class="v-lock-note">Configuration v${cfg.configVersion} is live. <a href="home.html" style="font-weight:700;color:var(--v-teal);margin-right:12px;">Go to Dashboard &rarr;</a> or <a href="role-select.html">Return to role select &rarr;</a></div>`;
+  }
+}
+
+let currentModalType = '';
+
+function openManualAddModal(type) {
+  currentModalType = type;
+  document.getElementById('modal-title').textContent = 'Add New ' + type.replace('Customer / Insured', 'Customer/Insured');
+  
+  const fields = document.getElementById('modal-fields');
+  let html = '';
+  
+  if (type === 'Vendors') {
+    html = `
+      <div class="form-field">
+        <label class="form-label">Vendor Name *</label>
+        <input class="filter-input" style="width:100%;" id="wz-man-name" required>
+      </div>
+      <div class="form-field">
+        <label class="form-label">EIN / TIN (Tax ID) *</label>
+        <input class="filter-input" style="width:100%;" id="wz-man-taxid" placeholder="XX-XXXXXXX" required>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Payment Terms</label>
+        <select class="filter-select" style="width:100%;" id="wz-man-terms">
+          <option>Net 30</option>
+          <option>Net 60</option>
+          <option>Net 15</option>
+          <option>Due on Receipt</option>
+        </select>
+      </div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--gray-700);margin-top:4px;">
+        <input type="checkbox" id="wz-man-1099" checked> 1099 Eligible
+      </label>
+    `;
+  } else if (type === 'Customer / Insured') {
+    html = `
+      <div class="form-field">
+        <label class="form-label">Customer Name *</label>
+        <input class="filter-input" style="width:100%;" id="wz-man-name" required>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Customer Type</label>
+        <select class="filter-select" style="width:100%;" id="wz-man-custtype">
+          <option>Insured</option>
+          <option>Individual</option>
+          <option>Business</option>
+          <option>Broker</option>
+          <option>MGA</option>
+          <option>Reinsurer</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Credit Limit ($)</label>
+        <input class="filter-input" style="width:100%;" type="number" id="wz-man-limit" value="50000">
+      </div>
+    `;
+  } else if (type === 'Brokers') {
+    html = `
+      <div class="form-field">
+        <label class="form-label">Broker / Agent Name *</label>
+        <input class="filter-input" style="width:100%;" id="wz-man-name" required>
+      </div>
+      <div class="form-field">
+        <label class="form-label">License Number *</label>
+        <input class="filter-input" style="width:100%;" id="wz-man-license" required>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Commission Percentage (%)</label>
+        <input class="filter-input" style="width:100%;" type="number" step="0.1" id="wz-man-compct" value="15.0">
+      </div>
+    `;
+  } else if (type === 'Carriers') {
+    html = `
+      <div class="form-field">
+        <label class="form-label">Carrier Name *</label>
+        <input class="filter-input" style="width:100%;" id="wz-man-name" required>
+      </div>
+      <div class="form-field">
+        <label class="form-label">NAIC Code *</label>
+        <input class="filter-input" style="width:100%;" id="wz-man-naic" required>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Treaty Agreement Reference</label>
+        <input class="filter-input" style="width:100%;" id="wz-man-treaty" placeholder="e.g. QQS-2026-01">
+      </div>
+    `;
+  } else if (type === 'Employees') {
+    html = `
+      <div class="form-field">
+        <label class="form-label">Employee Name *</label>
+        <input class="filter-input" style="width:100%;" id="wz-man-name" required>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Role / Job Title *</label>
+        <input class="filter-input" style="width:100%;" id="wz-man-role" required>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Email Address *</label>
+        <input class="filter-input" style="width:100%;" type="email" id="wz-man-email" required>
+      </div>
+    `;
+  }
+  
+  fields.innerHTML = html;
+  document.getElementById('manual-add-modal').classList.add('open');
+}
+
+function closeManualAddModal() {
+  document.getElementById('manual-add-modal').classList.remove('open');
+}
+
+function submitManualAdd() {
+  const nameEl = document.getElementById('wz-man-name');
+  if (nameEl && !nameEl.value.trim()) {
+    showToast('Name is required', 'error');
+    return;
+  }
+  
+  const type = currentModalType;
+  let item = { id: 'MST-' + Date.now(), legal_name: nameEl.value.trim() };
+  
+  if (type === 'Vendors') {
+    item.tax_id = document.getElementById('wz-man-taxid').value.trim();
+    item.payment_terms = document.getElementById('wz-man-terms').value;
+    item.is_1099 = document.getElementById('wz-man-1099').checked;
+    
+    let list = JSON.parse(localStorage.getItem('v_master_vendors') || '[]');
+    list.push(item);
+    localStorage.setItem('v_master_vendors', JSON.stringify(list));
+  } else if (type === 'Customer / Insured') {
+    item.customer_type = document.getElementById('wz-man-custtype').value;
+    item.credit_limit = parseFloat(document.getElementById('wz-man-limit').value || 0);
+    
+    let list = JSON.parse(localStorage.getItem('v_master_customers') || '[]');
+    list.push(item);
+    localStorage.setItem('v_master_customers', JSON.stringify(list));
+  } else if (type === 'Brokers') {
+    item.license_no = document.getElementById('wz-man-license').value.trim();
+    item.commission_pct = parseFloat(document.getElementById('wz-man-compct').value || 0);
+    
+    let list = JSON.parse(localStorage.getItem('v_master_brokers') || '[]');
+    list.push(item);
+    localStorage.setItem('v_master_brokers', JSON.stringify(list));
+  } else if (type === 'Carriers') {
+    item.naic_code = document.getElementById('wz-man-naic').value.trim();
+    item.treaty_agreement = document.getElementById('wz-man-treaty').value.trim();
+    
+    let list = JSON.parse(localStorage.getItem('v_master_carriers') || '[]');
+    list.push(item);
+    localStorage.setItem('v_master_carriers', JSON.stringify(list));
+  } else if (type === 'Employees') {
+    item.role = document.getElementById('wz-man-role').value.trim();
+    item.email = document.getElementById('wz-man-email').value.trim();
+    
+    let list = JSON.parse(localStorage.getItem('v_master_employees') || '[]');
+    list.push(item);
+    localStorage.setItem('v_master_employees', JSON.stringify(list));
+  }
+  
+  showToast('Added ' + item.legal_name + ' successfully', 'success');
+  closeManualAddModal();
+  renderWizard();
+}
+
+function deleteMasterItem(type, itemId) {
+  let storageKey = '';
+  if (type === 'Vendors') storageKey = 'v_master_vendors';
+  else if (type === 'Customer / Insured') storageKey = 'v_master_customers';
+  else if (type === 'Brokers') storageKey = 'v_master_brokers';
+  else if (type === 'Carriers') storageKey = 'v_master_carriers';
+  else if (type === 'Employees') storageKey = 'v_master_employees';
+  
+  if (storageKey) {
+    let list = JSON.parse(localStorage.getItem(storageKey) || '[]');
+    list = list.filter(item => item.id !== itemId);
+    localStorage.setItem(storageKey, JSON.stringify(list));
+    showToast('Item deleted', 'info');
+    renderWizard();
+  }
+}
+
+renderWizard();
+</script>
+<div id="manual-add-modal" class="v-modal" style="display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:9999;align-items:center;justify-content:center;">
+  <style>
+    .v-modal.open { display: flex !important; }
+  </style>
+  <div class="form-card" style="width:400px;padding:24px;background:#fff;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,0.15);border:none;">
+    <div class="card-title" id="modal-title" style="margin-bottom:16px;">Add Master Item</div>
+    <div id="modal-fields" style="display:flex;flex-direction:column;gap:12px;margin-bottom:20px;"></div>
+    <div style="display:flex;justify-content:flex-end;gap:8px;">
+      <button class="btn btn-outline btn-sm" onclick="closeManualAddModal()">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="submitManualAdd()">Add Item</button>
+    </div>
+  </div>
+</div>
+</body>
+</html>

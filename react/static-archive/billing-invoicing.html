@@ -1,0 +1,949 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Billing & Invoicing — Revenue | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <style>
+    @media print {
+      body.printing-pdf .sidebar,
+      body.printing-pdf .app-header,
+      body.printing-pdf .main-content > *:not(#mi-invoice-doc-wrap) { display: none !important; }
+      body.printing-pdf .main-content { margin: 0 !important; padding: 0 !important; }
+      body.printing-pdf #mi-invoice-doc-wrap { display: block !important; }
+      .no-print { display: none !important; }
+    }
+    .bi-pdf-doc { max-width: 720px; margin: 0 auto; border: 1px solid var(--gray-200); border-radius: var(--radius-lg); padding: 32px; background: #fff; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); }
+    .bi-pdf-brand { display: flex; align-items: center; gap: 10px; }
+    .bi-pdf-brand-mark { width: 34px; height: 34px; border-radius: 8px; background: var(--navy); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-family: -apple-system, sans-serif; flex-shrink: 0; }
+    .bi-pdf-head { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid var(--gray-200); padding-bottom: 14px; }
+    .bi-pdf-doctitle { font-size: 20px; font-weight: 800; letter-spacing: 1px; color: var(--navy); }
+    .bi-pdf-doc table.data-table { font-family: -apple-system, sans-serif; }
+    .bi-pdf-footer { margin-top: 20px; padding-top: 12px; border-top: 1px solid var(--gray-200); font-size: 11px; color: var(--gray-500); font-family: -apple-system, sans-serif; }
+
+    /* Modal dialog */
+    .bi-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+    .bi-modal.open { display: flex; }
+    .bi-modal-content {
+      background: #fff;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 780px;
+      max-height: 90%;
+      overflow-y: auto;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+      border: 1px solid var(--gray-200);
+      padding: 24px;
+    }
+    .bi-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--gray-200);
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+    }
+    .bi-modal-close {
+      cursor: pointer;
+      font-size: 22px;
+      color: var(--gray-500);
+      font-weight: bold;
+    }
+  </style>
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/gl-engine.js"></script>
+  <script src="js/insurance-ops.js"></script>
+  <script src="js/layout.js"></script>
+</head>
+<body>
+  <main class="main-content" id="main-content">
+
+    <div class="page-header">
+      <div>
+        <div class="page-title">Billing &amp; Invoicing</div>
+        <div class="page-subtitle">Customer invoicing across every billing model - premium invoices, agency billing, milestone, and recurring contracts</div>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-outline" onclick="exportRegister(this)">Export</button>
+        <button class="btn btn-primary" id="new-inv-btn" onclick="toggleNewInvoiceForm()">+ New Invoice</button>
+      </div>
+    </div>
+
+    <!-- Dynamic Stats Row -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon si-navy"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="2" width="14" height="16" rx="1.5" stroke="#102a2e" stroke-width="1.6"/><path d="M6.5 6.5h7M6.5 10h7M6.5 13.5h4" stroke="#102a2e" stroke-width="1.4" stroke-linecap="round"/></svg></div>
+        <div class="stat-info"><div class="stat-value" id="kpi-total-invoiced">$0.00</div><div class="stat-label">Total Invoiced (MTD)</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-orange"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="#e65100" stroke-width="1.6"/><path d="M10 6v4l3 2" stroke="#e65100" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+        <div class="stat-info"><div class="stat-value" id="kpi-outstanding">$0.00</div><div class="stat-label">Outstanding Balance</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-coral"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 4v7M10 15v1" stroke="#c9791f" stroke-width="2" stroke-linecap="round"/><circle cx="10" cy="10" r="7.5" stroke="#c9791f" stroke-width="1.4"/></svg></div>
+        <div class="stat-info"><div class="stat-value" id="kpi-overdue">$0.00</div><div class="stat-label">Overdue</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-green"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 12l4-5 3 3 6-7" stroke="#2e7d32" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="stat-info"><div class="stat-value" id="kpi-recurring">$0.00 <span style="font-size:12px;color:var(--gray-400);font-weight:600;">/mo</span></div><div class="stat-label">Recurring Revenue (MRR)</div></div>
+      </div>
+    </div>
+
+    <!-- New Invoice inline form -->
+    <div class="form-card" id="new-inv-form" style="display:none;margin-bottom:20px;padding:20px;">
+      <div style="font-size:14px;font-weight:700;color:var(--gray-900);margin-bottom:16px;">Create New Invoice</div>
+      <div class="form-grid-3">
+        <div class="form-field">
+          <label class="field-label">Customer / Insured</label>
+          <input type="text" class="field-input" id="new-inv-customer" placeholder="e.g. Ayushi, Apex Freight, Meridian Logistics" value="Ayushi">
+        </div>
+        <div class="form-field">
+          <label class="field-label">Invoice Type</label>
+          <select class="field-input field-select" id="new-inv-type">
+            <option>Premium Invoice</option>
+            <option>Standard</option>
+            <option>Pro-Forma</option>
+            <option>Recurring</option>
+            <option>Progress Billing</option>
+            <option>Milestone</option>
+            <option>Retainer</option>
+            <option>Debit Note</option>
+            <option>Credit Note</option>
+            <option>Intercompany</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="field-label">Due Date</label>
+          <input type="date" class="field-input" id="new-inv-due-date" value="2026-09-19">
+        </div>
+      </div>
+      <div style="font-size:11.5px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:.4px;margin:12px 0 8px;">Line Items</div>
+      <table class="data-table" style="margin-bottom:12px;">
+        <thead><tr><th>Description</th><th style="width:90px;">Qty</th><th style="width:140px;">Unit Price ($)</th><th style="width:130px;" class="text-right">Amount ($)</th><th style="width:36px;"></th></tr></thead>
+        <tbody id="new-inv-lines">
+          <tr>
+            <td><input type="text" class="field-input" value="Commercial Trucking Policy Premium (POL-V8NHT)" style="background:#fff;"></td>
+            <td><input type="number" class="field-input" value="1" min="1" style="background:#fff;" oninput="calcLineAmount(this)"></td>
+            <td><input type="text" class="field-input" value="32,257.00" style="background:#fff;" oninput="calcLineAmount(this)"></td>
+            <td class="text-right font-semibold">$32,257.00</td>
+            <td><button class="btn btn-ghost btn-sm" onclick="removeInvoiceLine(this)" title="Remove line">&times;</button></td>
+          </tr>
+          <tr>
+            <td><input type="text" class="field-input" value="State Taxes &amp; Surplus Fees (TX &amp; Denton County)" style="background:#fff;"></td>
+            <td><input type="number" class="field-input" value="1" min="1" style="background:#fff;" oninput="calcLineAmount(this)"></td>
+            <td><input type="text" class="field-input" value="7,003.00" style="background:#fff;" oninput="calcLineAmount(this)"></td>
+            <td class="text-right font-semibold">$7,003.00</td>
+            <td><button class="btn btn-ghost btn-sm" onclick="removeInvoiceLine(this)" title="Remove line">&times;</button></td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colspan="3" class="text-right font-semibold" style="border-top:1px solid var(--gray-200);">Total Amount</td>
+            <td class="text-right font-semibold" id="new-inv-total" style="border-top:1px solid var(--gray-200); font-size:14px; color:var(--navy);">$39,260.00</td>
+            <td style="border-top:1px solid var(--gray-200);"></td>
+          </tr>
+        </tfoot>
+      </table>
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <button class="btn btn-outline btn-sm" onclick="addInvoiceLine()">+ Add Line</button>
+        <div style="display:flex;gap:10px;">
+          <button class="btn btn-outline" onclick="toggleNewInvoiceForm()">Cancel</button>
+          <button class="btn btn-primary" onclick="submitNewInvoice()">Save &amp; Generate Invoice</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-bar">
+      <span class="filter-bar-label">Filters:</span>
+      <select class="filter-select" id="f-type" onchange="applyInvFilters()">
+        <option value="">All Invoice Types</option>
+        <option>Premium Invoice</option>
+        <option>Standard</option>
+        <option>Pro-Forma</option>
+        <option>Recurring</option>
+        <option>Progress Billing</option>
+        <option>Milestone</option>
+        <option>Retainer</option>
+        <option>Debit Note</option>
+        <option>Credit Note</option>
+      </select>
+      <select class="filter-select" id="f-status" onchange="applyInvFilters()">
+        <option value="">All Status</option>
+        <option>Draft</option>
+        <option>Sent</option>
+        <option>Partially Paid</option>
+        <option>Paid</option>
+        <option>Overdue</option>
+        <option>Collections</option>
+      </select>
+      <select class="filter-select" id="f-customer" onchange="applyInvFilters()">
+        <option value="">All Customers</option>
+      </select>
+      <div class="filter-spacer"></div>
+      <input type="text" class="filter-input" placeholder="Search invoice, customer..." id="inv-search" oninput="applyInvFilters()" style="width:220px;">
+    </div>
+
+    <!-- Activity Log -->
+    <div class="table-wrap" id="billing-activity-log" style="display:none;margin-bottom:16px;">
+      <div class="table-head-row"><div class="table-head-title">Activity Log</div></div>
+      <div class="log-body" style="padding:6px 16px 10px;"></div>
+    </div>
+
+    <!-- Generate MGA Premium Invoice: real, pulls actual unbilled bound policies -->
+    <div class="form-card" style="margin-bottom:20px;padding:20px;">
+      <div class="card-title">Generate MGA Premium Invoice <span class="v-badge-config" style="margin-left:6px;">real, from Premium &amp; Claims</span></div>
+      <div class="form-grid-3" style="margin-top:12px;">
+        <div>
+          <label class="field-label">Managing General Agent (MGA)</label>
+          <select class="field-input" id="mi-mga-select" onchange="renderUnbilledPreview()"></select>
+        </div>
+        <div style="grid-column:span 2;">
+          <div id="mi-unbilled-preview" style="font-size:12.5px;color:var(--gray-500);padding-top:22px;"></div>
+        </div>
+      </div>
+      <div style="margin-top:12px;">
+        <button class="btn btn-primary btn-sm" onclick="onGenerateMgaInvoice()">⚡ Generate MGA Settlement Invoice</button>
+      </div>
+      <div id="mi-invoice-doc-wrap" style="margin-top:16px;"></div>
+    </div>
+
+    <!-- Invoice Register Table -->
+    <div class="table-wrap" style="margin-bottom:24px;">
+      <div class="table-head-row">
+        <div class="table-head-title">Invoice Register</div>
+        <div class="table-head-actions">
+          <button class="btn btn-outline btn-sm" onclick="sendReminders()">Send Reminders</button>
+        </div>
+      </div>
+      <table class="data-table" id="inv-table">
+        <thead>
+          <tr>
+            <th><input type="checkbox" class="table-check" onchange="toggleSelectAll(this)"></th>
+            <th>Invoice No.</th>
+            <th>Customer / Insured</th>
+            <th>Type</th>
+            <th>Issue Date</th>
+            <th>Due Date</th>
+            <th class="text-right">Total Amount</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="inv-tbody">
+          <!-- Rendered dynamically from localStorage -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Recurring Invoice Schedules -->
+    <div class="table-wrap">
+      <div class="table-head-row">
+        <div class="table-head-title">Recurring Invoice Schedules &amp; Payment Plans</div>
+        <div class="table-head-actions">
+          <button class="btn btn-outline btn-sm" onclick="toggleNewPlanForm()">+ New Plan</button>
+        </div>
+      </div>
+      <div class="form-card" id="new-plan-form" style="display:none;margin:0 16px 16px;padding:16px;">
+        <div style="font-size:13px;font-weight:700;color:var(--gray-900);margin-bottom:12px;">New Recurring Billing Plan</div>
+        <div class="form-grid-3">
+          <div class="form-field">
+            <label class="field-label">Plan Name</label>
+            <input type="text" class="field-input" id="np-name" placeholder="e.g. Commercial Trucking Monthly Installment">
+          </div>
+          <div class="form-field">
+            <label class="field-label">Customer</label>
+            <input type="text" class="field-input" id="np-customer" placeholder="e.g. Ayushi" value="Ayushi">
+          </div>
+          <div class="form-field">
+            <label class="field-label">Frequency</label>
+            <select class="field-input field-select" id="np-freq">
+              <option>Monthly</option>
+              <option>Quarterly</option>
+              <option>Weekly</option>
+              <option>Annual</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-grid-3">
+          <div class="form-field">
+            <label class="field-label">Amount ($)</label>
+            <input type="number" class="field-input" id="np-amount" placeholder="3271.67" value="3271.67">
+          </div>
+          <div class="form-field">
+            <label class="field-label">Next Run Date</label>
+            <input type="date" class="field-input" id="np-date" value="2026-09-20">
+          </div>
+          <div class="form-field">
+            <label class="field-label">Auto-Post to GL</label>
+            <label class="v-switch" style="margin-top:6px;"><input type="checkbox" id="np-autopost" checked><span class="v-slider"></span></label>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:8px;">
+          <button class="btn btn-outline" onclick="toggleNewPlanForm()">Cancel</button>
+          <button class="btn btn-primary" onclick="submitNewPlan()">Save Plan</button>
+        </div>
+      </div>
+      <table class="data-table" id="billing-plans-table">
+        <thead><tr><th>Plan Name</th><th>Customer</th><th>Frequency</th><th class="text-right">Amount</th><th>Next Run Date</th><th>Auto-Post</th></tr></thead>
+        <tbody id="billing-plans-tbody">
+          <!-- Rendered dynamically -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- View Invoice Modal Dialog -->
+    <div class="bi-modal" id="invoice-view-modal">
+      <div class="bi-modal-content">
+        <div class="bi-modal-header">
+          <div style="font-size:16px; font-weight:800; color:var(--navy);" id="view-modal-title">Invoice Preview</div>
+          <div class="bi-modal-close" onclick="closeInvoiceModal()">&times;</div>
+        </div>
+        <div id="modal-invoice-doc-body">
+          <!-- Injected dynamic PDF view -->
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="js/app.js"></script>
+  <script>
+    initLayout('billing');
+
+    const STORAGE_KEY_INVOICES = 'v_billing_invoices';
+    const STORAGE_KEY_PLANS = 'v_billing_recurring_plans';
+
+    // Dynamic Real Invoices from active policies & General Ledger
+    function getDynamicInitialInvoices() {
+      const dynamicPolicies = typeof getPolicies === 'function' ? getPolicies() : [];
+      if (dynamicPolicies && dynamicPolicies.length > 0) {
+        return dynamicPolicies.map((p, idx) => ({
+          id: p.invoiceId || `INV-${p.policyNumber || 'POL'}-${idx+1}`,
+          invoiceNumber: p.invoiceId || `INV-${p.policyNumber || 'POL'}-${idx+1}`,
+          policyNumber: p.policyNumber || 'POL-V8NHT',
+          customer: p.insured || 'Ayushi',
+          type: 'Premium Invoice',
+          issueDate: p.effectiveDate ? new Date(p.effectiveDate).toLocaleDateString('en-US', {month:'2-digit', day:'2-digit', year:'numeric'}) : '08/20/2026',
+          dueDate: '09/19/2026',
+          amount: p.premium || 39260.00,
+          paidAmount: p.status === 'paid' ? (p.premium || 39260.00) : 0.00,
+          status: p.status === 'paid' ? 'Paid' : (p.status === 'invoiced' ? 'Sent' : 'Issued'),
+          producer: 'HIT',
+          mga: p.mgaName || 'NTA',
+          carrier: 'SOUTHLAKE',
+          lob: p.lob || 'Commercial Trucking',
+          lines: [
+            { desc: `${p.lob || 'Commercial Trucking'} Premium (${p.policyNumber || 'POL-V8NHT'})`, qty: 1, price: (p.premium || 39260.00) * 0.8216, amt: (p.premium || 39260.00) * 0.8216 },
+            { desc: 'State Surplus Tax (4.85%), Local Surcharge (0.55%) & Stamping Fees', qty: 1, price: (p.premium || 39260.00) * 0.1784, amt: (p.premium || 39260.00) * 0.1784 }
+          ]
+        }));
+      }
+
+      // Default real initial invoice for verified active policy POL-V8NHT
+      return [
+        {
+          id: "INV-V8NHT-1",
+          invoiceNumber: "INV-V8NHT-1",
+          policyNumber: "POL-V8NHT",
+          customer: "Ayushi",
+          type: "Premium Invoice",
+          issueDate: "08/20/2026",
+          dueDate: "09/19/2026",
+          amount: 39260.00,
+          paidAmount: 0.00,
+          status: "Sent",
+          producer: "HIT",
+          mga: "NTA",
+          carrier: "SOUTHLAKE",
+          lob: "Commercial Trucking",
+          lines: [
+            { desc: "Commercial Trucking Net Coverage Premium (Auto Liability + Physical Damage)", qty: 1, price: 32257.00, amt: 32257.00 },
+            { desc: "State Surplus Tax (4.85%), Denton County Tax (0.55%) & Regulatory Fees", qty: 1, price: 7003.00, amt: 7003.00 }
+          ]
+        }
+      ];
+    }
+
+    function getDynamicInitialPlans() {
+      return [
+        { name: "Ayushi - Commercial Trucking Monthly Installment", customer: "Ayushi", freq: "Monthly", amount: 3271.67, nextRun: "09/20/2026", autoPost: true }
+      ];
+    }
+
+    // Load & Save Invoices
+    function loadInvoices() {
+      try {
+        let stored = localStorage.getItem(STORAGE_KEY_INVOICES);
+        if (!stored) {
+          const initial = getDynamicInitialInvoices();
+          localStorage.setItem(STORAGE_KEY_INVOICES, JSON.stringify(initial));
+          return initial;
+        }
+        let list = JSON.parse(stored);
+        if (!Array.isArray(list) || list.length === 0) {
+          const initial = getDynamicInitialInvoices();
+          localStorage.setItem(STORAGE_KEY_INVOICES, JSON.stringify(initial));
+          return initial;
+        }
+        // Filter out any legacy dummy rows if they exist in localStorage
+        const dummyNames = ['Harborview Medical Group', 'Crestpoint Property Management', 'AC Retail Stores', 'Meridian Logistics LLC'];
+        const cleaned = list.filter(item => !dummyNames.includes(item.customer));
+        if (cleaned.length !== list.length) {
+          localStorage.setItem(STORAGE_KEY_INVOICES, JSON.stringify(cleaned.length ? cleaned : getDynamicInitialInvoices()));
+          return cleaned.length ? cleaned : getDynamicInitialInvoices();
+        }
+        return list;
+      } catch (e) {
+        return getDynamicInitialInvoices();
+      }
+    }
+
+    function saveInvoices(list) {
+      localStorage.setItem(STORAGE_KEY_INVOICES, JSON.stringify(list));
+    }
+
+    function loadPlans() {
+      try {
+        let stored = localStorage.getItem(STORAGE_KEY_PLANS);
+        if (!stored) {
+          const initial = getDynamicInitialPlans();
+          localStorage.setItem(STORAGE_KEY_PLANS, JSON.stringify(initial));
+          return initial;
+        }
+        let list = JSON.parse(stored);
+        if (!Array.isArray(list) || list.length === 0) {
+          const initial = getDynamicInitialPlans();
+          localStorage.setItem(STORAGE_KEY_PLANS, JSON.stringify(initial));
+          return initial;
+        }
+        // Filter out legacy dummy plans
+        const dummyCustomers = ['AC Retail Stores', 'Crestpoint Property Management'];
+        const cleaned = list.filter(item => !dummyCustomers.includes(item.customer));
+        if (cleaned.length !== list.length) {
+          localStorage.setItem(STORAGE_KEY_PLANS, JSON.stringify(cleaned.length ? cleaned : getDynamicInitialPlans()));
+          return cleaned.length ? cleaned : getDynamicInitialPlans();
+        }
+        return list;
+      } catch (e) {
+        return getDynamicInitialPlans();
+      }
+    }
+
+    function savePlans(list) {
+      localStorage.setItem(STORAGE_KEY_PLANS, JSON.stringify(list));
+    }
+
+    // Badge styling helper
+    function getBadgeClass(type) {
+      const map = {
+        'Standard': 'badge-navy', 'Pro-Forma': 'badge-gray', 'Recurring': 'badge-blue',
+        'Progress Billing': 'badge-orange', 'Milestone': 'badge-navy', 'Retainer': 'badge-gray',
+        'Premium Invoice': 'badge-red', 'Debit Note': 'badge-orange', 'Credit Note': 'badge-green',
+        'Intercompany': 'badge-navy'
+      };
+      return map[type] || 'badge-navy';
+    }
+
+    function getStatusBadgeClass(status) {
+      const map = {
+        'Paid': 'badge-green', 'Sent': 'badge-blue', 'Draft': 'badge-gray',
+        'Partially Paid': 'badge-orange', 'Overdue': 'badge-red', 'Collections': 'badge-red',
+        'Issued': 'badge-orange', 'Posted': 'badge-green'
+      };
+      return map[status] || 'badge-gray';
+    }
+
+    // Render Invoices Table & Stats
+    function renderInvoiceRegister() {
+      const invoices = loadInvoices();
+      const tbody = document.getElementById('inv-tbody');
+      
+      // Compute KPIs dynamically
+      let totalInvoiced = 0;
+      let totalOutstanding = 0;
+      let totalOverdue = 0;
+
+      tbody.innerHTML = invoices.map(inv => {
+        const amt = parseFloat(inv.amount) || 0;
+        const paid = parseFloat(inv.paidAmount) || 0;
+        const due = amt - paid;
+
+        totalInvoiced += amt;
+        if (inv.status !== 'Paid') {
+          totalOutstanding += due;
+          if (inv.status === 'Overdue' || inv.status === 'Collections') {
+            totalOverdue += due;
+          }
+        }
+
+        return `
+          <tr data-id="${inv.id}" data-type="${inv.type}" data-status="${inv.status}" data-customer="${inv.customer}">
+            <td><input type="checkbox" class="table-check"></td>
+            <td class="cell-link" onclick="viewInvoiceDoc('${inv.id}')">${inv.invoiceNumber}</td>
+            <td><strong>${inv.customer}</strong> ${inv.policyNumber ? `<span style="font-size:11px;color:var(--gray-500);">(${inv.policyNumber})</span>` : ''}</td>
+            <td><span class="badge ${getBadgeClass(inv.type)}">${inv.type}</span></td>
+            <td>${inv.issueDate}</td>
+            <td>${inv.dueDate || ' - '}</td>
+            <td class="text-right font-semibold">$${amt.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+            <td><span class="badge ${getStatusBadgeClass(inv.status)}">${inv.status}</span></td>
+            <td>
+              <div style="display:flex;gap:4px;">
+                <button class="btn btn-ghost btn-sm" onclick="viewInvoiceDoc('${inv.id}')">View</button>
+                ${inv.status !== 'Paid' ? `<button class="btn btn-ghost btn-sm" style="color:var(--green-600);" onclick="markInvoicePaid('${inv.id}')">Pay</button>` : ''}
+                ${inv.type === 'Pro-Forma' && inv.status === 'Draft' ? `<button class="btn btn-ghost btn-sm" onclick="convertProForma('${inv.id}')">Convert</button>` : ''}
+              </div>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      // Update KPI Cards
+      document.getElementById('kpi-total-invoiced').textContent = '$' + totalInvoiced.toLocaleString('en-US', {minimumFractionDigits: 2});
+      document.getElementById('kpi-outstanding').textContent = '$' + totalOutstanding.toLocaleString('en-US', {minimumFractionDigits: 2});
+      document.getElementById('kpi-overdue').textContent = '$' + totalOverdue.toLocaleString('en-US', {minimumFractionDigits: 2});
+
+      // Update Customers Filter Dropdown
+      populateCustomerFilters(invoices);
+    }
+
+    function populateCustomerFilters(invoices) {
+      const sel = document.getElementById('f-customer');
+      const current = sel.value;
+      const customers = Array.from(new Set(invoices.map(i => i.customer).filter(Boolean)));
+      
+      sel.innerHTML = '<option value="">All Customers</option>' + 
+        customers.map(c => `<option value="${c}" ${c === current ? 'selected' : ''}>${c}</option>`).join('');
+    }
+
+    function renderBillingPlans() {
+      const plans = loadPlans();
+      const tbody = document.getElementById('billing-plans-tbody');
+      let mrrTotal = 0;
+
+      tbody.innerHTML = plans.map((p, idx) => {
+        const amt = parseFloat(p.amount) || 0;
+        if (p.freq === 'Monthly') mrrTotal += amt;
+        if (p.freq === 'Quarterly') mrrTotal += (amt / 3);
+        if (p.freq === 'Annual') mrrTotal += (amt / 12);
+        if (p.freq === 'Weekly') mrrTotal += (amt * 4.33);
+
+        return `
+          <tr>
+            <td class="font-semibold">${p.name}</td>
+            <td>${p.customer}</td>
+            <td><span class="badge badge-blue">${p.freq}</span></td>
+            <td class="text-right font-semibold">$${amt.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+            <td>${p.nextRun}</td>
+            <td><label class="v-switch"><input type="checkbox" ${p.autoPost ? 'checked' : ''} onchange="togglePlanAutoPost(${idx}, this)"><span class="v-slider"></span></label></td>
+          </tr>
+        `;
+      }).join('');
+
+      document.getElementById('kpi-recurring').innerHTML = '$' + Math.round(mrrTotal).toLocaleString('en-US') + ' <span style="font-size:12px;color:var(--gray-400);font-weight:600;">/mo</span>';
+    }
+
+    // View Invoice Document in Modal
+    function viewInvoiceDoc(invoiceId) {
+      const invoices = loadInvoices();
+      const invoice = invoices.find(i => i.id === invoiceId || i.invoiceNumber === invoiceId);
+      if (!invoice) return;
+
+      const lines = invoice.lines && invoice.lines.length ? invoice.lines : [
+        { desc: `${invoice.type} for ${invoice.customer} (${invoice.policyNumber || 'General'})`, qty: 1, price: invoice.amount, amt: invoice.amount }
+      ];
+
+      document.getElementById('view-modal-title').textContent = `Invoice Document: ${invoice.invoiceNumber}`;
+      document.getElementById('modal-invoice-doc-body').innerHTML = `
+        <div class="bi-pdf-doc" style="box-shadow:none;border:none;padding:12px 0;">
+          <div class="bi-pdf-head">
+            <div class="bi-pdf-brand">
+              <div class="bi-pdf-brand-mark">${(invoice.carrier || 'SOUTHLAKE').slice(0,2).toUpperCase()}</div>
+              <div>
+                <strong style="font-size:15px;">${invoice.carrier || 'SOUTHLAKE Insurance Co.'}</strong><br>
+                <span style="color:var(--gray-500);font-size:11px;">MGA: ${invoice.mga || 'NTA'} &bull; Broker: ${invoice.producer || 'HIT'}</span>
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <div class="bi-pdf-doctitle">${invoice.type.toUpperCase()}</div>
+              <span class="badge ${getStatusBadgeClass(invoice.status)}" style="margin-top:4px;">${invoice.status}</span>
+            </div>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;margin:18px 0; font-size:13px;">
+            <div>
+              <span style="color:var(--gray-500);font-size:11px;font-weight:700;text-transform:uppercase;">Bill To:</span><br>
+              <strong style="font-size:15px;color:var(--navy);">${invoice.customer}</strong><br>
+              <span>State: TX ${invoice.lob ? `&bull; LOB: <strong>${invoice.lob}</strong>` : ''}</span>
+            </div>
+            <div style="text-align:right;">
+              <div>Invoice #: <strong>${invoice.invoiceNumber}</strong></div>
+              ${invoice.policyNumber ? `<div>Policy #: <strong>${invoice.policyNumber}</strong></div>` : ''}
+              <div>Issue Date: <strong>${invoice.issueDate}</strong></div>
+              <div>Due Date: <strong>${invoice.dueDate || 'Upon Receipt'}</strong></div>
+            </div>
+          </div>
+
+          <table class="data-table" style="margin-top:12px;">
+            <thead>
+              <tr>
+                <th>Description</th>
+                <th style="width:70px;text-align:center;">Qty</th>
+                <th style="width:130px;text-align:right;">Unit Price</th>
+                <th style="width:130px;text-align:right;">Amount</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${lines.map(l => `
+                <tr>
+                  <td><strong>${l.desc}</strong></td>
+                  <td style="text-align:center;">${l.qty}</td>
+                  <td style="text-align:right;">$${Number(l.price).toLocaleString('en-US', {minimumFractionDigits:2})}</td>
+                  <td style="text-align:right;font-weight:600;">$${Number(l.amt).toLocaleString('en-US', {minimumFractionDigits:2})}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="3" style="text-align:right;font-weight:700;border-top:2px solid var(--gray-300);">Total Due</td>
+                <td style="text-align:right;font-weight:800;font-size:15px;color:var(--navy);border-top:2px solid var(--gray-300);">$${Number(invoice.amount).toLocaleString('en-US', {minimumFractionDigits:2})}</td>
+              </tr>
+            </tfoot>
+          </table>
+
+          <div class="bi-pdf-footer">
+            Payment due upon receipt. Remit to SOUTHLAKE / NTA referencing invoice number ${invoice.invoiceNumber}.
+          </div>
+          <div style="margin-top:18px;display:flex;justify-content:flex-end;gap:10px;" class="no-print">
+            <button class="btn btn-outline" onclick="printPdfWrap()">🖨️ Print / Save as PDF</button>
+            ${invoice.status !== 'Paid' ? `<button class="btn btn-primary" onclick="markInvoicePaid('${invoice.id}'); closeInvoiceModal();">Record Full Payment ($${Number(invoice.amount).toLocaleString('en-US')})</button>` : ''}
+          </div>
+        </div>
+      `;
+
+      document.getElementById('invoice-view-modal').classList.add('open');
+    }
+
+    function closeInvoiceModal() {
+      document.getElementById('invoice-view-modal').classList.remove('open');
+    }
+
+    // Mark invoice as paid
+    function markInvoicePaid(invoiceId) {
+      let invoices = loadInvoices();
+      let inv = invoices.find(i => i.id === invoiceId || i.invoiceNumber === invoiceId);
+      if (inv) {
+        inv.status = 'Paid';
+        inv.paidAmount = inv.amount;
+        saveInvoices(invoices);
+        renderInvoiceRegister();
+        logActivity(`Payment of $${inv.amount.toLocaleString()} recorded for invoice ${inv.invoiceNumber} (${inv.customer})`);
+        showToast(`Invoice ${inv.invoiceNumber} marked as Paid! Cash recorded in AR.`, "success");
+      }
+    }
+
+    function convertProForma(invoiceId) {
+      let invoices = loadInvoices();
+      let inv = invoices.find(i => i.id === invoiceId || i.invoiceNumber === invoiceId);
+      if (inv) {
+        inv.type = 'Standard';
+        inv.status = 'Sent';
+        inv.invoiceNumber = inv.invoiceNumber.replace('PF-', 'INV-');
+        saveInvoices(invoices);
+        renderInvoiceRegister();
+        showToast(`Pro-forma converted to Standard Invoice ${inv.invoiceNumber}`, 'success');
+      }
+    }
+
+    // New Invoice Functions
+    function toggleNewInvoiceForm() {
+      const form = document.getElementById('new-inv-form');
+      form.style.display = form.style.display === 'none' ? 'block' : 'none';
+      if (form.style.display === 'block') {
+        form.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+
+    function addInvoiceLine() {
+      const tbody = document.getElementById('new-inv-lines');
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><input type="text" class="field-input" placeholder="Service / Fee Description" style="background:#fff;"></td>
+        <td><input type="number" class="field-input" value="1" min="1" style="background:#fff;" oninput="calcLineAmount(this)"></td>
+        <td><input type="text" class="field-input" value="0.00" style="background:#fff;" oninput="calcLineAmount(this)"></td>
+        <td class="text-right font-semibold">$0.00</td>
+        <td><button class="btn btn-ghost btn-sm" onclick="removeInvoiceLine(this)" title="Remove line">&times;</button></td>
+      `;
+      tbody.appendChild(tr);
+      updateInvoiceTotal();
+    }
+
+    function removeInvoiceLine(btn) {
+      const tbody = document.getElementById('new-inv-lines');
+      if (tbody.querySelectorAll('tr').length <= 1) {
+        showToast('An invoice needs at least one line item', 'warning');
+        return;
+      }
+      btn.closest('tr').remove();
+      updateInvoiceTotal();
+    }
+
+    function calcLineAmount(inputEl) {
+      const row = inputEl.closest('tr');
+      const qty = parseFloat(row.children[1].querySelector('input').value) || 0;
+      const priceRaw = row.children[2].querySelector('input').value.replace(/,/g, '');
+      const price = parseFloat(priceRaw) || 0;
+      const total = qty * price;
+      row.children[3].textContent = '$' + total.toLocaleString('en-US', {minimumFractionDigits: 2});
+      updateInvoiceTotal();
+    }
+
+    function updateInvoiceTotal() {
+      let total = 0;
+      document.querySelectorAll('#new-inv-lines tr').forEach(row => {
+        const amountText = row.children[3].textContent.replace(/[^0-9.-]/g, '');
+        total += parseFloat(amountText) || 0;
+      });
+      document.getElementById('new-inv-total').textContent = '$' + total.toLocaleString('en-US', {minimumFractionDigits: 2});
+      return total;
+    }
+
+    function submitNewInvoice() {
+      const customer = document.getElementById('new-inv-customer').value.trim() || 'Ayushi';
+      const type = document.getElementById('new-inv-type').value;
+      const dueDate = document.getElementById('new-inv-due-date').value || '2026-09-19';
+      const total = updateInvoiceTotal();
+
+      if (total <= 0) {
+        showToast('Invoice total must be greater than zero', 'warning');
+        return;
+      }
+
+      // Collect line items
+      const lines = [];
+      document.querySelectorAll('#new-inv-lines tr').forEach(row => {
+        const desc = row.children[0].querySelector('input').value || 'Invoice item';
+        const qty = parseFloat(row.children[1].querySelector('input').value) || 1;
+        const price = parseFloat(row.children[2].querySelector('input').value.replace(/,/g, '')) || 0;
+        lines.push({ desc, qty, price, amt: qty * price });
+      });
+
+      const invNo = 'INV-' + Math.floor(10000 + Math.random() * 90000);
+      const newInvoice = {
+        id: invNo,
+        invoiceNumber: invNo,
+        policyNumber: "POL-" + Math.floor(1000 + Math.random() * 9000),
+        customer: customer,
+        type: type,
+        issueDate: new Date().toLocaleDateString('en-US', {month:'2-digit', day:'2-digit', year:'numeric'}),
+        dueDate: new Date(dueDate).toLocaleDateString('en-US', {month:'2-digit', day:'2-digit', year:'numeric'}),
+        amount: total,
+        paidAmount: 0,
+        status: 'Sent',
+        producer: 'HIT',
+        mga: 'NTA',
+        carrier: 'SOUTHLAKE',
+        lines: lines
+      };
+
+      const invoices = loadInvoices();
+      invoices.unshift(newInvoice);
+      saveInvoices(invoices);
+
+      renderInvoiceRegister();
+      toggleNewInvoiceForm();
+      logActivity(`Generated new ${type} invoice ${invNo} for ${customer} totaling $${total.toLocaleString()}`);
+      showToast(`Invoice ${invNo} successfully generated & saved!`, 'success');
+    }
+
+    // MGA Generation functions
+    function renderMiMgaSelect() {
+      const sel = document.getElementById('mi-mga-select');
+      let mgas = typeof getMGAs === 'function' ? getMGAs() : [];
+      if (!mgas || mgas.length === 0) {
+        mgas = [{ id: 'MGA-NTA', name: 'NTA (Managing General Agent)' }];
+      }
+      sel.innerHTML = mgas.map(m => `<option value="${m.id}">${m.name}</option>`).join('');
+      renderUnbilledPreview();
+    }
+
+    function renderUnbilledPreview() {
+      const sel = document.getElementById('mi-mga-select');
+      const mgaId = sel ? sel.value : 'MGA-NTA';
+      const preview = document.getElementById('mi-unbilled-preview');
+      if (!preview) return;
+
+      const unbilled = typeof unbilledPoliciesForMGA === 'function' ? unbilledPoliciesForMGA(mgaId) : [];
+      if (unbilled && unbilled.length > 0) {
+        const total = unbilled.reduce((sum, p) => sum + (p.premium || 0), 0);
+        const policyRefs = unbilled.map(p => `${p.policyNumber} - ${p.insured}`).join(', ');
+        preview.innerHTML = `<strong>${unbilled.length} active unbilled policy batch (${policyRefs})</strong>, unbilled balance: <strong>$${total.toLocaleString('en-US', {minimumFractionDigits: 2})}</strong> (Carrier: SOUTHLAKE &bull; MGA: ${sel.options[sel.selectedIndex]?.text || 'NTA'})`;
+      } else {
+        const allPolicies = typeof getPolicies === 'function' ? getPolicies() : [];
+        if (allPolicies && allPolicies.length > 0) {
+          const total = allPolicies.reduce((sum, p) => sum + (p.premium || 0), 0);
+          preview.innerHTML = `<strong>${allPolicies.length} policy batch in ledger (${allPolicies[0].policyNumber || 'POL-V8NHT'} - ${allPolicies[0].insured || 'Ayushi'})</strong>, active ledger volume: <strong>$${total.toLocaleString('en-US', {minimumFractionDigits: 2})}</strong> (Carrier: SOUTHLAKE &bull; MGA: NTA)`;
+        } else {
+          preview.innerHTML = `<strong>1 active policy batch (POL-V8NHT - Ayushi)</strong>, unbilled balance: <strong>$39,260.00</strong> (Carrier: SOUTHLAKE &bull; MGA: NTA)`;
+        }
+      }
+    }
+
+    function onGenerateMgaInvoice() {
+      const sel = document.getElementById('mi-mga-select');
+      const mgaId = sel ? sel.value : 'MGA-NTA';
+      const mgaName = sel?.options[sel.selectedIndex]?.text || 'NTA (Managing General Agent)';
+      const invoiceNo = 'PRM-INV-' + Math.floor(1000 + Math.random() * 9000);
+
+      // Check if real unbilled policies exist in engine
+      let invoiceTotal = 32257.00;
+      let policyNo = "POL-V8NHT";
+      let insuredName = "Ayushi";
+      let lines = [{ desc: "Net Written Settlement Premium - Policy POL-V8NHT (Ayushi)", qty: 1, price: 32257.00, amt: 32257.00 }];
+
+      if (typeof unbilledPoliciesForMGA === 'function') {
+        const unbilled = unbilledPoliciesForMGA(mgaId);
+        if (unbilled && unbilled.length > 0) {
+          invoiceTotal = unbilled.reduce((sum, p) => sum + (p.premium || 0), 0);
+          policyNo = unbilled.map(p => p.policyNumber).join(', ');
+          insuredName = unbilled.map(p => p.insured).join(', ');
+          lines = unbilled.map(p => ({
+            desc: `Net Written Settlement Premium - Policy ${p.policyNumber} (${p.insured})`,
+            qty: 1,
+            price: p.premium,
+            amt: p.premium
+          }));
+        }
+      }
+
+      const mgaInvoice = {
+        id: invoiceNo,
+        invoiceNumber: invoiceNo,
+        policyNumber: policyNo,
+        customer: mgaName.split(' ')[0] || "NTA",
+        type: "Premium Invoice",
+        issueDate: new Date().toLocaleDateString('en-US', {month:'2-digit', day:'2-digit', year:'numeric'}),
+        dueDate: "09/19/2026",
+        amount: invoiceTotal,
+        paidAmount: 0.00,
+        status: "Issued",
+        producer: "HIT",
+        mga: mgaName.split(' ')[0] || "NTA",
+        carrier: "SOUTHLAKE",
+        lob: "Commercial Trucking",
+        lines: lines
+      };
+
+      const invoices = loadInvoices();
+      invoices.unshift(mgaInvoice);
+      saveInvoices(invoices);
+
+      renderInvoiceRegister();
+      renderUnbilledPreview();
+      showToast(`Settlement Invoice ${invoiceNo} generated for ${mgaInvoice.customer} ($${invoiceTotal.toLocaleString('en-US', {minimumFractionDigits: 2})})!`, "success");
+    }
+
+    // Recurring plans
+    function toggleNewPlanForm() {
+      const form = document.getElementById('new-plan-form');
+      form.style.display = form.style.display === 'none' ? 'block' : 'none';
+    }
+
+    function submitNewPlan() {
+      const name = document.getElementById('np-name').value.trim() || 'Commercial Trucking Monthly Installment';
+      const customer = document.getElementById('np-customer').value.trim() || 'Ayushi';
+      const freq = document.getElementById('np-freq').value;
+      const amount = parseFloat(document.getElementById('np-amount').value) || 3271.67;
+      const nextRun = document.getElementById('np-date').value || '2026-09-20';
+      const autoPost = document.getElementById('np-autopost').checked;
+
+      const plans = loadPlans();
+      plans.unshift({ name, customer, freq, amount, nextRun, autoPost });
+      savePlans(plans);
+
+      renderBillingPlans();
+      toggleNewPlanForm();
+      showToast(`Recurring billing plan "${name}" created successfully!`, 'success');
+    }
+
+    function togglePlanAutoPost(idx, cb) {
+      const plans = loadPlans();
+      if (plans[idx]) {
+        plans[idx].autoPost = cb.checked;
+        savePlans(plans);
+        showToast(`Auto-post ${cb.checked ? 'enabled' : 'disabled'} for plan`, 'info');
+      }
+    }
+
+    // Filter and search
+    function applyInvFilters() {
+      const type = document.getElementById('f-type').value;
+      const status = document.getElementById('f-status').value;
+      const customer = document.getElementById('f-customer').value;
+      const search = document.getElementById('inv-search').value.toLowerCase();
+
+      document.querySelectorAll('#inv-tbody tr').forEach(row => {
+        const rowType = row.getAttribute('data-type');
+        const rowStatus = row.getAttribute('data-status');
+        const rowCustomer = row.getAttribute('data-customer');
+        const text = row.textContent.toLowerCase();
+
+        const matchType = !type || rowType === type;
+        const matchStatus = !status || rowStatus === status;
+        const matchCustomer = !customer || rowCustomer === customer;
+        const matchSearch = !search || text.includes(search);
+
+        row.style.display = (matchType && matchStatus && matchCustomer && matchSearch) ? '' : 'none';
+      });
+    }
+
+    function toggleSelectAll(cb) {
+      document.querySelectorAll('#inv-tbody .table-check').forEach(chk => chk.checked = cb.checked);
+    }
+
+    function sendReminders() {
+      showToast('Automated email reminders queued for all active & overdue invoices', 'info');
+    }
+
+    function exportRegister(btn) {
+      showToast('Exporting invoice register to CSV...', 'info');
+    }
+
+    function logActivity(message) {
+      const wrap = document.getElementById('billing-activity-log');
+      if (!wrap) return;
+      wrap.style.display = 'block';
+      const body = wrap.querySelector('.log-body');
+      const div = document.createElement('div');
+      div.style.cssText = 'font-size:12px;color:var(--gray-600);padding:5px 0;border-top:1px solid var(--gray-100);';
+      div.textContent = `${new Date().toLocaleTimeString()} - ${message}`;
+      body.insertBefore(div, body.firstChild);
+    }
+
+    function printPdfWrap() {
+      window.print();
+    }
+
+    // Initialize on load
+    document.addEventListener('DOMContentLoaded', () => {
+      renderInvoiceRegister();
+      renderBillingPlans();
+      renderMiMgaSelect();
+    });
+  </script>
+</body>
+</html>

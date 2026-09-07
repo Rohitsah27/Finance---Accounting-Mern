@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reinsurer Workspace — Dashboard | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/layout.js"></script>
+  <style>
+    .kpi-metrics-row{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px;}
+    @media(max-width:1100px){.kpi-metrics-row{grid-template-columns:repeat(2,1fr);}}
+    @media(max-width:640px){.kpi-metrics-row{grid-template-columns:1fr;}}
+    .kpi-mc{background:#fff;border:1.5px solid var(--gray-200);border-radius:10px;padding:12px 12px 10px;display:flex;flex-direction:column;gap:2px;position:relative;overflow:hidden;}
+    .kpi-mc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+    .kpi-mc.c-assumed::before{background:#0d1b4b;}
+    .kpi-mc.c-cedecomm::before{background:#e65100;}
+    .kpi-mc.c-loss::before{background:#e05470;}
+    .kpi-mc.c-util::before{background:#6a1b9a;}
+    .kpi-mc.c-ibnr::before{background:#00838f;}
+    .kpi-mc.c-funds::before{background:#2e7d32;}
+    .kpi-mc-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);}
+    .kpi-mc-value{font-size:20px;font-weight:800;color:var(--navy);line-height:1.1;margin:3px 0 1px;}
+    .kpi-mc-delta{font-size:11px;font-weight:600;}
+    .kpi-mc-delta.up{color:#2e7d32;} .kpi-mc-delta.warn{color:#e65100;} .kpi-mc-delta.down{color:var(--red);}
+    .kpi-mc-sublabel{font-size:9.5px;color:var(--gray-400);}
+    .kpi-mc-status{display:inline-block;font-size:9px;font-weight:700;border-radius:4px;padding:1px 6px;margin-top:5px;text-transform:uppercase;letter-spacing:.3px;}
+    .s-ontrack{background:#e8f5e9;color:#2e7d32;} .s-watch{background:#fff3e0;color:#e65100;} .s-breach{background:#fde8e8;color:#b71c1c;}
+
+    .chart-card{background:#fff;border:1.5px solid var(--gray-200);border-radius:10px;padding:14px;margin-bottom:18px;}
+    .chart-card-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;}
+    .chart-title{font-size:12.5px;font-weight:700;color:var(--navy);}
+    .chart-sub{font-size:10.5px;color:var(--gray-400);margin-top:2px;}
+    .chart-legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;}
+    .legend-item{display:flex;align-items:center;gap:4px;font-size:10.5px;color:var(--gray-600);}
+    .legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+
+    .treaty-bar-bg{background:var(--gray-100);border-radius:4px;height:6px;margin:4px 0 2px;width:90px;}
+    .treaty-bar-fill{height:6px;border-radius:4px;}
+    .watch-prox-bg{background:var(--gray-100);border-radius:4px;height:8px;width:120px;position:relative;}
+    .watch-prox-fill{height:8px;border-radius:4px;}
+  </style>
+</head>
+<body>
+<main class="main-content" id="main-content">
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">Reinsurer Dashboard</div>
+      <div class="page-subtitle" id="dash-subtitle">Loading entity context…</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline btn-sm" onclick="showToast('Cession accounting pack exported','success')">Export Cession Pack</button>
+      <button class="btn btn-primary btn-sm" onclick="refreshDash()">Refresh</button>
+    </div>
+  </div>
+
+  <div class="filter-bar" style="margin-bottom:18px;">
+    <span class="filter-bar-label">Period</span>
+    <select class="filter-select" id="sel-period" onchange="setFilter('period',this.value)">
+      <option value="ytd">YTD 2026</option>
+      <option value="q2">Q2 2026</option>
+      <option value="fy2025">FY 2025</option>
+    </select>
+    <span class="filter-bar-label">Cedant</span>
+    <select class="filter-select" id="sel-cedant" onchange="setFilter('cedant',this.value)">
+      <option value="all">All Cedants</option>
+      <option value="Southlake">Southlake Insurance Co.</option>
+      <option value="Meridian">Meridian Insurance Group</option>
+      <option value="Atlas">Atlas Specialty Underwriters</option>
+    </select>
+    <span class="filter-bar-label">Treaty Type</span>
+    <select class="filter-select" id="sel-treaty" onchange="setFilter('treaty',this.value)">
+      <option value="all">All Treaty Types</option>
+      <option value="Quota Share">Quota Share</option>
+      <option value="Excess of Loss">Excess of Loss</option>
+      <option value="Facultative">Facultative</option>
+    </select>
+    <div id="fbar-applied" style="font-size:11px;color:var(--gray-400);margin-left:auto;"></div>
+    <button class="btn btn-outline btn-sm" onclick="resetFilters()">Clear Filters</button>
+  </div>
+
+  <div class="kpi-metrics-row" id="kpi-row"></div>
+
+  <div class="chart-card">
+    <div class="chart-card-hdr">
+      <div><div class="chart-title">Assumed Premium Trend</div><div class="chart-sub" id="prem-sub">Assumed Premium · filtered view</div></div>
+      <button class="btn btn-outline btn-sm" id="prem-toggle-btn" onclick="togglePremChart()">Line View</button>
+    </div>
+    <div id="prem-chart-wrap"></div>
+    <div class="chart-legend"><div class="legend-item"><div class="legend-dot" style="background:#0d1b4b;"></div>Assumed Premium</div></div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-card-hdr">
+      <div><div class="chart-title">Treaty Portfolio</div><div class="chart-sub">Cedant relationships &amp; treaty utilization</div></div>
+      <button class="btn btn-outline btn-sm" onclick="showToast('Treaty portfolio exported','success')">Export</button>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table" id="treaty-table">
+        <thead><tr><th>Cedant / Carrier</th><th>Treaty Type</th><th>Quota Share %</th><th>Layer / Attachment</th><th>Utilization</th><th>Status</th></tr></thead>
+        <tbody id="treaty-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <div class="chart-card-hdr">
+      <div><div class="chart-title">Large Loss Watch List</div><div class="chart-sub">Losses approaching treaty attachment points</div></div>
+      <button class="btn btn-outline btn-sm" onclick="showToast('Watch list exported','success')">Export</button>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table" id="watch-table">
+        <thead><tr><th>Claim / Event</th><th>Cedant</th><th>Treaty</th><th>Attachment Point</th><th>Incurred to Date</th><th>Proximity</th></tr></thead>
+        <tbody id="watch-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="chart-card" style="margin-bottom:4px;">
+    <div class="chart-card-hdr"><div><div class="chart-title">Cession Accounting Summary</div><div class="chart-sub">Assumed Unearned Premium Reserve roll-forward</div></div></div>
+    <div class="table-wrap">
+      <table class="data-table" id="upr-table">
+        <thead><tr><th>Component</th><th>Amount</th><th>Note</th></tr></thead>
+        <tbody id="upr-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<script src="js/app.js"></script>
+<script>
+/* ═══════════════════ SEED DATA ═══════════════════ */
+const IS_DEMO = true;
+// [cedant, treaty type, base_assumed_per_month_M, loss_rate]
+const SEED = IS_DEMO ? [
+  ['Southlake','Quota Share',       1.24, 0.588],
+  ['Southlake','Excess of Loss',    0.42, 0.615],
+  ['Meridian','Quota Share',        0.86, 0.602],
+  ['Meridian','Facultative',        0.22, 0.560],
+  ['Atlas','Excess of Loss',        0.55, 0.640],
+  ['Atlas','Facultative',           0.18, 0.575]
+] : [];
+const YTDF=[0.88,0.94,1.03,0.91,1.07,0.98,1.02,1.06];
+const YTDL=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug'];
+const Q2F=[0.91,1.07,0.98];
+const Q2L=['Apr','May','Jun'];
+const FYF=[0.84,0.91,0.97,0.89,0.95,1.01,0.87,0.99,1.04,0.92,1.03,0.96];
+const FYL=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const CEDANT_NAMES = {Southlake:'Southlake Insurance Co.', Meridian:'Meridian Insurance Group', Atlas:'Atlas Specialty Underwriters'};
+const CEDING_COMM_RATE = 0.27;
+const EARN_RATE = 0.86;
+
+function buildRecs(){
+  const out={ytd:[],q2:[],fy2025:[]};
+  SEED.forEach(([cedant,treaty,base,lr])=>{
+    YTDF.forEach((f,i)=>out.ytd.push({cedant,treaty,slot:i,assumed:+(base*f).toFixed(3),lr}));
+    Q2F.forEach((f,i)=>out.q2.push({cedant,treaty,slot:i,assumed:+(base*f).toFixed(3),lr}));
+    FYF.forEach((f,i)=>out.fy2025.push({cedant,treaty,slot:i,assumed:+(base*f*0.91).toFixed(3),lr}));
+  });
+  return out;
+}
+const RECS = buildRecs();
+const F = { period:'ytd', cedant:'all', treaty:'all', premMode:'bar' };
+
+function getRecs(){ return RECS[F.period].filter(r=>(F.cedant==='all'||r.cedant===F.cedant)&&(F.treaty==='all'||r.treaty===F.treaty)); }
+function agg(recs){
+  let assumed=0, lrW=0;
+  recs.forEach(r=>{assumed+=r.assumed; lrW+=r.assumed*r.lr;});
+  const lr = assumed>0?lrW/assumed*100:0;
+  const earned = assumed*EARN_RATE, upr = assumed-earned;
+  const cedeComm = assumed*CEDING_COMM_RATE;
+  return {assumed, lr, earned, upr, cedeComm};
+}
+function aggBySlot(recs){
+  const labels = F.period==='ytd'?YTDL:F.period==='q2'?Q2L:FYL;
+  return labels.map((_,i)=>{
+    const sr=recs.filter(r=>r.slot===i);
+    let assumed=0; sr.forEach(r=>assumed+=r.assumed);
+    return {v:assumed};
+  });
+}
+function fUSD(v){ return v>=1 ? '$'+v.toFixed(2)+'M' : '$'+Math.round(v*1000)+'K'; }
+function fPct(v){ return v.toFixed(1)+'%'; }
+const PERIOD_META = { ytd:{label:'YTD 2026',chartLabels:YTDL}, q2:{label:'Q2 2026',chartLabels:Q2L}, fy2025:{label:'FY 2025',chartLabels:FYL} };
+
+const TREATIES = IS_DEMO ? [
+  {cedant:'Southlake', type:'Quota Share', share:40, layer:'N/A - proportional', util:82},
+  {cedant:'Southlake', type:'Excess of Loss', share:0, layer:'$2M xs $3M', util:58},
+  {cedant:'Meridian', type:'Quota Share', share:35, layer:'N/A - proportional', util:71},
+  {cedant:'Meridian', type:'Facultative', share:0, layer:'Case-by-case', util:34},
+  {cedant:'Atlas', type:'Excess of Loss', share:0, layer:'$5M xs $5M', util:96},
+  {cedant:'Atlas', type:'Facultative', share:0, layer:'Case-by-case', util:44}
+] : [];
+function renderTreatyTable(){
+  const list = TREATIES.filter(t=>(F.cedant==='all'||t.cedant===F.cedant)&&(F.treaty==='all'||t.type===F.treaty));
+  document.getElementById('treaty-tbody').innerHTML = list.map(t=>{
+    const barColor = t.util>=90?'var(--red)':t.util>=75?'#e65100':'#2e7d32';
+    const badge = t.util>=90?'<span class="badge badge-red">High Utilization</span>':t.util>=75?'<span class="badge badge-orange">Watch</span>':'<span class="badge badge-green">Healthy</span>';
+    return `<tr>
+      <td>${CEDANT_NAMES[t.cedant]}</td>
+      <td>${t.type}</td>
+      <td>${t.share>0?fPct(t.share):' - '}</td>
+      <td>${t.layer}</td>
+      <td><div class="treaty-bar-bg"><div class="treaty-bar-fill" style="width:${Math.min(t.util,100)}%;background:${barColor};"></div></div><span style="font-size:10.5px;color:var(--gray-400);">${t.util}%</span></td>
+      <td>${badge}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="6" style="text-align:center;padding:18px;color:var(--gray-400);">No treaties match current filter</td></tr>';
+}
+
+const WATCH_LIST = [
+  {claim:'CL-88213 - Warehouse Fire', cedant:'Southlake', treaty:'XL $2M xs $3M', attach:3.0, incurred:2.62},
+  {claim:'CL-88407 - Product Liability', cedant:'Atlas', treaty:'XL $5M xs $5M', attach:5.0, incurred:4.71},
+  {claim:'CL-88519 - Commercial Auto Collision', cedant:'Atlas', treaty:'XL $5M xs $5M', attach:5.0, incurred:3.85},
+  {claim:'CL-88602 - Flood - Distribution Center', cedant:'Southlake', treaty:'XL $2M xs $3M', attach:3.0, incurred:2.14}
+];
+function renderWatchTable(){
+  const list = WATCH_LIST.filter(w=>F.cedant==='all'||w.cedant===F.cedant);
+  document.getElementById('watch-tbody').innerHTML = list.map(w=>{
+    const prox = Math.min(w.incurred/w.attach*100,100);
+    const color = prox>=90?'var(--red)':prox>=75?'#e65100':'#2e7d32';
+    return `<tr>
+      <td>${w.claim}</td>
+      <td>${CEDANT_NAMES[w.cedant]}</td>
+      <td>${w.treaty}</td>
+      <td>$${w.attach.toFixed(1)}M</td>
+      <td>$${w.incurred.toFixed(2)}M</td>
+      <td><div class="watch-prox-bg"><div class="watch-prox-fill" style="width:${prox.toFixed(0)}%;background:${color};"></div></div><span style="font-size:10.5px;color:var(--gray-400);">${prox.toFixed(0)}% to attachment</span></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="6" style="text-align:center;padding:18px;color:var(--gray-400);">No large losses match current filter</td></tr>';
+}
+
+function renderKPIs(){
+  const recs=getRecs(), k=agg(recs), pm=PERIOD_META[F.period];
+  const utilBlended = Math.round(TREATIES.filter(t=>F.cedant==='all'||t.cedant===F.cedant).reduce((a,t)=>a+t.util,0)/TREATIES.filter(t=>F.cedant==='all'||t.cedant===F.cedant).length || 0);
+  const fundsWithheld = k.assumed*0.31;
+  const defs = [
+    {label:'Assumed Premium (YTD)', cls:'c-assumed', value:fUSD(k.assumed), delta:'+6.7%', dcls:'up', meta:pm.label},
+    {label:'Ceding Commission Paid', cls:'c-cedecomm', value:fUSD(k.cedeComm), delta:'+5.9%', dcls:'up', meta:'Blended rate '+fPct(CEDING_COMM_RATE*100)},
+    {label:'Loss Ratio on Assumed Book', cls:'c-loss', value:fPct(k.lr), delta:k.lr>65?'Above target':'On track', dcls:k.lr>65?'warn':'up', meta:'Target ≤65.0%', stFn:true, stCls:k.lr>65?'s-watch':'s-ontrack', stTxt:k.lr>65?'Watch':'On Track'},
+    {label:'Treaty Utilization %', cls:'c-util', value:fPct(utilBlended), delta:utilBlended>=85?'Near capacity':'Within capacity', dcls:utilBlended>=85?'warn':'up', meta:'Blended across active treaties'},
+    {label:'IBNR Recoverable Reserve', cls:'c-ibnr', value:fUSD(k.earned*k.lr/100*0.44), delta:'+3.2%', dcls:'up', meta:'44% of incurred losses'},
+    {label:'Funds Withheld Balance', cls:'c-funds', value:fUSD(fundsWithheld), delta:'+4.8%', dcls:'up', meta:'Held by cedants per treaty terms'}
+  ];
+  document.getElementById('kpi-row').innerHTML = defs.map(d=>`
+    <div class="kpi-mc ${d.cls}">
+      <div class="kpi-mc-label">${d.label}</div>
+      <div class="kpi-mc-value">${d.value}</div>
+      <div class="kpi-mc-delta ${d.dcls}">${d.dcls==='up'?'↑':d.dcls==='warn'?'→':'↓'} ${d.delta}</div>
+      <div class="kpi-mc-sublabel">${d.meta}</div>
+      ${d.stFn?`<div><span class="kpi-mc-status ${d.stCls}">${d.stTxt}</span></div>`:''}
+    </div>`).join('');
+
+  document.getElementById('upr-tbody').innerHTML = `
+    <tr><td>Opening Assumed UPR</td><td>${fUSD(k.upr*0.93)}</td><td>Prior period closing balance</td></tr>
+    <tr><td>+ Assumed Premium Written</td><td>${fUSD(k.assumed)}</td><td>Current period cessions received</td></tr>
+    <tr><td>− Premium Earned</td><td>(${fUSD(k.earned)})</td><td>Earning rate ${fPct(EARN_RATE*100)}</td></tr>
+    <tr style="font-weight:700;color:var(--navy);"><td>Closing Assumed UPR</td><td>${fUSD(k.upr)}</td><td>Reserve carried forward</td></tr>
+  `;
+}
+
+function togglePremChart(){
+  F.premMode = F.premMode==='bar'?'line':'bar';
+  document.getElementById('prem-toggle-btn').textContent = F.premMode==='bar'?'Line View':'Bar View';
+  renderPremiumChart();
+}
+function renderPremiumChart(){
+  const slots=aggBySlot(getRecs());
+  const labels=PERIOD_META[F.period].chartLabels;
+  const data=slots.map(s=>+s.v.toFixed(2));
+  document.getElementById('prem-sub').textContent='Assumed Premium · '+PERIOD_META[F.period].label;
+  document.getElementById('prem-chart-wrap').innerHTML =
+    F.premMode==='bar'?svgBar(data,labels,{color:'#0d1b4b',accent:'#1565c0',h:150}):svgLine([{data,color:'#0d1b4b',fill:'rgba(13,27,75,.08)'}],labels,{h:150});
+}
+
+function setFilter(key,val){ F[key]=val; updateAppliedLabel(); renderAll(); }
+function resetFilters(){
+  F.period='ytd'; F.cedant='all'; F.treaty='all';
+  document.getElementById('sel-period').value='ytd';
+  document.getElementById('sel-cedant').value='all';
+  document.getElementById('sel-treaty').value='all';
+  updateAppliedLabel(); renderAll();
+  showToast('Filters cleared','info');
+}
+function updateAppliedLabel(){
+  const chips=[];
+  if(F.cedant!=='all') chips.push(F.cedant);
+  if(F.treaty!=='all') chips.push(F.treaty);
+  document.getElementById('fbar-applied').textContent = chips.length ? 'Active filters: '+chips.join(', ') : 'Showing all treaties';
+}
+function renderAll(){ renderKPIs(); renderPremiumChart(); renderTreatyTable(); renderWatchTable(); }
+function refreshDash(){
+  const t=new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('dash-subtitle').textContent = entitySubtitle()+' · Updated '+t;
+  showToast('Dashboard refreshed','success');
+}
+function entitySubtitle(){
+  const entity = getActiveEntity();
+  return (entity?entity.name:'Reinsurer') + ' · Assumed Treaty &amp; Facultative Business';
+}
+
+/* ═══════════════════ SVG CHARTS ═══════════════════ */
+function svgBar(data,labels,opts={}){
+  const h=opts.h||150,w=520,px=28,gap=6;
+  const mx=Math.max(...data)*1.18||1;
+  const n=data.length, bw=(w-px*2-gap*(n-1))/n;
+  const toY=v=>px+(h-px*2)*(1-v/mx);
+  let out='';
+  data.forEach((v,i)=>{
+    const x=px+i*(bw+gap), y=toY(v), bh=h-px-y;
+    const last=i===n-1;
+    out+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(bh,1).toFixed(1)}" rx="3" fill="${last?opts.accent||opts.color:opts.color}" opacity="${last?1:0.72}"/>`;
+    out+=`<text x="${(x+bw/2).toFixed(1)}" y="${(h-7).toFixed(1)}" text-anchor="middle" font-size="9.5" fill="#9aa">${labels[i]}</text>`;
+    if(v>0)out+=`<text x="${(x+bw/2).toFixed(1)}" y="${(y-3).toFixed(1)}" text-anchor="middle" font-size="9" fill="${last?opts.accent||opts.color:'#666'}" font-weight="600">${v.toFixed(1)}</text>`;
+  });
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" style="display:block;">${out}</svg>`;
+}
+function svgLine(datasets,labels,opts={}){
+  const h=opts.h||150,w=520,px=34,py=18;
+  const allV=datasets.flatMap(d=>d.data);
+  const mn=opts.yMin!==undefined?opts.yMin:Math.floor(Math.min(...allV)*0.92);
+  const mx=opts.yMax!==undefined?opts.yMax:Math.ceil(Math.max(...allV)*1.08)||100;
+  const n=labels.length, xS=(w-px*2)/(n>1?n-1:1);
+  const toX=i=>px+i*xS, toY=v=>py+(h-py*2)*(1-(v-mn)/(mx-mn));
+  let out='';
+  datasets.forEach(ds=>{
+    const pts=ds.data.map((v,i)=>`${toX(i).toFixed(1)},${toY(v).toFixed(1)}`).join(' ');
+    const aP=`M${toX(0).toFixed(1)},${toY(ds.data[0]).toFixed(1)} `+
+      ds.data.slice(1).map((v,i)=>`L${toX(i+1).toFixed(1)},${toY(v).toFixed(1)}`).join(' ')+
+      ` L${toX(n-1).toFixed(1)},${toY(mn).toFixed(1)} L${toX(0).toFixed(1)},${toY(mn).toFixed(1)} Z`;
+    out+=`<path d="${aP}" fill="${ds.fill||'transparent'}"/>`;
+    out+=`<polyline points="${pts}" fill="none" stroke="${ds.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    ds.data.forEach((v,i)=>{ out+=`<circle cx="${toX(i).toFixed(1)}" cy="${toY(v).toFixed(1)}" r="2.8" fill="${ds.color}"/>`; });
+  });
+  labels.forEach((l,i)=>{ out+=`<text x="${toX(i).toFixed(1)}" y="${(h-5).toFixed(1)}" text-anchor="middle" font-size="9.5" fill="#9aa">${l}</text>`; });
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" style="display:block;">${out}</svg>`;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('dash-subtitle').textContent = entitySubtitle();
+  updateAppliedLabel();
+  renderAll();
+});
+</script>
+<script>
+  initLayout('dashboard');
+</script>
+</body>
+</html>

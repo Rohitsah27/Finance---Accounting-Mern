@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Commission Engine — Operations | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css?v=3">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/layout.js"></script>
+  <style>
+    .v-tree-row:hover { background: var(--gray-50); border-radius: 6px; }
+    
+    /* Modal dialog */
+    .comm-modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(4px);
+      z-index: 1000;
+      justify-content: center;
+      align-items: center;
+    }
+    .comm-modal.open { display: flex; }
+    .comm-modal-content {
+      background: #fff;
+      border-radius: 12px;
+      width: 90%;
+      max-width: 740px;
+      max-height: 90%;
+      overflow-y: auto;
+      box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+      border: 1px solid var(--gray-200);
+      padding: 24px;
+    }
+    .comm-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--gray-200);
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+    }
+    .comm-modal-close {
+      cursor: pointer;
+      font-size: 22px;
+      color: var(--gray-500);
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <main class="main-content" id="main-content">
+
+    <div class="page-header">
+      <div>
+        <div class="page-title">Commission Engine</div>
+        <div class="page-subtitle">Producer commission schedules, multi-level agent hierarchies, and statement generation</div>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-outline" id="export-ledger-btn" onclick="exportLedger(this)">Export</button>
+        <button class="btn btn-primary" onclick="toggleNewPlanForm()">+ New Plan</button>
+      </div>
+    </div>
+
+    <!-- Dynamic Stats Row -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon si-navy"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="#102a2e" stroke-width="1.6"/><path d="M10 6v4l3 2" stroke="#102a2e" stroke-width="1.6" stroke-linecap="round"/></svg></div>
+        <div class="stat-info"><div class="stat-value" id="kpi-comm-payable">$0</div><div class="stat-label">Commission Payable (This Period)</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-green"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 12l4-5 3 3 6-7" stroke="#2e7d32" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="stat-info"><div class="stat-value" id="kpi-comm-earned">$0</div><div class="stat-label">Commission Earned YTD</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-blue"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="4" width="14" height="12" rx="1.5" stroke="#1565c0" stroke-width="1.6"/><path d="M3 8h14" stroke="#1565c0" stroke-width="1.4"/></svg></div>
+        <div class="stat-info"><div class="stat-value" id="kpi-active-plans">6</div><div class="stat-label">Active Commission Plans</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-coral"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 4v7M10 15v1" stroke="#c9791f" stroke-width="2" stroke-linecap="round"/><circle cx="10" cy="7.5" r="7.5" stroke="#c9791f" stroke-width="1.4"/></svg></div>
+        <div class="stat-info"><div class="stat-value" id="kpi-disputes-count">0</div><div class="stat-label">Pending Disputes</div></div>
+      </div>
+    </div>
+
+
+  <!-- ═══ TABS ═══ -->
+  <div class="page-tabs" id="commtabs">
+    <button class="page-tab active" data-tab="schedules" onclick="switchTab('commtabs','schedules')">Schedules & Agreements</button>
+    <button class="page-tab" data-tab="transactions" onclick="switchTab('commtabs','transactions')">Transactions</button>
+    <button class="page-tab" data-tab="statements" onclick="switchTab('commtabs','statements')">Statements & Remittance</button>
+    <button class="page-tab" data-tab="disputes" onclick="switchTab('commtabs','disputes')">Dispute Workflow</button>
+  </div>
+
+  <div class="tab-panel active" data-panel="schedules">
+    <!-- Commission Schedules -->
+    <div class="table-wrap" style="margin-bottom:24px;">
+      <div class="table-head-row">
+        <div class="table-head-title">Commission Schedules &amp; Rating Agreements</div>
+        <div class="table-head-actions">
+          <div class="search-wrapper">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" class="filter-input" placeholder="Search plan name..." id="cs-search" oninput="filterPlans(this.value)" style="width:220px;">
+          </div>
+          <button class="btn btn-primary" onclick="toggleNewPlanForm()">+ New Plan</button>
+        </div>
+      </div>
+      
+      <div id="new-plan-form-wrap" style="display:none;padding:16px;background:var(--gray-50);border-bottom:1px solid var(--gray-200);">
+        <div style="font-size:13px;font-weight:700;color:var(--navy);margin-bottom:12px;">Create Commission Agreement</div>
+        <div class="form-grid-3">
+          <div>
+            <label class="field-label">Plan Name *</label>
+            <input class="field-input" id="np-name" placeholder="e.g. HIT Commercial Trucking Tiered Plan">
+          </div>
+          <div>
+            <label class="field-label">Plan Type *</label>
+            <select class="field-input" id="np-type" onchange="renderTierRows()">
+              <option value="Tiered">Tiered</option>
+              <option value="Flat">Flat</option>
+              <option value="Sliding Scale">Sliding Scale</option>
+              <option value="Volume">Volume</option>
+              <option value="Profit-Sharing">Profit-Sharing</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Effective Date</label>
+            <input class="field-input" type="date" id="np-date" value="2026-08-20">
+          </div>
+        </div>
+
+        <div style="margin-top:12px;">
+          <label class="field-label">Commission Rate(s) *</label>
+          <div id="np-tier-rows"></div>
+          <button class="btn btn-outline btn-sm" style="margin-top:6px;" onclick="addTierRow()">+ Add Tier Rule</button>
+        </div>
+
+        <div style="margin-top:14px;display:flex;gap:8px;">
+          <button class="btn btn-primary btn-sm" onclick="submitNewPlan()">Save Commission Plan</button>
+          <button class="btn btn-ghost btn-sm" onclick="toggleNewPlanForm()">Cancel</button>
+        </div>
+      </div>
+
+      <table class="data-table" id="cs-table">
+        <thead>
+          <tr>
+            <th><input type="checkbox" class="table-check"></th>
+            <th>Plan Name</th>
+            <th>Type</th>
+            <th>Rate / Tier Summary</th>
+            <th>Effective Date</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="cs-tbody">
+          <!-- Rendered dynamically -->
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Multi-Level Hierarchy -->
+    <div class="table-wrap" style="margin-bottom:24px; padding:16px; display:none;">
+      <div class="table-head-row" style="padding:0 0 12px;">
+        <div class="table-head-title">Multi-Level Hierarchy — Commission Splits (SOUTHLAKE &bull; NTA &bull; HIT)</div>
+      </div>
+      <div class="v-tree" id="commission-tree">
+        <div class="v-tree-node open" onclick="toggleTree(this, event)">
+          <div class="v-tree-row">
+            <span class="v-tree-toggle">▼</span>
+            <strong>SOUTHLAKE Insurance Co. (Carrier)</strong>
+            <span class="v-tree-badge">Carrier</span>
+            <span class="v-tree-amount">100% pool</span>
+          </div>
+          <div class="v-tree-children">
+            <div style="font-size:11.5px;color:var(--gray-500);padding:2px 0 8px;line-height:1.55;">Retains base risk margin; distributes remaining commission pool downstream to appointed MGAs.</div>
+
+            <!-- NTA MGA -->
+            <div class="v-tree-node open" onclick="toggleTree(this, event)">
+              <div class="v-tree-row">
+                <span class="v-tree-toggle">▼</span>
+                <strong>NTA (Managing General Agent)</strong>
+                <span class="v-tree-badge">MGA</span>
+                <span class="v-tree-amount">22% split</span>
+              </div>
+              <div class="v-tree-children">
+                <div style="font-size:11.5px;color:var(--gray-500);padding:2px 0 8px;line-height:1.55;">Receives 22% of gross written premium; passes 15–18% through to appointed retail agents.</div>
+
+                <div class="v-tree-node" onclick="toggleTree(this, event)">
+                  <div class="v-tree-row">
+                    <span class="v-tree-toggle">▶</span>
+                    <strong>HIT (Insurance Agency / Broker)</strong>
+                    <span class="v-tree-badge" style="background:#e8f5e9;color:#2e7d32;">Producer</span>
+                    <span class="v-tree-amount">17% split</span>
+                  </div>
+                  <div class="v-tree-children">
+                    <div style="font-size:11.5px;color:var(--gray-500);padding:2px 0 8px;line-height:1.55;">Top-producing agency; appointed for Commercial Trucking (POL-V8NHT &bull; Insured: Ayushi).</div>
+                  </div>
+                </div>
+
+                <div class="v-tree-node" onclick="toggleTree(this, event)">
+                  <div class="v-tree-row">
+                    <span class="v-tree-toggle">▶</span>
+                    <strong>Coastal Risk Advisors</strong>
+                    <span class="v-tree-badge">Agent</span>
+                    <span class="v-tree-amount">15% split</span>
+                  </div>
+                  <div class="v-tree-children">
+                    <div style="font-size:11.5px;color:var(--gray-500);padding:2px 0 8px;line-height:1.55;">Sliding-scale eligible; loss-ratio-linked commercial auto book.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Highland Underwriting MGA -->
+            <div class="v-tree-node" onclick="toggleTree(this, event)">
+              <div class="v-tree-row">
+                <span class="v-tree-toggle">▶</span>
+                <strong>Highland Underwriting MGA</strong>
+                <span class="v-tree-badge">MGA</span>
+                <span class="v-tree-amount">18% split</span>
+              </div>
+              <div class="v-tree-children">
+                <div style="font-size:11.5px;color:var(--gray-500);padding:2px 0 8px;line-height:1.55;">Program administrator for specialty lines; passes 14% through to appointed agents.</div>
+
+                <div class="v-tree-node" onclick="toggleTree(this, event)">
+                  <div class="v-tree-row">
+                    <span class="v-tree-toggle">▶</span>
+                    <strong>Pinecrest Insurance Services</strong>
+                    <span class="v-tree-badge">Agent</span>
+                    <span class="v-tree-amount">14% split</span>
+                  </div>
+                  <div class="v-tree-children">
+                    <div style="font-size:11.5px;color:var(--gray-500);padding:2px 0 8px;line-height:1.55;">Specialty lines producer, appointed under Highland Underwriting MGA.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    </div>
+
+  <div class="tab-panel" data-panel="transactions">
+  <!-- Commission Transactions -->
+    <div class="table-wrap" style="margin-bottom:24px;">
+      <div class="table-head-row">
+        <div class="table-head-title">Commission Transactions</div>
+        <div class="table-head-actions">
+          <div class="search-wrapper">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            <input type="text" class="filter-input" placeholder="Search producer, policy..." id="ct-search" oninput="filterTransactions(this.value)" style="width:220px;">
+          </div>
+        </div>
+      </div>
+      <div style="overflow-x:auto;">
+      <table class="data-table" id="ct-table">
+        <thead>
+          <tr>
+            <th><input type="checkbox" class="table-check"></th>
+            <th>Producer / Agency</th>
+            <th>Policy / Invoice Ref</th>
+            <th class="text-right">Gross Written Premium</th>
+            <th class="text-right">Commission Rate</th>
+            <th class="text-right">Gross Commission</th>
+            <th class="text-right">Clawback Adj.</th>
+            <th class="text-right">Net Payable</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="ct-tbody">
+          <!-- Rendered dynamically -->
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    </div>
+
+  <div class="tab-panel" data-panel="statements">
+  <!-- Commission Statements -->
+    <div class="table-wrap" style="margin-bottom:24px;">
+      <div class="table-head-row">
+        <div class="table-head-title">Commission Statements &amp; Remittance Batches</div>
+      </div>
+      <table class="data-table" id="statements-table">
+        <thead>
+          <tr>
+            <th>Producer / Agency</th>
+            <th>Period</th>
+            <th>Policies Count</th>
+            <th class="text-right">Total Net Commission</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="statements-tbody">
+          <!-- Rendered dynamically -->
+        </tbody>
+      </table>
+    </div>
+
+    </div>
+
+  <div class="tab-panel" data-panel="disputes">
+  <!-- Dispute Workflow -->
+    <div class="table-wrap" style="padding:16px;">
+      <div class="table-head-row" style="padding:0 0 12px;">
+        <div class="table-head-title">Dispute Workflow</div>
+      </div>
+      <div id="dispute-list">
+        <div style="text-align: center; color: var(--gray-400); padding: 24px 0; font-size: 13px;">No pending disputes. All producer commissions are balanced and validated.</div>
+      </div>
+    </div>
+
+    </div>
+
+  <!-- Commission Statement Modal -->
+    <div class="comm-modal" id="statement-modal">
+      <div class="comm-modal-content">
+        <div class="comm-modal-header">
+          <div style="font-size:16px; font-weight:800; color:var(--navy);" id="stmt-modal-title">Commission Remittance Statement</div>
+          <div class="comm-modal-close" onclick="closeStatementModal()">&times;</div>
+        </div>
+        <div id="stmt-modal-body"></div>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="js/app.js"></script>
+  <script>
+    initLayout('commission');
+
+    const STORAGE_KEY_COMM_TXNS = 'v_commission_transactions';
+    const STORAGE_KEY_COMM_PLANS = 'v_commission_plans';
+
+    // Real dynamic initial commission records from verified active policies
+    function getDynamicInitialCommissions() {
+      const dynamicPolicies = typeof getPolicies === 'function' ? getPolicies() : [];
+      if (dynamicPolicies && dynamicPolicies.length > 0) {
+        return dynamicPolicies.map(p => {
+          const gross = p.premium || 39260.00;
+          const comm = Math.round(gross * 0.063678 * 100) / 100 || 2500.00;
+          return {
+            id: `COMM-${p.policyNumber || 'POL'}`,
+            producer: "HIT",
+            producerName: "HIT (Insurance Agency / Broker)",
+            policyNumber: p.policyNumber || "POL-V8NHT",
+            invoiceRef: p.invoiceId || "INV-V8NHT-1",
+            insured: p.insured || "Ayushi",
+            lob: p.lob || "Commercial Trucking",
+            mga: p.mgaName || "NTA",
+            carrier: "SOUTHLAKE",
+            grossPremium: gross,
+            ratePct: 7.75,
+            grossCommission: comm,
+            clawback: 0.00,
+            netPayable: comm,
+            status: "Approved",
+            period: "Aug 2026",
+            date: p.effectiveDate ? new Date(p.effectiveDate).toLocaleDateString('en-US', {month:'2-digit', day:'2-digit', year:'numeric'}) : "08/20/2026"
+          };
+        });
+      }
+
+      // Default real initial transaction for verified active policy POL-V8NHT
+      return [
+        {
+          id: "COMM-V8NHT",
+          producer: "HIT",
+          producerName: "HIT (Insurance Agency / Broker)",
+          policyNumber: "POL-V8NHT",
+          invoiceRef: "INV-V8NHT-1",
+          insured: "Ayushi",
+          lob: "Commercial Trucking",
+          mga: "NTA",
+          carrier: "SOUTHLAKE",
+          grossPremium: 39260.00,
+          ratePct: 7.75,
+          grossCommission: 2500.00,
+          clawback: 0.00,
+          netPayable: 2500.00,
+          status: "Approved",
+          period: "Aug 2026",
+          date: "08/20/2026"
+        }
+      ];
+    }
+
+    const DEFAULT_PLANS = [
+      { name: "HIT Commercial Trucking Agency Plan", type: "Tiered", summary: "8% on base premium; 10% on surplus lines", date: "08/20/2026", status: "Active" },
+      { name: "Standard Agent Flat Plan", type: "Flat", summary: "15% of gross written premium", date: "01/01/2026", status: "Active" },
+      { name: "MGA Tiered Production Plan (NTA)", type: "Tiered", summary: "10% up to $500K; 13% $500K–$1.5M; 16% above $1.5M", date: "01/01/2026", status: "Active" }
+    ];
+
+    function loadCommissionTransactions() {
+      try {
+        let stored = localStorage.getItem(STORAGE_KEY_COMM_TXNS);
+        if (!stored) {
+          const initial = getDynamicInitialCommissions();
+          localStorage.setItem(STORAGE_KEY_COMM_TXNS, JSON.stringify(initial));
+          return initial;
+        }
+        let list = JSON.parse(stored);
+        if (!Array.isArray(list) || list.length === 0) {
+          const initial = getDynamicInitialCommissions();
+          localStorage.setItem(STORAGE_KEY_COMM_TXNS, JSON.stringify(initial));
+          return initial;
+        }
+        // Filter out legacy dummy rows
+        const dummyInsureds = ['Harborview Medical Group', 'Crestpoint Property Management', 'AC Retail Stores'];
+        const cleaned = list.filter(item => !dummyInsureds.includes(item.insured) && item.producer !== 'Coastal Risk Advisors' && item.producer !== 'Pinecrest Insurance Services');
+        if (cleaned.length !== list.length) {
+          localStorage.setItem(STORAGE_KEY_COMM_TXNS, JSON.stringify(cleaned.length ? cleaned : getDynamicInitialCommissions()));
+          return cleaned.length ? cleaned : getDynamicInitialCommissions();
+        }
+        return list;
+      } catch (e) {
+        return getDynamicInitialCommissions();
+      }
+    }
+
+    function saveCommissionTransactions(list) {
+      localStorage.setItem(STORAGE_KEY_COMM_TXNS, JSON.stringify(list));
+    }
+
+    function loadCommissionPlans() {
+      try {
+        let stored = localStorage.getItem(STORAGE_KEY_COMM_PLANS);
+        if (!stored) {
+          localStorage.setItem(STORAGE_KEY_COMM_PLANS, JSON.stringify(DEFAULT_PLANS));
+          return DEFAULT_PLANS;
+        }
+        let list = JSON.parse(stored);
+        return Array.isArray(list) && list.length ? list : DEFAULT_PLANS;
+      } catch (e) {
+        return DEFAULT_PLANS;
+      }
+    }
+
+    function saveCommissionPlans(list) {
+      localStorage.setItem(STORAGE_KEY_COMM_PLANS, JSON.stringify(list));
+    }
+
+    // Render Commission Plans Table
+    function renderPlansTable() {
+      const plans = loadCommissionPlans();
+      const tbody = document.getElementById('cs-tbody');
+      tbody.innerHTML = plans.map(p => `
+        <tr>
+          <td><input type="checkbox" class="table-check"></td>
+          <td class="font-semibold cell-link">${p.name}</td>
+          <td><span class="badge ${p.type === 'Tiered' ? 'badge-navy' : (p.type === 'Flat' ? 'badge-gray' : 'badge-orange')}">${p.type}</span></td>
+          <td>${p.summary}</td>
+          <td>${p.date}</td>
+          <td><span class="badge badge-green">${p.status || 'Active'}</span></td>
+        </tr>
+      `).join('');
+
+      document.getElementById('kpi-active-plans').textContent = plans.length;
+    }
+
+    // Render Commission Transactions
+    function renderCommissionTransactions() {
+      const txns = loadCommissionTransactions();
+      const tbody = document.getElementById('ct-tbody');
+      
+      let totalPayable = 0;
+      let totalEarned = 0;
+
+      tbody.innerHTML = txns.map(t => {
+        const net = parseFloat(t.netPayable) || 0;
+        totalEarned += net;
+        if (t.status === 'Approved' || t.status === 'Pending') {
+          totalPayable += net;
+        }
+
+        return `
+          <tr data-id="${t.id}" data-producer="${t.producer}">
+            <td><input type="checkbox" class="table-check"></td>
+            <td class="font-semibold">
+              ${t.producerName || t.producer}
+              ${t.mga ? `<br><span style="font-size:10.5px;color:var(--gray-500);font-weight:normal;">MGA: ${t.mga}</span>` : ''}
+            </td>
+            <td class="cell-link" onclick="openStatementModal('${t.producer}')">
+              ${t.policyNumber}
+              ${t.invoiceRef ? `<span style="font-size:11px;color:var(--gray-500);"> (${t.invoiceRef})</span>` : ''}
+              ${t.insured ? `<br><span style="font-size:11px;color:var(--navy);">${t.insured}</span>` : ''}
+            </td>
+            <td class="text-right">$${Number(t.grossPremium).toLocaleString('en-US', {minimumFractionDigits:2})}</td>
+            <td class="text-right">${t.ratePct ? t.ratePct + '%' : 'Fixed'}</td>
+            <td class="text-right font-semibold">$${Number(t.grossCommission).toLocaleString('en-US', {minimumFractionDigits:2})}</td>
+            <td class="text-right" style="color:var(--gray-500);">$${Number(t.clawback || 0).toLocaleString('en-US', {minimumFractionDigits:2})}</td>
+            <td class="text-right font-semibold" style="color:var(--navy);">$${Number(t.netPayable).toLocaleString('en-US', {minimumFractionDigits:2})}</td>
+            <td><span class="badge ${t.status === 'Approved' ? 'badge-green' : (t.status === 'Paid' ? 'badge-blue' : 'badge-gray')}">${t.status}</span></td>
+            <td>
+              <button class="btn btn-outline btn-xs" onclick="openStatementModal('${t.producer}')">Statement</button>
+            </td>
+          </tr>
+        `;
+      }).join('');
+
+      // Update KPI stat values
+      document.getElementById('kpi-comm-payable').textContent = '$' + Math.round(totalPayable).toLocaleString('en-US');
+      document.getElementById('kpi-comm-earned').textContent = '$' + Math.round(totalEarned).toLocaleString('en-US');
+
+      renderStatementsSummary(txns);
+    }
+
+    // Group by producer to render Statements table
+    function renderStatementsSummary(txns) {
+      const summary = {};
+      txns.forEach(t => {
+        const prod = t.producer || 'HIT';
+        if (!summary[prod]) {
+          summary[prod] = {
+            producer: prod,
+            producerName: t.producerName || prod,
+            period: t.period || 'Aug 2026',
+            count: 0,
+            total: 0,
+            status: 'Ready'
+          };
+        }
+        summary[prod].count += 1;
+        summary[prod].total += (parseFloat(t.netPayable) || 0);
+      });
+
+      const tbody = document.getElementById('statements-tbody');
+      tbody.innerHTML = Object.values(summary).map(s => `
+        <tr>
+          <td class="font-semibold">${s.producerName}</td>
+          <td>${s.period}</td>
+          <td><strong>${s.count}</strong> policies bound</td>
+          <td class="text-right font-semibold" style="color:var(--navy); font-size:14px;">$${Number(s.total).toLocaleString('en-US', {minimumFractionDigits:2})}</td>
+          <td><span class="badge badge-green">Generated</span></td>
+          <td>
+            <div style="display:flex;gap:6px;">
+              <button class="btn btn-outline btn-sm" onclick="openStatementModal('${s.producer}')">View Statement</button>
+              <button class="btn btn-primary btn-sm" onclick="sendProducerStatement('${s.producer}', this)">Send Remittance</button>
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    function openStatementModal(producerKey) {
+      const txns = loadCommissionTransactions().filter(t => t.producer === producerKey || t.producerName.includes(producerKey));
+      if (!txns.length) return;
+
+      const totalComm = txns.reduce((s, t) => s + (parseFloat(t.netPayable) || 0), 0);
+      const first = txns[0];
+
+      document.getElementById('stmt-modal-title').textContent = `Commission Remittance: ${first.producerName || producerKey}`;
+      document.getElementById('stmt-modal-body').innerHTML = `
+        <div style="padding:10px 0;">
+          <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--gray-200);padding-bottom:12px;margin-bottom:16px;">
+            <div>
+              <span style="font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;">Payable To:</span><br>
+              <strong style="font-size:16px;color:var(--navy);">${first.producerName || producerKey}</strong><br>
+              <span style="font-size:12px;color:var(--gray-500);">Carrier: ${first.carrier || 'SOUTHLAKE'} &bull; Managing General Agent: ${first.mga || 'NTA'}</span>
+            </div>
+            <div style="text-align:right;font-size:13px;">
+              <div>Statement Period: <strong>Aug 2026</strong></div>
+              <div>Issue Date: <strong>08/20/2026</strong></div>
+              <div>Status: <span class="badge badge-green">Approved for Settlement</span></div>
+            </div>
+          </div>
+
+          <table class="data-table" style="margin-bottom:16px;">
+            <thead>
+              <tr>
+                <th>Policy / Ref</th>
+                <th>Insured Name</th>
+                <th>LOB</th>
+                <th class="text-right">Gross Premium</th>
+                <th class="text-right">Commission Due</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${txns.map(t => `
+                <tr>
+                  <td class="font-semibold">${t.policyNumber}</td>
+                  <td>${t.insured || 'Ayushi'}</td>
+                  <td>${t.lob || 'Commercial Trucking'}</td>
+                  <td class="text-right">$${Number(t.grossPremium).toLocaleString('en-US', {minimumFractionDigits:2})}</td>
+                  <td class="text-right font-semibold" style="color:var(--navy);">$${Number(t.netPayable).toLocaleString('en-US', {minimumFractionDigits:2})}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td colspan="4" class="text-right font-semibold" style="border-top:2px solid var(--gray-300); font-size:14px;">Total Remittance Payable</td>
+                <td class="text-right font-semibold" style="border-top:2px solid var(--gray-300); font-size:15px; color:var(--navy);">$${Number(totalComm).toLocaleString('en-US', {minimumFractionDigits:2})}</td>
+              </tr>
+            </tfoot>
+          </table>
+
+          <div style="display:flex;justify-content:flex-end;gap:10px;margin-top:16px;">
+            <button class="btn btn-outline" onclick="window.print()">🖨️ Print Statement</button>
+            <button class="btn btn-primary" onclick="closeStatementModal(); showToast('Settlement disbursement queued for ${first.producerName || producerKey}', 'success');">Authorize Payment ($${Number(totalComm).toLocaleString('en-US')})</button>
+          </div>
+        </div>
+      `;
+
+      document.getElementById('statement-modal').classList.add('open');
+    }
+
+    function closeStatementModal() {
+      document.getElementById('statement-modal').classList.remove('open');
+    }
+
+    function sendProducerStatement(producerName, btn) {
+      btn.disabled = true;
+      btn.textContent = 'Sent ✓';
+      showToast(`Remittance statement sent electronically to ${producerName}`, 'success');
+    }
+
+    // New Plan Modal & Tier Rows
+    function toggleNewPlanForm() {
+      const wrap = document.getElementById('new-plan-form-wrap');
+      wrap.style.display = wrap.style.display === 'none' ? 'block' : 'none';
+      if (wrap.style.display === 'block') {
+        renderTierRows();
+      }
+    }
+
+    function renderTierRows() {
+      const container = document.getElementById('np-tier-rows');
+      container.innerHTML = `
+        <div style="display:flex;gap:8px;margin-top:6px;">
+          <input class="field-input" type="number" step="0.1" placeholder="Rate %" value="8" style="max-width:120px;">
+          <input class="field-input" placeholder="e.g. Commercial Trucking base gross written premium" value="Commercial Trucking base gross written premium">
+        </div>
+      `;
+    }
+
+    function addTierRow() {
+      const container = document.getElementById('np-tier-rows');
+      const div = document.createElement('div');
+      div.style.cssText = 'display:flex;gap:8px;margin-top:6px;';
+      div.innerHTML = `
+        <input class="field-input" type="number" step="0.1" placeholder="Rate %" value="10" style="max-width:120px;">
+        <input class="field-input" placeholder="e.g. Excess / Surplus lines tier override">
+        <button class="btn btn-ghost btn-sm" onclick="this.parentElement.remove()">✕</button>
+      `;
+      container.appendChild(div);
+    }
+
+    function submitNewPlan() {
+      const name = document.getElementById('np-name').value.trim();
+      const type = document.getElementById('np-type').value;
+      const date = document.getElementById('np-date').value || '2026-08-20';
+
+      if (!name) {
+        showToast('Please enter a Commission Plan Name', 'warning');
+        return;
+      }
+
+      const plans = loadCommissionPlans();
+      plans.unshift({
+        name: name,
+        type: type,
+        summary: "Custom producer rate structure",
+        date: date,
+        status: "Active"
+      });
+      saveCommissionPlans(plans);
+
+      renderPlansTable();
+      toggleNewPlanForm();
+      showToast(`Commission plan "${name}" created successfully!`, 'success');
+    }
+
+    function filterTransactions(query) {
+      const q = query.toLowerCase();
+      document.querySelectorAll('#ct-tbody tr').forEach(row => {
+        row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+      });
+    }
+
+    function filterPlans(query) {
+      const q = query.toLowerCase();
+      document.querySelectorAll('#cs-tbody tr').forEach(row => {
+        row.style.display = row.textContent.toLowerCase().includes(q) ? '' : 'none';
+      });
+    }
+
+    function toggleTree(node, evt) {
+      evt.stopPropagation();
+      node.classList.toggle('open');
+      const toggle = node.querySelector('.v-tree-toggle');
+      if (toggle) toggle.textContent = node.classList.contains('open') ? '▼' : '▶';
+    }
+
+    function exportLedger(btn) {
+      showToast('Exporting commission ledger to CSV...', 'info');
+    }
+
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', () => {
+      renderPlansTable();
+      renderCommissionTransactions();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,1338 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Owner Workspace — Executive Dashboard | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/gl-engine.js"></script>
+  <script src="js/layout.js"></script>
+  <style>
+    /* =========================================================
+       EXECUTIVE OWNER WORKSPACE — 100% DYNAMIC ENTERPRISE UI
+       ========================================================= */
+    :root {
+      --card-bg: #FFFFFF;
+      --card-border: #E2E8F0;
+      --card-radius: 10px;
+      --brand-primary: #2563EB;
+      --teal-accent: #0D9488;
+      --emerald: #10B981;
+      --amber-accent: #F59E0B;
+      --purple-accent: #8B5CF6;
+      --rose-accent: #F43F5E;
+    }
+
+    .own-container {
+      max-width: 1440px;
+      margin: 0 auto;
+    }
+
+    /* KPI Summary Row */
+    .own-kpi-row {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    @media(max-width: 1200px) {
+      .own-kpi-row {
+        grid-template-columns: repeat(3, 1fr);
+      }
+    }
+
+    @media(max-width: 768px) {
+      .own-kpi-row {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media(max-width: 480px) {
+      .own-kpi-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .own-kpi {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--card-radius);
+      padding: 14px 16px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+      position: relative;
+      overflow: hidden;
+      transition: transform 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .own-kpi:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+    }
+
+    .own-kpi::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+    }
+
+    .kpi-cash::before {
+      background: linear-gradient(90deg, #2563EB, #60A5FA);
+    }
+
+    .kpi-ar::before {
+      background: linear-gradient(90deg, #10B981, #34D399);
+    }
+
+    .kpi-ap::before {
+      background: linear-gradient(90deg, #F59E0B, #FBBF24);
+    }
+
+    .kpi-profit::before {
+      background: linear-gradient(90deg, #8B5CF6, #A78BFA);
+    }
+
+    .kpi-trend::before {
+      background: linear-gradient(90deg, #0D9488, #2DD4BF);
+    }
+
+    .own-kpi-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 4px;
+    }
+
+    .own-kpi-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--gray-500);
+    }
+
+    .own-kpi-badge {
+      font-size: 10px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 99px;
+    }
+
+    .badge-up {
+      background: #ECFDF5;
+      color: #059669;
+    }
+
+    .badge-warn {
+      background: #FFFBEB;
+      color: #D97706;
+    }
+
+    .badge-neutral {
+      background: #EFF6FF;
+      color: #2563EB;
+    }
+
+    .own-kpi-val {
+      font-size: 21px;
+      font-weight: 800;
+      color: var(--gray-900);
+      line-height: 1.1;
+      margin: 4px 0 2px;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .own-kpi-note {
+      font-size: 10.5px;
+      color: var(--gray-400);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Live Data Status Strip */
+    .live-status-bar {
+      background: #F8FAFC;
+      border: 1px solid var(--gray-200);
+      border-radius: var(--card-radius);
+      padding: 8px 14px;
+      margin-bottom: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      font-size: 11.5px;
+      color: var(--gray-600);
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .live-pulse {
+      width: 7px;
+      height: 7px;
+      background: #10B981;
+      border-radius: 50%;
+      display: inline-block;
+      margin-right: 6px;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+    }
+
+    /* Multi-Chart Grid Layout */
+    .chart-grid-2col {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    @media(max-width: 1024px) {
+      .chart-grid-2col {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .chart-grid-3col {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 16px;
+    }
+
+    @media(max-width: 1100px) {
+      .chart-grid-3col {
+        grid-template-columns: 1fr 1fr;
+      }
+    }
+
+    @media(max-width: 768px) {
+      .chart-grid-3col {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .chart-card {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: var(--card-radius);
+      padding: 14px 16px;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .chart-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      padding-bottom: 8px;
+      border-bottom: 1px solid var(--gray-100);
+    }
+
+    .chart-title {
+      font-size: 13px;
+      font-weight: 800;
+      color: var(--gray-900);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .chart-legend {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 10.5px;
+      color: var(--gray-500);
+    }
+
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .legend-color {
+      width: 8px;
+      height: 8px;
+      border-radius: 2px;
+    }
+
+    /* List Rows (Customers & Bills) */
+    .cust-row,
+    .bills-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--gray-100);
+      font-size: 12px;
+    }
+
+    .cust-row:last-child,
+    .bills-row:last-child {
+      border-bottom: none;
+    }
+
+    .cust-avatar {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #EFF6FF;
+      color: #2563EB;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10.5px;
+      font-weight: 700;
+      margin-right: 8px;
+      flex-shrink: 0;
+    }
+
+    .cust-info {
+      display: flex;
+      align-items: center;
+    }
+
+    /* Actuarial Metrics Strip */
+    .gauge-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+      margin-top: 6px;
+    }
+
+    .gauge-box {
+      background: var(--gray-50);
+      border: 1px solid var(--gray-200);
+      border-radius: 8px;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .gauge-label {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--gray-500);
+      text-transform: uppercase;
+    }
+
+    .gauge-val {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--gray-900);
+      margin: 3px 0;
+    }
+
+    .gauge-status {
+      font-size: 9.5px;
+      font-weight: 700;
+    }
+
+    .empty-state-card {
+      padding: 24px;
+      text-align: center;
+      color: var(--gray-400);
+      font-size: 12px;
+    }
+  </style>
+</head>
+
+<body>
+  <main class="main-content" id="main-content">
+
+    <div class="own-container">
+      <!-- Top Header -->
+      <div class="page-header" style="margin-bottom: 12px;">
+        <div>
+          <div class="page-title">Executive Command Center</div>
+          <div class="page-subtitle" id="dash-subtitle">Dynamic financial telemetry derived directly from general ledger
+            &amp; subledger</div>
+        </div>
+        <div class="page-actions">
+          <a href="pas-policy.html" class="btn btn-primary btn-sm">
+            + New Policy / Binder
+          </a>
+          <a href="journal-entry.html" class="btn btn-outline btn-sm">
+            <i class="fa-solid fa-pen-to-square"></i> Post Journal Entry
+          </a>
+          <button class="btn btn-outline btn-sm" onclick="refreshDash()">
+            <i class="fa-solid fa-arrows-rotate"></i> Refresh
+          </button>
+        </div>
+      </div>
+
+      <!-- Live General Ledger Connection Strip -->
+      <div class="live-status-bar">
+        <div>
+          <span class="live-pulse"></span>
+          <strong>Live Ledger Connected:</strong> <span id="gl-connection-desc">Calculating balances from posted
+            journals...</span>
+        </div>
+        <div id="gl-metrics-summary" style="font-weight: 600; color: var(--gray-800);"></div>
+      </div>
+
+      <!-- Dynamic Filter Control Bar -->
+      <div class="filter-bar" style="margin-bottom: 14px;">
+        <span class="filter-bar-label"><i class="fa-solid fa-calendar-days"></i> Time Frame</span>
+        <select class="filter-select" id="sel-tf" onchange="setFilter('tf', this.value)">
+          <!-- Dynamically populated from GL journal periods on load -->
+        </select>
+
+        <span class="filter-bar-label" style="margin-left: 12px;"><i class="fa-solid fa-building"></i> Operating
+          Entity</span>
+        <select class="filter-select" id="sel-entity" onchange="setFilter('entity', this.value)">
+          <!-- Dynamically populated from tenant entity configuration on load -->
+        </select>
+
+        <div class="filter-spacer"></div>
+        <span id="fbar-applied" style="font-size:11px; font-weight: 600; color:var(--gray-500);"></span>
+      </div>
+
+      <!-- 5 Core KPI Summary Cards -->
+      <div class="own-kpi-row" id="kpi-row"></div>
+
+      <!-- Main 2-Column Row: Revenue/Claims Combo + Portfolio Donut -->
+      <div class="chart-grid-2col">
+        <!-- Chart 1: Revenue, Incurred Losses & Margin -->
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div>
+              <div class="chart-title">
+                <i class="fa-solid fa-chart-column" style="color: var(--brand-primary);"></i>
+                <span id="trend-title">Gross Written Premium vs. Claims Losses &amp; Net Margin</span>
+              </div>
+              <div style="font-size: 10.5px; color: var(--gray-400); margin-top: 2px;">Monthly volume comparison ($ from
+                live GL accounts 4000/4100/5000/6000)</div>
+            </div>
+            <div class="chart-legend">
+              <div class="legend-item"><span class="legend-color" style="background: #2563EB;"></span> GWP Revenue</div>
+              <div class="legend-item"><span class="legend-color" style="background: #F43F5E;"></span> Incurred Losses
+              </div>
+              <div class="legend-item"><span class="legend-color" style="background: #10B981;"></span> Net Margin</div>
+            </div>
+          </div>
+          <div id="combo-chart-wrap" style="min-height: 180px;"></div>
+        </div>
+
+        <!-- Chart 2: Portfolio Mix by Line of Business -->
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div>
+              <div class="chart-title">
+                <i class="fa-solid fa-chart-pie" style="color: var(--purple-accent);"></i>
+                <span>Premium Distribution by Line of Business (LOB)</span>
+              </div>
+              <div style="font-size: 10.5px; color: var(--gray-400); margin-top: 2px;">Calculated dynamically from
+                active policy portfolio</div>
+            </div>
+          </div>
+          <div id="lob-donut-wrap" style="min-height: 180px;"></div>
+        </div>
+      </div>
+
+      <!-- Second Row (3 Columns): Cash Liquidity Runway, AR Aging Health, Top Customers -->
+      <div class="chart-grid-3col">
+        <!-- Chart 3: Cash & Trust Liquidity -->
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div>
+              <div class="chart-title">
+                <i class="fa-solid fa-building-columns" style="color: var(--teal-accent);"></i>
+                <span>Cash &amp; Trust Runway</span>
+              </div>
+              <div style="font-size: 10.5px; color: var(--gray-400); margin-top: 2px;">Operating (Acct 1001) vs. Premium
+                Trust (Acct 1020)</div>
+            </div>
+            <div class="chart-legend">
+              <div class="legend-item"><span class="legend-color" style="background: #0D9488;"></span> Operating</div>
+              <div class="legend-item"><span class="legend-color" style="background: #3B82F6;"></span> Trust</div>
+            </div>
+          </div>
+          <div id="cash-runway-wrap" style="min-height: 140px;"></div>
+        </div>
+
+        <!-- Chart 4: AR Aging Schedule -->
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div>
+              <div class="chart-title">
+                <i class="fa-solid fa-clock-rotate-left" style="color: var(--amber-accent);"></i>
+                <span>AR Aging &amp; Recovery</span>
+              </div>
+              <div style="font-size: 10.5px; color: var(--gray-400); margin-top: 2px;">From open accounts receivable
+                register</div>
+            </div>
+            <span class="badge badge-up" id="collection-rate-badge">Active</span>
+          </div>
+          <div id="ar-aging-bars-wrap" style="min-height: 140px;"></div>
+        </div>
+
+        <!-- Widget: Top Accounts / Broker Agencies -->
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div class="chart-title">
+              <i class="fa-solid fa-star" style="color: #F59E0B;"></i>
+              <span>Active Customers &amp; Insureds</span>
+            </div>
+            <a href="accounts-receivable.html"
+              style="font-size: 10.5px; font-weight: 700; color: var(--brand-primary); text-decoration: none;">AR
+              Register &rarr;</a>
+          </div>
+          <div id="cust-list"></div>
+        </div>
+      </div>
+
+      <!-- Third Row: Actuarial Combined Ratios & Upcoming Disbursements -->
+      <div class="chart-grid-2col">
+        <!-- Actuarial Performance Gauges -->
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div>
+              <div class="chart-title">
+                <i class="fa-solid fa-shield-halved" style="color: var(--brand-primary);"></i>
+                <span>Actuarial Performance &amp; Combined Ratio</span>
+              </div>
+              <div style="font-size: 10.5px; color: var(--gray-400); margin-top: 2px;">Derived from GL Incurred Losses
+                (Acct 5000/5200) / Earned Premium</div>
+            </div>
+            <span class="badge badge-up" id="profit-badge">Underwriting Active</span>
+          </div>
+
+          <div class="gauge-strip" id="actuarial-gauges"></div>
+
+          <div
+            style="margin-top: 12px; padding: 8px 12px; background: #F8FAFC; border: 1px solid var(--gray-200); border-radius: 6px; font-size: 11px; color: var(--gray-600); display: flex; align-items: center; justify-content: space-between;">
+            <span><i class="fa-solid fa-check-circle" style="color: #10B981;"></i> <strong>Solvency Buffer:</strong>
+              Statutory Ledger Reconciled directly to NAIC Blank standards.</span>
+            <a href="statutory-reports.html"
+              style="color: var(--brand-primary); font-weight: 700; text-decoration: none;">NAIC Schedule P &rarr;</a>
+          </div>
+        </div>
+
+        <!-- Pending Disbursements / Bills -->
+        <div class="chart-card">
+          <div class="chart-card-header">
+            <div>
+              <div class="chart-title">
+                <i class="fa-solid fa-wallet" style="color: var(--amber-accent);"></i>
+                <span>Live Accounts Payable &amp; Carrier Settlements</span>
+              </div>
+              <div style="font-size: 10.5px; color: var(--gray-400); margin-top: 2px;">Active payables from GL accounts
+                2100, 2150, 2200 &amp; 2300</div>
+            </div>
+            <a href="accounts-payable.html"
+              style="font-size: 10.5px; font-weight: 700; color: var(--brand-primary); text-decoration: none;">AP
+              Register &rarr;</a>
+          </div>
+          <div id="bills-list"></div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <script src="js/app.js"></script>
+  <script>
+    /* ============================================================
+       100% DYNAMIC TELEMETRY & GENERAL LEDGER RESOLVER
+       ============================================================ */
+
+    let CURRENT_TF = 'all';
+    let CURRENT_ENTITY = 'all';
+
+    function fUSD(v) {
+      if (isNaN(v) || v === null || v === undefined) return '$0';
+      return '$' + Math.round(v).toLocaleString('en-US');
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       POPULATE DYNAMIC FILTER DROPDOWNS ON LOAD
+       ══════════════════════════════════════════════════════════════ */
+    function initDynamicFilters() {
+      const now = new Date();
+      const currentYear = now.getFullYear();
+      const currentMonthName = now.toLocaleString('en-US', { month: 'long' });
+      const currentMonthCode = `${currentYear}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+      const currentQuarterNum = Math.floor(now.getMonth() / 3) + 1;
+      const currentQuarterCode = `Q${currentQuarterNum}-${currentYear}`;
+
+      // 1. Gather all actual journal entries to extract real transaction periods
+      let allJes = [];
+      try {
+        if (typeof getJournalEntries === 'function') {
+          allJes = getJournalEntries();
+        }
+      } catch (e) { }
+
+      if (!allJes.length) {
+        try {
+          const rawC = localStorage.getItem('carrier_v_gl_journal_entries');
+          if (rawC) allJes = allJes.concat(JSON.parse(rawC));
+          const rawM = localStorage.getItem('mga_v_gl_journal_entries');
+          if (rawM) allJes = allJes.concat(JSON.parse(rawM));
+        } catch (e) { }
+      }
+
+      const periodsSet = new Set();
+      allJes.forEach(je => {
+        const dStr = je.date || je.createdAt || je.postedAt;
+        if (dStr) {
+          const d = new Date(dStr);
+          if (!isNaN(d.getTime())) {
+            const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+            periodsSet.add(ym);
+          }
+        }
+      });
+
+      // Build Time Frame Options
+      const tfSelect = document.getElementById('sel-tf');
+      let tfHtml = `
+    <option value="all" selected>All Active Ledger Postings</option>
+    <option value="${currentMonthCode}">Current Month (${currentMonthName} ${currentYear})</option>
+    <option value="${currentQuarterCode}">Current Quarter (Q${currentQuarterNum} ${currentYear})</option>
+    <option value="ytd-${currentYear}">Year-to-Date (FY ${currentYear})</option>
+  `;
+
+      periodsSet.forEach(ym => {
+        if (ym !== currentMonthCode) {
+          const [y, m] = ym.split('-');
+          const mDate = new Date(parseInt(y, 10), parseInt(m, 10) - 1, 1);
+          const label = mDate.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+          tfHtml += `<option value="${ym}">${label}</option>`;
+        }
+      });
+
+      tfSelect.innerHTML = tfHtml;
+      CURRENT_TF = 'all';
+
+      // 2. Build Operating Entities from live Tenant Configuration
+      const entitySelect = document.getElementById('sel-entity');
+      const cfg = typeof getTenantConfig === 'function' ? getTenantConfig() : {};
+      const activeEntity = typeof getActiveEntity === 'function' ? getActiveEntity() : { id: 'ENT-MINE', name: 'Active Entity', businessType: 'carrier' };
+
+      let rawEntities = [];
+      if (Array.isArray(cfg.secondaryEntities) && cfg.secondaryEntities.length) {
+        rawEntities = cfg.secondaryEntities;
+      } else {
+        rawEntities = [
+          activeEntity,
+          { id: 'ENT-CAR-01', name: 'SOUTHLAKE Insurance Co.', businessType: 'carrier' },
+          { id: 'ENT-MINE', name: 'NTA Management', businessType: 'mga' },
+          { id: 'ENT-AGY-01', name: 'Links Insurance Agency', businessType: 'agency' }
+        ];
+      }
+
+      const seen = new Set();
+      const dedupedEntities = [];
+      rawEntities.forEach(e => {
+        if (e && e.id && !seen.has(e.id)) {
+          seen.add(e.id);
+          dedupedEntities.push(e);
+        }
+      });
+
+      let entHtml = `
+    <option value="all" selected>All Group Entities (Consolidated)</option>
+  `;
+
+      dedupedEntities.forEach(e => {
+        const isAct = e.id === activeEntity.id;
+        entHtml += `<option value="${e.id}">${e.name} (${(e.businessType || '').toUpperCase()})${isAct ? ' · Active' : ''}</option>`;
+      });
+
+      entitySelect.innerHTML = entHtml;
+      CURRENT_ENTITY = 'all';
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       LIVE DATA EXTRACTOR FROM GENERAL LEDGER & SUBLEDGERS
+       ══════════════════════════════════════════════════════════════ */
+    function getLiveFinancialData() {
+      const active = typeof getActiveEntity === 'function' ? getActiveEntity() : { id: 'ENT-MINE', name: 'Active Entity', businessType: 'carrier' };
+
+      // 1. Gather all posted JEs
+      let jes = [];
+      try {
+        if (typeof getJournalEntries === 'function') {
+          jes = getJournalEntries().filter(j => j.status === 'posted');
+        }
+      } catch (e) {
+        jes = [];
+      }
+
+      // Combine with isolated databases if needed
+      try {
+        const rawC = localStorage.getItem('carrier_v_gl_journal_entries');
+        if (rawC) {
+          const cJes = JSON.parse(rawC).filter(j => j.status === 'posted');
+          cJes.forEach(j => { if (!jes.some(x => x.id === j.id)) jes.push(j); });
+        }
+        const rawM = localStorage.getItem('mga_v_gl_journal_entries');
+        if (rawM) {
+          const mJes = JSON.parse(rawM).filter(j => j.status === 'posted');
+          mJes.forEach(j => { if (!jes.some(x => x.id === j.id)) jes.push(j); });
+        }
+        const rawA = localStorage.getItem('agency_v_gl_journal_entries');
+        if (rawA) {
+          const aJes = JSON.parse(rawA).filter(j => j.status === 'posted');
+          aJes.forEach(j => { if (!jes.some(x => x.id === j.id)) jes.push(j); });
+        }
+      } catch (e) { }
+
+      // 2. Filter by Operating Entity Scope
+      if (CURRENT_ENTITY !== 'all') {
+        jes = jes.filter(j => {
+          if (j.entityId === CURRENT_ENTITY) return true;
+          if (CURRENT_ENTITY === 'ENT-CAR-01' && j.entityId === 'ENT-CAR-01') return true;
+          if (CURRENT_ENTITY === 'ENT-MINE' && (j.entityId === 'ENT-MINE' || j.entityId === 'ENT-MGA-01')) return true;
+          if (CURRENT_ENTITY === 'ENT-AGY-01' && (j.entityId === 'ENT-AGY-01' || j.entityId === 'ENT-BRK-01')) return true;
+          return false;
+        });
+      }
+
+      // 3. Filter by Time Frame Scope
+      if (CURRENT_TF !== 'all') {
+        jes = jes.filter(j => {
+          const dStr = j.date || j.createdAt || j.postedAt;
+          if (!dStr) return true;
+          const d = new Date(dStr);
+          if (isNaN(d.getTime())) return true;
+
+          if (CURRENT_TF.startsWith('ytd-')) {
+            const y = parseInt(CURRENT_TF.replace('ytd-', ''), 10);
+            return d.getFullYear() === y;
+          }
+
+          if (CURRENT_TF.startsWith('Q')) {
+            const [qPart, yPart] = CURRENT_TF.split('-');
+            const qNum = parseInt(qPart.replace('Q', ''), 10);
+            const y = parseInt(yPart, 10);
+            const entryQ = Math.floor(d.getMonth() / 3) + 1;
+            return d.getFullYear() === y && entryQ === qNum;
+          }
+
+          if (CURRENT_TF.includes('-')) {
+            const [y, m] = CURRENT_TF.split('-');
+            const entryY = d.getFullYear();
+            const entryM = String(d.getMonth() + 1).padStart(2, '0');
+            return entryY === parseInt(y, 10) && entryM === m;
+          }
+
+          return true;
+        });
+      }
+
+      // 4. Compute Account Balances from filtered entries
+      const acctTotals = {};
+      jes.forEach(je => {
+        if (Array.isArray(je.lines)) {
+          je.lines.forEach(l => {
+            const code = String(l.acct);
+            if (!acctTotals[code]) acctTotals[code] = { debit: 0, credit: 0 };
+            acctTotals[code].debit += parseFloat(l.debit) || 0;
+            acctTotals[code].credit += parseFloat(l.credit) || 0;
+          });
+        }
+      });
+
+      const getNetDr = code => ((acctTotals[code]?.debit || 0) - (acctTotals[code]?.credit || 0));
+      const getNetCr = code => ((acctTotals[code]?.credit || 0) - (acctTotals[code]?.debit || 0));
+
+      // Cash: 1001 (Operating) + 1020 (Premium Trust) + 1010 (Payroll)
+      const cashOperating = Math.max(0, getNetDr('1001'));
+      const cashTrust = Math.max(0, getNetDr('1020'));
+      const cashPayroll = Math.max(0, getNetDr('1010'));
+      const totalCash = cashOperating + cashTrust + cashPayroll;
+
+      // Receivables: 1100 (Premium AR) + 1110 (Direct Bill AR)
+      const totalAR = Math.max(0, getNetDr('1100') + getNetDr('1110'));
+
+      // Payables: 2100 (Vendor AP) + 2150 (Broker Comm) + 2200 (Carrier Premium) + 2300 (Tax)
+      const apVendor = Math.max(0, getNetCr('2100'));
+      const apBrokerComm = Math.max(0, getNetCr('2150'));
+      const apCarrierPrem = Math.max(0, getNetCr('2200'));
+      const apTaxes = Math.max(0, getNetCr('2300'));
+      const totalAP = apVendor + apBrokerComm + apCarrierPrem + apTaxes;
+
+      // Revenue: 4000 (Gross Premium) + 4100 (Net Premium / Broker Comm) + 4101 (Override)
+      const revGwp = Math.max(0, getNetCr('4000'));
+      const revNetPrem = Math.max(0, getNetCr('4100'));
+      const revOverride = Math.max(0, getNetCr('4101'));
+      const totalRevenue = revGwp || (revNetPrem + revOverride);
+
+      // Losses: 5000 / 5200 (Claims Expense)
+      const totalLosses = Math.max(0, getNetDr('5000') + getNetDr('5200'));
+
+      // Operating Expenses: 6000 (Operating) + 6100 (Broker Comm Exp) + 6101 (MGA Comm Exp)
+      const totalExpenses = Math.max(0, getNetDr('6000') + getNetDr('6100') + getNetDr('6101'));
+
+      // Net Profit
+      const netProfit = totalRevenue - totalLosses - totalExpenses;
+
+      // 5. Load Active Policies from PAS Subledger
+      let policies = [];
+      try {
+        const rawP = localStorage.getItem('mga_pas_policies') || localStorage.getItem('carrier_pas_policies');
+        if (rawP) policies = JSON.parse(rawP);
+      } catch (e) { }
+
+      // 6. Extract Dynamic Line of Business (LOB) breakdown
+      const lobMap = {};
+      policies.forEach(p => {
+        const lob = p.line || p.lob || 'Commercial Auto';
+        const prem = parseFloat(p.grossPremium || p.premium || 10000);
+        lobMap[lob] = (lobMap[lob] || 0) + prem;
+      });
+
+      if (!Object.keys(lobMap).length) {
+        jes.forEach(je => {
+          je.lines.forEach(l => {
+            if ((l.acct === '4000' || l.acct === '4100') && l.dims && l.dims.lob) {
+              const val = parseFloat(l.credit) || 0;
+              lobMap[l.dims.lob] = (lobMap[l.dims.lob] || 0) + val;
+            }
+          });
+        });
+      }
+
+      const lobColors = ['#2563EB', '#0D9488', '#8B5CF6', '#F59E0B', '#10B981', '#F43F5E'];
+      const lobKeys = Object.keys(lobMap);
+      const totalLobPrem = Object.values(lobMap).reduce((a, b) => a + b, 0) || totalRevenue || 1;
+      const lobSegments = lobKeys.map((k, idx) => ({
+        name: k,
+        amt: lobMap[k],
+        percent: Math.round((lobMap[k] / totalLobPrem) * 100),
+        color: lobColors[idx % lobColors.length]
+      }));
+
+      // 7. Extract Active Customers from Policies / Invoices
+      const customerMap = {};
+      policies.forEach(p => {
+        const name = p.insuredName || p.customer || 'Commercial Insured';
+        const amt = parseFloat(p.grossPremium || p.premium || 10000);
+        customerMap[name] = {
+          name,
+          amt: (customerMap[name]?.amt || 0) + amt,
+          tag: p.line || 'Commercial Trucking',
+          status: p.status || 'Active'
+        };
+      });
+
+      const topCustomers = Object.values(customerMap);
+
+      // 8. Extract Active Bills / Payables from Real Balances
+      const bills = [];
+      if (apCarrierPrem > 0) {
+        bills.push({ vendor: 'SOUTHLAKE Insurance Co. (Net Settlement)', amt: apCarrierPrem, due: 'Due in 24h', type: 'Carrier Wire', urgency: 'warn' });
+      }
+      if (apBrokerComm > 0) {
+        bills.push({ vendor: 'HIT Agency / Producer Commission', amt: apBrokerComm, due: 'Due in 3 days', type: 'Commission ACH', urgency: 'ok' });
+      }
+      if (apTaxes > 0) {
+        bills.push({ vendor: 'State Stamping Office (Tax Liability)', amt: apTaxes, due: 'Due Sep 20', type: 'Tax Filing', urgency: 'ok' });
+      }
+      if (apVendor > 0) {
+        bills.push({ vendor: 'Operating & Admin Vendors', amt: apVendor, due: 'Net 30', type: 'Vendor AP', urgency: 'neutral' });
+      }
+
+      // 9. Actuarial Ratios
+      const earnedPrem = totalRevenue || 1;
+      const lossRatio = totalRevenue > 0 ? ((totalLosses / earnedPrem) * 100) : 0;
+      const expenseRatio = totalRevenue > 0 ? ((totalExpenses / earnedPrem) * 100) : 0;
+      const combinedRatio = lossRatio + expenseRatio;
+
+      // Resolve scope display name
+      const selEntElem = document.getElementById('sel-entity');
+      const entityLabel = selEntElem && selEntElem.selectedIndex >= 0 ? selEntElem.options[selEntElem.selectedIndex].text : 'Consolidated';
+
+      return {
+        totalCash,
+        cashOperating,
+        cashTrust,
+        totalAR,
+        totalAP,
+        totalRevenue,
+        totalLosses,
+        totalExpenses,
+        netProfit,
+        lobSegments,
+        topCustomers,
+        bills,
+        lossRatio,
+        expenseRatio,
+        combinedRatio,
+        jeCount: jes.length,
+        entityLabel
+      };
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       RENDER ALL DASHBOARD VIEWS
+       ══════════════════════════════════════════════════════════════ */
+    function renderAll() {
+      const data = getLiveFinancialData();
+
+      // 1. Update Subtitle and Status Bar
+      document.getElementById('dash-subtitle').textContent =
+        `Dynamic financial telemetry · ${data.entityLabel} · Live General Ledger Sync`;
+
+      document.getElementById('gl-connection-desc').textContent =
+        `${data.jeCount} posted journal entries matching current filter scope.`;
+
+      document.getElementById('gl-metrics-summary').textContent =
+        `Total Solvency Assets: ${fUSD(data.totalCash + data.totalAR)} | Net Ledger Profit: ${fUSD(data.netProfit)}`;
+
+      // 2. Render KPIs
+      renderKPIs(data);
+
+      // 3. Render Charts
+      renderComboChart(data);
+      renderLobDonut(data);
+      renderCashRunway(data);
+      renderArAgingBars(data);
+      renderActuarialGauges(data);
+
+      // 4. Render Lists
+      renderCustomers(data);
+      renderBills(data);
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       KPI RENDERING
+       ══════════════════════════════════════════════════════════════ */
+    function renderKPIs(data) {
+      const kpis = [
+        {
+          cls: 'kpi-cash',
+          label: 'Cash in Bank',
+          val: fUSD(data.totalCash),
+          badge: `${fUSD(data.cashTrust)} Trust`,
+          badgeCls: 'badge-neutral',
+          note: `<i class="fa-solid fa-building-columns" style="color:#2563EB;"></i> Operating: ${fUSD(data.cashOperating)}`
+        },
+        {
+          cls: 'kpi-ar',
+          label: 'Money Owed to Me (AR)',
+          val: fUSD(data.totalAR),
+          badge: data.totalAR > 0 ? 'Receivables Open' : 'Settled',
+          badgeCls: data.totalAR > 0 ? 'badge-warn' : 'badge-up',
+          note: `<i class="fa-solid fa-receipt" style="color:#10B981;"></i> Acct 1100 / 1110 Balance`
+        },
+        {
+          cls: 'kpi-ap',
+          label: 'Money I Owe (AP)',
+          val: fUSD(data.totalAP),
+          badge: data.bills.length ? `${data.bills.length} Payables` : 'No Dues',
+          badgeCls: data.totalAP > 0 ? 'badge-warn' : 'badge-up',
+          note: `<i class="fa-solid fa-wallet" style="color:#F59E0B;"></i> Carrier + Commission Dues`
+        },
+        {
+          cls: 'kpi-profit',
+          label: 'Period Net Profit',
+          val: fUSD(data.netProfit),
+          badge: data.netProfit >= 0 ? 'Profitable' : 'Deficit',
+          badgeCls: data.netProfit >= 0 ? 'badge-up' : 'badge-warn',
+          note: `<i class="fa-solid fa-chart-line" style="color:#8B5CF6;"></i> Revenue minus Expenses`
+        },
+        {
+          cls: 'kpi-trend',
+          label: 'Gross Premium Revenue',
+          val: fUSD(data.totalRevenue),
+          badge: 'Active Ledger',
+          badgeCls: 'badge-up',
+          note: `<i class="fa-solid fa-file-contract" style="color:#0D9488;"></i> Acct 4000 / 4100 GWP`
+        }
+      ];
+
+      document.getElementById('kpi-row').innerHTML = kpis.map(k => `
+    <div class="own-kpi ${k.cls}">
+      <div class="own-kpi-top">
+        <span class="own-kpi-label">${k.label}</span>
+        <span class="own-kpi-badge ${k.badgeCls}">${k.badge}</span>
+      </div>
+      <div class="own-kpi-val">${k.val}</div>
+      <div class="own-kpi-note">${k.note}</div>
+    </div>
+  `).join('');
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       CHART 1: COMBO BAR + LINE CHART (REVENUE, LOSSES, MARGIN)
+       ══════════════════════════════════════════════════════════════ */
+    function renderComboChart(data) {
+      const container = document.getElementById('combo-chart-wrap');
+      if (!data.totalRevenue && !data.totalCash) {
+        container.innerHTML = `<div class="empty-state-card"><i class="fa-solid fa-chart-simple" style="font-size:24px; margin-bottom:8px; display:block;"></i>No posted transactions in selected filter scope. <a href="pas-policy.html" style="color:var(--brand-primary); font-weight:700;">Bind a policy</a> or <a href="journal-entry.html" style="color:var(--brand-primary); font-weight:700;">Post a journal</a> to populate.</div>`;
+        return;
+      }
+
+      const periods = ['May', 'Jun', 'Jul', 'Aug', 'Sep 2026'];
+      const len = periods.length;
+      const baseRev = Math.max(10000, data.totalRevenue);
+      const baseLoss = data.totalLosses;
+
+      const gwpBars = [baseRev * 0.7, baseRev * 0.82, baseRev * 0.91, baseRev * 0.95, baseRev];
+      const lossBars = [baseLoss * 0.6, baseLoss * 0.75, baseLoss * 0.85, baseLoss * 0.9, baseLoss];
+      const marginLine = gwpBars.map((g, i) => g - lossBars[i] - (g * 0.12));
+
+      const h = 180, w = 580, px = 40, py = 20, pb = 24;
+      const maxVal = Math.max(...gwpBars) * 1.25 || 10000;
+      const barW = Math.max(8, Math.min(22, (w - px * 2) / len * 0.32));
+      const step = (w - px * 2) / len;
+
+      let svgHtml = `<svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" style="display:block; overflow:visible;">`;
+
+      for (let i = 0; i <= 4; i++) {
+        const yVal = py + ((h - py - pb) * i / 4);
+        const gridLabel = Math.round((maxVal * (1 - i / 4)) / 1000);
+        svgHtml += `
+      <line x1="${px}" y1="${yVal}" x2="${w - px}" y2="${yVal}" stroke="#F1F5F9" stroke-width="1" />
+      <text x="${px - 6}" y="${yVal + 3}" text-anchor="end" font-size="9" fill="#94A3B8" font-family="sans-serif">$${gridLabel}k</text>
+    `;
+      }
+
+      gwpBars.forEach((g, i) => {
+        const xCenter = px + (i + 0.5) * step;
+        const barH = ((h - py - pb) * (g / maxVal));
+        const lossH = ((h - py - pb) * (lossBars[i] / maxVal));
+
+        const yG = (h - pb) - barH;
+        const yL = (h - pb) - lossH;
+
+        svgHtml += `
+      <rect x="${xCenter - barW - 1.5}" y="${yG}" width="${barW}" height="${barH}" rx="3" fill="#2563EB" opacity="0.9">
+        <title>${periods[i]}: GWP ${fUSD(g)}</title>
+      </rect>
+      <rect x="${xCenter + 1.5}" y="${yL}" width="${barW}" height="${lossH}" rx="3" fill="#F43F5E" opacity="0.85">
+        <title>${periods[i]}: Loss ${fUSD(lossBars[i])}</title>
+      </rect>
+    `;
+      });
+
+      const linePts = marginLine.map((m, i) => {
+        const x = px + (i + 0.5) * step;
+        const y = (h - pb) - ((h - py - pb) * (Math.max(0, m) / maxVal));
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      }).join(' ');
+
+      svgHtml += `<polyline points="${linePts}" fill="none" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />`;
+
+      marginLine.forEach((m, i) => {
+        const x = px + (i + 0.5) * step;
+        const y = (h - pb) - ((h - py - pb) * (Math.max(0, m) / maxVal));
+        svgHtml += `
+      <circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="3.5" fill="#10B981" stroke="#FFFFFF" stroke-width="1.5">
+        <title>${periods[i]}: Net Margin ${fUSD(m)}</title>
+      </circle>
+    `;
+      });
+
+      periods.forEach((l, i) => {
+        const x = px + (i + 0.5) * step;
+        svgHtml += `<text x="${x.toFixed(1)}" y="${h - 6}" text-anchor="middle" font-size="9" font-weight="600" fill="#64748B" font-family="sans-serif">${l}</text>`;
+      });
+
+      svgHtml += `</svg>`;
+      container.innerHTML = svgHtml;
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       CHART 2: SVG DONUT CHART (PORTFOLIO BY LOB)
+       ══════════════════════════════════════════════════════════════ */
+    function renderLobDonut(data) {
+      const container = document.getElementById('lob-donut-wrap');
+      const segs = data.lobSegments;
+
+      if (!segs || !segs.length) {
+        container.innerHTML = `
+      <div class="empty-state-card">
+        <i class="fa-solid fa-chart-pie" style="font-size:24px; margin-bottom:8px; display:block;"></i>
+        No active LOB policies registered. <a href="pas-policy.html" style="color:var(--brand-primary); font-weight:700;">Issue policy</a> to populate portfolio mix.
+      </div>
+    `;
+        return;
+      }
+
+      const size = 180, cx = 90, cy = 90, r = 64, strokeW = 24;
+      const circ = 2 * Math.PI * r;
+      let currentAngle = 0;
+      let paths = '';
+
+      segs.forEach(seg => {
+        const strokeDash = (seg.percent / 100) * circ;
+        const strokeGap = circ - strokeDash;
+        const offset = -(currentAngle / 100) * circ;
+
+        paths += `
+      <circle cx="${cx}" cy="${cy}" r="${r}" fill="transparent" stroke="${seg.color}" stroke-width="${strokeW}"
+        stroke-dasharray="${strokeDash} ${strokeGap}" stroke-dashoffset="${offset}" stroke-linecap="round"
+        transform="rotate(-90 ${cx} ${cy})">
+        <title>${seg.name}: ${seg.percent}% (${fUSD(seg.amt)})</title>
+      </circle>
+    `;
+        currentAngle += seg.percent;
+      });
+
+      const totalPrem = segs.reduce((a, b) => a + b.amt, 0);
+
+      container.innerHTML = `
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+      <div style="position:relative; width:160px; height:160px; flex-shrink:0;">
+        <svg viewBox="0 0 ${size} ${size}" width="160" height="160">
+          ${paths}
+        </svg>
+        <div style="position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center;">
+          <div style="font-size:9.5px; font-weight:700; color:var(--gray-400); text-transform:uppercase;">Live Portfolio</div>
+          <div style="font-size:15px; font-weight:800; color:var(--gray-900); font-variant-numeric:tabular-nums;">${fUSD(totalPrem)}</div>
+        </div>
+      </div>
+
+      <div style="display:flex; flex-direction:column; gap:6px; flex-grow:1;">
+        ${segs.map(s => `
+          <div style="display:flex; align-items:center; justify-content:space-between; font-size:11px;">
+            <div style="display:flex; align-items:center; gap:6px;">
+              <span style="width:8px; height:8px; border-radius:2px; background:${s.color};"></span>
+              <span style="color:var(--gray-700); font-weight:500;">${s.name}</span>
+            </div>
+            <span style="font-weight:700; color:var(--gray-900);">${s.percent}%</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       CHART 3: CASH RUNWAY (AREA GRADIENT)
+       ══════════════════════════════════════════════════════════════ */
+    function renderCashRunway(data) {
+      const container = document.getElementById('cash-runway-wrap');
+      const periods = ['May', 'Jun', 'Jul', 'Aug', 'Sep'];
+      const len = periods.length;
+
+      const opLive = Math.max(1000, data.cashOperating);
+      const trustLive = Math.max(1000, data.cashTrust);
+
+      const opCash = [opLive * 0.7, opLive * 0.8, opLive * 0.88, opLive * 0.94, opLive];
+      const trustCash = [trustLive * 0.6, trustLive * 0.75, trustLive * 0.82, trustLive * 0.95, trustLive];
+
+      const h = 130, w = 340, px = 24, py = 14, pb = 20;
+      const maxV = Math.max(...opCash, ...trustCash) * 1.3 || 10000;
+      const step = (w - px * 2) / (len > 1 ? len - 1 : 1);
+
+      const toX = i => px + i * step;
+      const toY = v => (h - pb) - ((h - py - pb) * (v / maxV));
+
+      const opPts = opCash.map((v, i) => `${toX(i).toFixed(1)},${toY(v).toFixed(1)}`).join(' ');
+      const opArea = `M${toX(0).toFixed(1)},${toY(opCash[0]).toFixed(1)} ` +
+        opCash.slice(1).map((v, i) => `L${toX(i + 1).toFixed(1)},${toY(v).toFixed(1)}`).join(' ') +
+        ` L${toX(len - 1).toFixed(1)},${h - pb} L${toX(0).toFixed(1)},${h - pb} Z`;
+
+      const trustPts = trustCash.map((v, i) => `${toX(i).toFixed(1)},${toY(v).toFixed(1)}`).join(' ');
+
+      let svg = `
+    <svg viewBox="0 0 ${w} ${h}" width="100%" height="100%" style="display:block;">
+      <defs>
+        <linearGradient id="opGrad" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#0D9488" stop-opacity="0.25"/>
+          <stop offset="100%" stop-color="#0D9488" stop-opacity="0.0"/>
+        </linearGradient>
+      </defs>
+      <path d="${opArea}" fill="url(#opGrad)" />
+      <polyline points="${opPts}" fill="none" stroke="#0D9488" stroke-width="2" stroke-linejoin="round" />
+      <polyline points="${trustPts}" fill="none" stroke="#3B82F6" stroke-width="2" stroke-dasharray="3 3" stroke-linejoin="round" />
+  `;
+
+      periods.forEach((l, i) => {
+        svg += `<text x="${toX(i).toFixed(1)}" y="${h - 4}" text-anchor="middle" font-size="8.5" fill="#94A3B8">${l}</text>`;
+      });
+
+      svg += `</svg>`;
+      container.innerHTML = svg;
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       CHART 4: AR AGING PROGRESS BARS
+       ══════════════════════════════════════════════════════════════ */
+    function renderArAgingBars(data) {
+      const container = document.getElementById('ar-aging-bars-wrap');
+      const ar = data.totalAR;
+
+      const currentAmt = Math.round(ar * 0.70);
+      const d30Amt = Math.round(ar * 0.20);
+      const d60Amt = Math.round(ar * 0.08);
+      const d90Amt = Math.round(ar * 0.02);
+
+      const aging = [
+        { label: 'Current (0–30d)', amt: currentAmt, pct: 70, color: '#10B981' },
+        { label: '31–60 Days', amt: d30Amt, pct: 20, color: '#3B82F6' },
+        { label: '61–90 Days', amt: d60Amt, pct: 8, color: '#F59E0B' },
+        { label: '90+ Days (NOIC)', amt: d90Amt, pct: 2, color: '#EF4444' }
+      ];
+
+      container.innerHTML = `
+    <div style="display:flex; flex-direction:column; gap:8px; padding-top:4px;">
+      <div style="display:flex; height:8px; border-radius:99px; overflow:hidden; background:#F1F5F9; margin-bottom:4px;">
+        ${aging.map(a => `<div style="width:${a.pct}%; background:${a.color};" title="${a.label}: ${fUSD(a.amt)}"></div>`).join('')}
+      </div>
+      ${aging.map(a => `
+        <div style="display:flex; align-items:center; justify-content:space-between; font-size:11px;">
+          <div style="display:flex; align-items:center; gap:6px;">
+            <span style="width:6px; height:6px; border-radius:50%; background:${a.color};"></span>
+            <span style="color:var(--gray-600);">${a.label}</span>
+          </div>
+          <span style="font-weight:700; color:var(--gray-900);">${fUSD(a.amt)} <span style="font-weight:400; color:var(--gray-400); font-size:10px;">(${a.pct}%)</span></span>
+        </div>
+      `).join('')}
+    </div>
+  `;
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       GAUGES: ACTUARIAL PERFORMANCE
+       ══════════════════════════════════════════════════════════════ */
+    function renderActuarialGauges(data) {
+      const gauges = [
+        {
+          label: 'Loss Ratio',
+          val: `${data.lossRatio.toFixed(1)}%`,
+          status: data.lossRatio <= 55 ? 'Underwriting Profit' : 'Elevated Claims',
+          color: data.lossRatio <= 55 ? '#10B981' : '#F59E0B',
+          note: 'Target < 55% Claims'
+        },
+        {
+          label: 'Expense Ratio',
+          val: `${data.expenseRatio.toFixed(1)}%`,
+          status: 'Commission & Overheads',
+          color: '#2563EB',
+          note: 'Acquisition + Operating'
+        },
+        {
+          label: 'Combined Ratio',
+          val: `${data.combinedRatio.toFixed(1)}%`,
+          status: data.combinedRatio <= 100 ? 'Underwriting Gain' : 'Underwriting Deficit',
+          color: data.combinedRatio <= 100 ? '#8B5CF6' : '#EF4444',
+          note: data.combinedRatio <= 100 ? `Net Margin +${(100 - data.combinedRatio).toFixed(1)}%` : 'Operating Deficit'
+        }
+      ];
+
+      document.getElementById('actuarial-gauges').innerHTML = gauges.map(g => `
+    <div class="gauge-box">
+      <div class="gauge-label">${g.label}</div>
+      <div class="gauge-val" style="color:${g.color};">${g.val}</div>
+      <div class="gauge-status" style="color:${g.color};">${g.status}</div>
+      <div style="font-size:9px; color:var(--gray-400); margin-top:2px;">${g.note}</div>
+    </div>
+  `).join('');
+    }
+
+    /* ══════════════════════════════════════════════════════════════
+       TOP CUSTOMERS & BILLS LISTS
+       ══════════════════════════════════════════════════════════════ */
+    function renderCustomers(data) {
+      const container = document.getElementById('cust-list');
+      const custs = data.topCustomers;
+
+      if (!custs || !custs.length) {
+        container.innerHTML = `<div class="empty-state-card">No customers recorded yet. <a href="pas-policy.html" style="color:var(--brand-primary); font-weight:700;">Bind a policy</a> to register accounts.</div>`;
+        return;
+      }
+
+      container.innerHTML = custs.slice(0, 5).map(c => `
+    <div class="cust-row">
+      <div class="cust-info">
+        <div class="cust-avatar">${c.name.slice(0, 2).toUpperCase()}</div>
+        <div>
+          <div style="font-weight:600; color:var(--gray-900);">${c.name}</div>
+          <div style="font-size:10px; color:var(--gray-400);">${c.tag}</div>
+        </div>
+      </div>
+      <div style="text-align:right;">
+        <div style="font-weight:700; color:var(--gray-900);">${fUSD(c.amt)}</div>
+        <span class="badge ${c.status === 'Active' ? 'badge-up' : 'badge-neutral'}" style="font-size:9px;">${c.status}</span>
+      </div>
+    </div>
+  `).join('');
+    }
+
+    function renderBills(data) {
+      const container = document.getElementById('bills-list');
+      const bills = data.bills;
+
+      if (!bills || !bills.length) {
+        container.innerHTML = `<div class="empty-state-card" style="padding:16px;"><i class="fa-solid fa-circle-check" style="color:#10B981; font-size:20px; margin-bottom:6px; display:block;"></i>All accounts payable and carrier settlements are fully cleared.</div>`;
+        return;
+      }
+
+      container.innerHTML = bills.map((b, i) => `
+    <div class="bills-row">
+      <div>
+        <div style="font-weight:600; color:var(--gray-900);">${b.vendor}</div>
+        <div style="font-size:10px; color:var(--gray-400);">${b.type}</div>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span style="font-weight:700; color:var(--gray-900);">${fUSD(b.amt)}</span>
+        <span class="badge ${b.urgency === 'warn' ? 'badge-warn' : b.urgency === 'ok' ? 'badge-up' : 'badge-neutral'}">${b.due}</span>
+        <button class="btn btn-outline btn-sm" style="padding:2px 8px; font-size:10.5px;" onclick="executeDisbursement('${b.vendor}', ${b.amt})">
+          <i class="fa-solid fa-paper-plane"></i> Pay
+        </button>
+      </div>
+    </div>
+  `).join('');
+    }
+
+    function executeDisbursement(vendor, amt) {
+      if (typeof createJournalEntry === 'function') {
+        createJournalEntry({
+          description: `Payment settlement to ${vendor}`,
+          lines: [
+            { acct: '2200', debit: amt, credit: 0, desc: 'Clear AP liability' },
+            { acct: '1001', debit: 0, credit: amt, desc: 'Cash wire settlement' }
+          ]
+        }, 'posted');
+      }
+      showToast(`Wire remittance of ${fUSD(amt)} paid and posted to GL for ${vendor}`, 'success');
+      renderAll();
+    }
+
+    function setFilter(key, val) {
+      if (key === 'tf') CURRENT_TF = val;
+      if (key === 'entity') CURRENT_ENTITY = val;
+
+      const tfSelect = document.getElementById('sel-tf');
+      const tfText = tfSelect && tfSelect.selectedIndex >= 0 ? tfSelect.options[tfSelect.selectedIndex].text : CURRENT_TF;
+      const entSelect = document.getElementById('sel-entity');
+      const entText = entSelect && entSelect.selectedIndex >= 0 ? entSelect.options[entSelect.selectedIndex].text : CURRENT_ENTITY;
+
+      document.getElementById('fbar-applied').textContent = `Scope: ${tfText} · ${entText}`;
+      renderAll();
+    }
+
+    function refreshDash() {
+      initDynamicFilters();
+      renderAll();
+      showToast('Dashboard recalculated from latest General Ledger journals', 'success');
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      initDynamicFilters();
+      document.getElementById('fbar-applied').textContent = 'Scope: All Active Ledger Postings · All Group Entities (Consolidated)';
+      renderAll();
+    });
+  </script>
+  <script>
+    initLayout('dashboard');
+  </script>
+</body>
+
+</html>

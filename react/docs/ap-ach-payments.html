@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ACH Payments — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Accounts Payable</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">ACH Payments</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-money-bill-transfer" style="color: var(--green);"></i> ACH Direct Payments <span class="file-tag">accounts-payable.html#ap-ach</span></h1>
+      <p>
+        Automates electronic fund transfers (EFT / ACH) directly into broker and vendor bank accounts. Generates standard NACHA format batch files ready for automated transmission to your treasury bank.
+      </p>
+    </div>
+
+    <div class="module-card">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-green">Electronic Transfer</span>
+            <span class="badge badge-blue">NACHA Batch</span>
+          </div>
+          <h2 class="module-title">Batch Processing Workflow</h2>
+        </div>
+        <a href="../accounts-payable.html#ap-ach" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open ACH Hub</a>
+      </div>
+
+      <div class="flow-steps">
+        <div class="flow-step-item">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <strong>Select Approved Payables</strong>
+            <span>Check off approved commission statements and vendor invoices for the disbursement run.</span>
+          </div>
+        </div>
+        <div class="flow-step-item">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <strong>Generate NACHA Batch</strong>
+            <span>Veridex aggregates routing numbers, account numbers, and amounts into an encrypted NACHA file.</span>
+          </div>
+        </div>
+        <div class="flow-step-item">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <strong>Automatic GL Journal Post</strong>
+            <span>Posts Dr. 2150 (Commission Payable) / Cr. 1001 (Cash Operating) and updates invoice status to "Paid via ACH".</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="ap-all-invoices.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">AP All Invoices</span>
+      </a>
+      <a href="ap-echecks.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Submodule &rarr;</span>
+        <span class="nav-page-title">E-Checks</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('ap-ach-payments');
+</script>
+</body>
+</html>

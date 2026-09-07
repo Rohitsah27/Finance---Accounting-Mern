@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Partners — Third Party Hub | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/layout.js"></script>
+  <style>
+    .tp-back{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;color:var(--gray-500);cursor:pointer;margin-bottom:16px;padding:5px 10px;border:1.5px solid var(--border);border-radius:6px;background:#fff;text-decoration:none;}
+    .tp-back:hover{background:var(--gray-50);color:var(--navy);}
+    .tp-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:28px;}
+    @media(max-width:900px){.tp-cards{grid-template-columns:1fr 1fr;}}
+    @media(max-width:600px){.tp-cards{grid-template-columns:1fr;}}
+    .tp-card{background:#fff;border:1.5px solid var(--border);border-radius:10px;padding:18px;}
+    .tp-card-hd{display:flex;align-items:center;gap:10px;margin-bottom:12px;}
+    .tp-icon{width:36px;height:36px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+    .tp-name{font-size:14px;font-weight:800;color:var(--navy);}
+    .tp-full{font-size:10.5px;color:var(--gray-400);}
+    .tp-stat-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+    .tp-stat-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.3px;color:var(--gray-500);}
+    .tp-stat-val{font-size:15px;font-weight:700;color:var(--navy);margin-top:2px;}
+    .tp-stat-val.ok{color:#2e7d32;}
+    .tp-stat-val.warn{color:#e65100;}
+    .tp-bar-bg{background:var(--gray-100);border-radius:4px;height:5px;margin:6px 0 2px;}
+    .tp-bar-fill{height:5px;border-radius:4px;background:#2e7d32;}
+    .tp-bar-lbl{font-size:10px;color:var(--gray-400);}
+    .tp-badge{display:inline-block;font-size:10px;font-weight:700;border-radius:4px;padding:2px 8px;text-transform:uppercase;}
+    .tp-badge-active{background:#e8f5e9;color:#2e7d32;}
+    .tp-badge-review{background:#fff3e0;color:#e65100;}
+  </style>
+</head>
+<body>
+<main class="main-content" id="main-content">
+
+  <a class="tp-back" href="dashboard.html">
+    <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M8 2L4 6l4 4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    Back to Dashboard
+  </a>
+
+  <div class="page-header" style="margin-bottom:20px;">
+    <div>
+      <div class="page-title">3rd Party Partners</div>
+      <div class="page-subtitle">Veridex 3rd Party Distribution Partners · YTD May 2026</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline btn-sm" onclick="exportTableCSV('tp-table','third-party-partners.csv')">Export</button>
+    </div>
+  </div>
+
+  <!-- Summary KPI strip -->
+  <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;">
+    <div style="background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:14px;">
+      <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);">Total Written</div>
+      <div style="font-size:22px;font-weight:800;color:var(--navy);margin:4px 0;">$2.67M</div>
+      <div style="font-size:11px;color:#2e7d32;">↑ 8.4% vs prior YTD</div>
+    </div>
+    <div style="background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:14px;">
+      <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);">Total Earned</div>
+      <div style="font-size:22px;font-weight:800;color:var(--navy);margin:4px 0;">$2.41M</div>
+      <div style="font-size:11px;color:#2e7d32;">↑ 7.9% vs prior YTD</div>
+    </div>
+    <div style="background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:14px;">
+      <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);">Blended Loss Ratio</div>
+      <div style="font-size:22px;font-weight:800;color:#2e7d32;margin:4px 0;">57.8%</div>
+      <div style="font-size:11px;color:var(--gray-400);">Target: ≤65%</div>
+    </div>
+    <div style="background:#fff;border:1.5px solid var(--border);border-radius:8px;padding:14px;">
+      <div style="font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);">Active Partners</div>
+      <div style="font-size:22px;font-weight:800;color:var(--navy);margin:4px 0;">3</div>
+      <div style="font-size:11px;color:var(--gray-400);">Portfolio share: 21.5%</div>
+    </div>
+  </div>
+
+  <!-- Partner cards -->
+  <div class="tp-cards">
+
+    <div class="tp-card">
+      <div class="tp-card-hd">
+        <div class="tp-icon" style="background:#e3f2fd;color:#1565c0;">🤝</div>
+        <div>
+          <div class="tp-name">RSA Partners</div>
+          <div class="tp-full">RSA Distribution Partners LLC</div>
+        </div>
+      </div>
+      <div class="tp-stat-row">
+        <div><div class="tp-stat-lbl">Written</div><div class="tp-stat-val">$1.12M</div></div>
+        <div><div class="tp-stat-lbl">Earned</div><div class="tp-stat-val">$1.01M</div></div>
+        <div><div class="tp-stat-lbl">Loss Ratio</div><div class="tp-stat-val ok">54.3%</div></div>
+        <div><div class="tp-stat-lbl">Share</div><div class="tp-stat-val">41.9%</div></div>
+      </div>
+      <div class="tp-bar-bg"><div class="tp-bar-fill" style="width:42%;background:#1565c0;"></div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
+        <div class="tp-bar-lbl">41.9% of 3rd party book</div>
+        <span class="tp-badge tp-badge-active">Active</span>
+      </div>
+    </div>
+
+    <div class="tp-card">
+      <div class="tp-card-hd">
+        <div class="tp-icon" style="background:#fce4ec;color:#c62828;">🏦</div>
+        <div>
+          <div class="tp-name">LMI Associates</div>
+          <div class="tp-full">Lloyd Market International Associates</div>
+        </div>
+      </div>
+      <div class="tp-stat-row">
+        <div><div class="tp-stat-lbl">Written</div><div class="tp-stat-val">$980K</div></div>
+        <div><div class="tp-stat-lbl">Earned</div><div class="tp-stat-val">$890K</div></div>
+        <div><div class="tp-stat-lbl">Loss Ratio</div><div class="tp-stat-val ok">59.6%</div></div>
+        <div><div class="tp-stat-lbl">Share</div><div class="tp-stat-val">36.7%</div></div>
+      </div>
+      <div class="tp-bar-bg"><div class="tp-bar-fill" style="width:37%;background:#c62828;"></div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
+        <div class="tp-bar-lbl">36.7% of 3rd party book</div>
+        <span class="tp-badge tp-badge-active">Active</span>
+      </div>
+    </div>
+
+    <div class="tp-card">
+      <div class="tp-card-hd">
+        <div class="tp-icon" style="background:#f3e5f5;color:#6a1b9a;">🌐</div>
+        <div>
+          <div class="tp-name">AXIS Direct</div>
+          <div class="tp-full">AXIS Direct Underwriting Partners</div>
+        </div>
+      </div>
+      <div class="tp-stat-row">
+        <div><div class="tp-stat-lbl">Written</div><div class="tp-stat-val">$570K</div></div>
+        <div><div class="tp-stat-lbl">Earned</div><div class="tp-stat-val">$510K</div></div>
+        <div><div class="tp-stat-lbl">Loss Ratio</div><div class="tp-stat-val warn">61.4%</div></div>
+        <div><div class="tp-stat-lbl">Share</div><div class="tp-stat-val">21.3%</div></div>
+      </div>
+      <div class="tp-bar-bg"><div class="tp-bar-fill" style="width:21%;background:#6a1b9a;"></div></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:6px;">
+        <div class="tp-bar-lbl">21.3% of 3rd party book</div>
+        <span class="tp-badge tp-badge-review">Under Review</span>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Detailed table -->
+  <div class="table-wrap">
+    <div class="table-head-row">
+      <div class="table-head-title">Partner Detail</div>
+      <div class="table-head-actions">
+        <input type="text" class="filter-input" placeholder="Search partners…" data-filter-input="tp-table" style="width:180px;">
+      </div>
+    </div>
+    <table class="data-table" id="tp-table">
+      <thead>
+        <tr>
+          <th>Partner</th>
+          <th>Full Name</th>
+          <th>LOB Focus</th>
+          <th class="text-right">Written ($K)</th>
+          <th class="text-right">Earned ($K)</th>
+          <th class="text-right">Loss Ratio</th>
+          <th class="text-right">Portfolio Share</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td class="font-semibold">RSA Partners</td>
+          <td class="text-muted">RSA Distribution Partners LLC</td>
+          <td>Motor, Property</td>
+          <td class="text-right">11.2</td>
+          <td class="text-right">10.1</td>
+          <td class="text-right" style="color:#2e7d32;">54.3%</td>
+          <td class="text-right">41.9%</td>
+          <td><span class="badge badge-green">Active</span></td>
+          <td><button class="btn btn-ghost btn-sm">View</button></td>
+        </tr>
+        <tr>
+          <td class="font-semibold">LMI Associates</td>
+          <td class="text-muted">Lloyd Market International Associates</td>
+          <td>Marine, Liability</td>
+          <td class="text-right">9.8</td>
+          <td class="text-right">8.9</td>
+          <td class="text-right" style="color:#2e7d32;">59.6%</td>
+          <td class="text-right">36.7%</td>
+          <td><span class="badge badge-green">Active</span></td>
+          <td><button class="btn btn-ghost btn-sm">View</button></td>
+        </tr>
+        <tr>
+          <td class="font-semibold">AXIS Direct</td>
+          <td class="text-muted">AXIS Direct Underwriting Partners</td>
+          <td>Specialty, Excess</td>
+          <td class="text-right">5.7</td>
+          <td class="text-right">5.1</td>
+          <td class="text-right" style="color:#e65100;">61.4%</td>
+          <td class="text-right">21.3%</td>
+          <td><span class="badge badge-orange">Under Review</span></td>
+          <td><button class="btn btn-ghost btn-sm">View</button></td>
+        </tr>
+        <tr style="font-weight:700;border-top:2px solid var(--border);">
+          <td colspan="3" style="color:var(--navy);">Total / Blended</td>
+          <td class="text-right" style="color:var(--navy);">26.7</td>
+          <td class="text-right" style="color:var(--navy);">24.1</td>
+          <td class="text-right" style="color:#2e7d32;">57.8%</td>
+          <td class="text-right" style="color:var(--navy);">100%</td>
+          <td></td>
+          <td></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+</main>
+
+<script src="js/reports-utils.js"></script>
+<script src="js/app.js"></script>
+<script>initLayout('mga-producers');</script>
+</body>
+</html>

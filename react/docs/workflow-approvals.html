@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workflow & Approvals — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Workflow &amp; Approvals</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Approval Chains</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-check-double" style="color: var(--purple);"></i> Workflow &amp; Approval Chains</h1>
+      <p>
+        Veridex protects enterprise treasury funds through automated multi-level approval hierarchies. Transactions are automatically routed based on dollar threshold limits, department rules, and dual-authorization policies before funds are released.
+      </p>
+    </div>
+
+    <div class="module-card" id="approval-levels">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-purple">Threshold Routing</span>
+            <span class="badge badge-green">Audit Verified</span>
+          </div>
+          <h2 class="module-title">Multi-Level Threshold Hierarchy (`workflow-approvals.html`)</h2>
+        </div>
+        <a href="../workflow-approvals.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Approvals Hub</a>
+      </div>
+
+      <div class="flow-steps">
+        <div class="flow-step-item">
+          <div class="step-num">L1</div>
+          <div class="step-content">
+            <strong>Level 1 (Under $10,000.00): Senior Accountant / Controller</strong>
+            <span>Covers standard broker commission payouts (`HIT Agency` $2,500.00), routine vendor utility bills, and monthly tax stamping filings ($1,770.00).</span>
+          </div>
+        </div>
+        <div class="flow-step-item">
+          <div class="step-num">L2</div>
+          <div class="step-content">
+            <strong>Level 2 ($10,000.00 – $50,000.00): VP of Finance / Operations Manager</strong>
+            <span>Covers net carrier settlement wire transfers (`SOUTHLAKE` $32,257.00) and quarterly treaty reinsurance cessions (`Munich Re` $18,250.00).</span>
+          </div>
+        </div>
+        <div class="flow-step-item">
+          <div class="step-num">L3</div>
+          <div class="step-content">
+            <strong>Level 3 ($50,000.00+): Chief Financial Officer (CFO)</strong>
+            <span>Mandatory CFO sign-off with multi-factor authentication (MFA) before large treasury transfers and bank wire release.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="reporting-analytics.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">Reporting &amp; Analytics</span>
+      </a>
+      <a href="policy-admin.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Module &rarr;</span>
+        <span class="nav-page-title">Policy Admin (PAS)</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('workflow-approvals');
+</script>
+</body>
+</html>

@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Excel Onboarding — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Administration</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Excel Onboarding</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-file-arrow-up" style="color: var(--green);"></i> Bulk Excel Onboarding Tool <span class="file-tag">excel-onboarding.html</span></h1>
+      <p>
+        Accelerates data migration from legacy accounting systems (QuickBooks, NetSuite, SAP, Applied Epic) by bulk importing Chart of Accounts, open AR/AP balances, and active policy portfolios via pre-formatted Excel templates.
+      </p>
+    </div>
+
+    <div class="module-card">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-green">Data Migration</span>
+            <span class="badge badge-blue">Excel Import</span>
+          </div>
+          <h2 class="module-title">Migration Templates Supported</h2>
+        </div>
+        <a href="../excel-onboarding.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Onboarding Tool</a>
+      </div>
+
+      <div class="grid-2">
+        <div class="info-card">
+          <h4>1. Chart of Accounts Master (.xlsx)</h4>
+          <p>Imports account numbers, parent accounts, classification types, and reporting tags with syntax validation.</p>
+        </div>
+        <div class="info-card">
+          <h4>2. Historical Trial Balance (.xlsx)</h4>
+          <p>Loads beginning GL balances, verifies debit/credit balance, and establishes opening equity reserves.</p>
+        </div>
+        <div class="info-card">
+          <h4>3. Open Invoices &amp; Receivables</h4>
+          <p>Imports uncollected customer invoices with historical aging dates for instant continuity.</p>
+        </div>
+        <div class="info-card">
+          <h4>4. Active Policy Portfolio (Bordereaux)</h4>
+          <p>Loads in-force policies, bound gross premiums, and unearned premium liability balances.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="setup-wizard.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">Setup Wizard</span>
+      </a>
+      <a href="api-integration-hub.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Submodule &rarr;</span>
+        <span class="nav-page-title">API &amp; Integration Hub</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('excel-onboarding');
+</script>
+</body>
+</html>

@@ -1,0 +1,314 @@
+/* ============================================================
+   VeriDex Setup Wizard Stylesheet — 1-to-1 Parity with Prototype
+   ============================================================ */
+
+/* Main Wizard Card */
+.wizard-card {
+  background: var(--color-surface, #ffffff);
+  border: 1px solid var(--color-border, #e2e8f0);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  margin-top: 8px;
+}
+
+/* Stepper Bar */
+.v-wizard-steps {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 32px;
+  position: relative;
+  padding: 4px 10px;
+}
+
+.v-wizard-steps::before {
+  content: "";
+  position: absolute;
+  top: 20px;
+  left: 36px;
+  right: 36px;
+  height: 2px;
+  background: var(--gray-200, #e2e8f0);
+  z-index: 0;
+}
+
+.v-wizard-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  text-align: center;
+  cursor: pointer;
+}
+
+.v-wizard-dot {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #ffffff;
+  border: 2px solid var(--gray-300, #cbd5e1);
+  color: var(--gray-500, #64748b);
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 0 4px #ffffff;
+}
+
+.v-wizard-step:hover .v-wizard-dot {
+  border-color: #0d9488;
+  color: #0d9488;
+  transform: scale(1.06);
+}
+
+.v-wizard-step.active .v-wizard-dot {
+  background: #0d9488;
+  border-color: #0d9488;
+  color: #ffffff;
+  box-shadow: 0 0 0 4px rgba(13, 148, 136, 0.2);
+  transform: scale(1.08);
+}
+
+.v-wizard-step.done .v-wizard-dot {
+  background: #10b981;
+  border-color: #10b981;
+  color: #ffffff;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.18);
+}
+
+.v-wizard-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--gray-500, #64748b);
+  transition: color 0.2s ease;
+  white-space: nowrap;
+}
+
+.v-wizard-step.active .v-wizard-label {
+  color: var(--color-ink, #0f172a);
+  font-weight: 700;
+}
+
+.v-wizard-step.done .v-wizard-label {
+  color: var(--gray-700, #334155);
+}
+
+/* Business Type & Role Cards */
+.v-role-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(230px, 1fr));
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.v-role-card {
+  background: #ffffff;
+  border: 1.5px solid var(--gray-200, #e2e8f0);
+  border-radius: 10px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.v-role-card:hover {
+  border-color: #0d9488;
+  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.08);
+  transform: translateY(-2px);
+}
+
+.v-role-card.selected {
+  border-color: #0d9488 !important;
+  box-shadow: 0 0 0 1px #0d9488 inset, 0 4px 12px rgba(13, 148, 136, 0.12) !important;
+  background: #f0fdfa !important;
+}
+
+.v-role-card-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  background: #f8fafc;
+  border: 1px solid var(--gray-200, #e2e8f0);
+  color: #0d9488;
+}
+
+.v-role-card h4 {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--color-ink, #0f172a);
+  margin: 0;
+}
+
+.v-role-card p {
+  font-size: 11.5px;
+  color: var(--gray-500, #64748b);
+  line-height: 1.45;
+  margin: 0;
+}
+
+/* Informative Callout / Lock Note */
+.v-lock-note {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 18px;
+  background: #f0fdfa;
+  border: 1px solid #99f6e4;
+  border-radius: 8px;
+  color: #0f766e;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.v-lock-note strong {
+  color: #115e59;
+}
+
+/* Master Cards Grid */
+.v-module-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.v-module-card {
+  background: #ffffff;
+  border: 1px solid var(--gray-200, #e2e8f0);
+  border-radius: 10px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.2s ease;
+}
+
+.v-module-card:hover {
+  border-color: #cbd5e1;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.v-module-card-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-ink, #0f172a);
+}
+
+.v-module-card-desc {
+  font-size: 11.5px;
+  color: var(--gray-500, #64748b);
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+/* Dropzone */
+.v-map-dropzone {
+  border: 2px dashed var(--gray-300, #cbd5e1);
+  border-radius: 10px;
+  padding: 28px 20px;
+  text-align: center;
+  background: var(--gray-50, #f8fafc);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.v-map-dropzone:hover {
+  border-color: #0d9488;
+  background: #f0fdfa;
+}
+
+/* Toggle Switch */
+.v-switch {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+}
+
+.v-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.v-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--gray-300, #cbd5e1);
+  transition: 0.3s;
+  border-radius: 22px;
+}
+
+.v-slider::before {
+  position: absolute;
+  content: "";
+  height: 16px;
+  width: 16px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.3s;
+  border-radius: 50%;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+.v-switch input:checked + .v-slider {
+  background-color: #0d9488;
+}
+
+.v-switch input:checked + .v-slider::before {
+  transform: translateX(18px);
+}
+
+/* Modal Overlay */
+.v-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: fadeIn 0.2s ease;
+}
+
+.v-modal-card {
+  width: 440px;
+  max-width: 90vw;
+  background: #ffffff;
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
+  border: 1px solid var(--gray-100, #f1f5f9);
+  animation: scaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleUp {
+  from { opacity: 0; transform: scale(0.96); }
+  to { opacity: 1; transform: scale(1); }
+}

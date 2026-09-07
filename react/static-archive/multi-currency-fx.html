@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Multi-Currency & FX — Treasury | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/layout.js"></script>
+  <style>
+    /* ── FX-specific composition, built only from tokens/utilities already in styles.css ── */
+    .fx-callout {
+      display: flex;
+      gap: 10px;
+      align-items: flex-start;
+      background: var(--v-teal-bg);
+      border: 1px solid rgba(15,110,99,0.25);
+      border-radius: var(--radius);
+      padding: 11px 14px;
+      font-size: 12px;
+      color: var(--gray-700);
+      margin-bottom: 16px;
+    }
+    .fx-callout-icon { font-size: 15px; flex-shrink: 0; line-height: 1.3; }
+    .fx-add-row {
+      display: grid;
+      grid-template-columns: 1.3fr 1fr 1fr 1fr 1fr auto;
+      gap: 12px;
+      align-items: end;
+    }
+    @media (max-width: 1100px) {
+      .fx-add-row { grid-template-columns: 1fr 1fr; }
+    }
+    .fx-toggle-card {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .fx-toggle-left { flex: 1; min-width: 260px; }
+    .fx-toggle-title { font-size: 14px; font-weight: 700; color: var(--gray-900); margin-bottom: 4px; }
+    .fx-toggle-note { font-size: 11.5px; color: var(--gray-500); line-height: 1.5; }
+    .fx-toggle-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+    .fx-toggle-state { font-size: 12px; font-weight: 700; color: var(--v-teal); white-space: nowrap; }
+    .fx-run-panel { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
+    .fx-run-desc { font-size: 12px; color: var(--gray-500); max-width: 560px; line-height: 1.5; }
+    .fx-run-log { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+    .fx-run-log-item { font-size: 11.5px; color: var(--gray-600); display: flex; align-items: center; gap: 8px; }
+    .fx-run-log-item .dot { width: 6px; height: 6px; border-radius: 50%; background: var(--v-teal); flex-shrink: 0; }
+    .fx-gl-pos .fx-gl-amt { color: var(--green); font-weight: 700; }
+    .fx-gl-neg .fx-gl-amt { color: var(--red); font-weight: 700; }
+  </style>
+</head>
+<body>
+<main class="main-content" id="main-content">
+
+  <!-- ═══ PAGE HEADER ═══ -->
+  <div class="page-header">
+    <div>
+      <div class="page-title">Multi-Currency &amp; FX</div>
+      <div class="page-subtitle">Rate tables, realized/unrealized gain-loss, and month-end revaluation</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline btn-sm" onclick="showToast('Exporting FX rate history…')">Export Rate History</button>
+      <button class="btn btn-primary btn-sm" onclick="document.getElementById('addRateCurrencyPair').focus();showToast('Add a new rate below','info')">+ Add Rate</button>
+    </div>
+  </div>
+
+  <!-- ═══ STAT CARDS ═══ -->
+  <div class="stats-row" id="fxStats"></div>
+
+  <!-- ═══ FX RATE TABLE ═══ -->
+  <div class="form-card" style="padding:18px 20px;margin-bottom:16px;">
+    <div class="card-title" style="margin-bottom:14px;">Add FX Rate</div>
+    <form id="addRateForm" onsubmit="return addRate(event)">
+      <div class="fx-add-row">
+        <div class="form-field" style="margin-bottom:0;">
+          <label class="field-label">Currency Pair</label>
+          <select class="field-input field-select" id="addRateCurrencyPair" required>
+            <option value="EUR/USD">EUR / USD</option>
+            <option value="GBP/USD">GBP / USD</option>
+            <option value="USD/JPY">USD / JPY</option>
+            <option value="USD/CAD">USD / CAD</option>
+            <option value="AUD/USD">AUD / USD</option>
+            <option value="USD/CHF">USD / CHF</option>
+            <option value="USD/MXN">USD / MXN</option>
+          </select>
+        </div>
+        <div class="form-field" style="margin-bottom:0;">
+          <label class="field-label">Rate Type</label>
+          <select class="field-input field-select" id="addRateType" required>
+            <option value="Spot">Spot</option>
+            <option value="Average">Average</option>
+            <option value="Closing">Closing</option>
+          </select>
+        </div>
+        <div class="form-field" style="margin-bottom:0;">
+          <label class="field-label">Rate</label>
+          <input class="field-input" type="number" id="addRateValue" step="0.000001" min="0" placeholder="1.084500" required>
+        </div>
+        <div class="form-field" style="margin-bottom:0;">
+          <label class="field-label">Source</label>
+          <select class="field-input field-select" id="addRateSource" required>
+            <option value="OER">OER (Open Exchange Rates)</option>
+            <option value="Fixer.io">Fixer.io</option>
+            <option value="ECB">ECB Reference Rate</option>
+            <option value="Manual">Manual Entry</option>
+          </select>
+        </div>
+        <div class="form-field" style="margin-bottom:0;">
+          <label class="field-label">Effective Date</label>
+          <input class="field-input" type="date" id="addRateDate" required>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">Add Rate</button>
+      </div>
+    </form>
+  </div>
+
+  <div class="fx-callout">
+    <span class="fx-callout-icon">ℹ️</span>
+    <span>Lloyd's-style reinsurance markets typically settle in both USD and GBP under a single treaty; ceded premium and loss cession entries here are automatically tagged with the treaty's settlement currency so Reinsurance Accounting can reconcile against the correct FX basis.</span>
+  </div>
+
+  <div class="table-wrap" style="margin-bottom:20px;">
+    <div class="table-head-row">
+      <div class="table-head-title">FX Rate Table</div>
+      <div class="table-head-actions">
+        <input class="filter-input" id="fxRateFilter" data-filter-input="fxRateTable" placeholder="Search rates…">
+      </div>
+    </div>
+    <table class="data-table" id="fxRateTable">
+      <thead>
+        <tr>
+          <th>Currency Pair</th>
+          <th>Rate Type</th>
+          <th>Rate</th>
+          <th>Source</th>
+          <th>Effective Date</th>
+        </tr>
+      </thead>
+      <tbody id="fxRateBody"></tbody>
+    </table>
+  </div>
+
+  <!-- ═══ REALIZED / UNREALIZED GAIN-LOSS ═══ -->
+  <div class="table-wrap" style="margin-bottom:20px;">
+    <div class="table-head-row">
+      <div class="table-head-title">Realized &amp; Unrealized Gain / Loss</div>
+      <div class="table-head-actions">
+        <button class="btn btn-outline btn-sm" onclick="showToast('Exporting gain/loss detail…')">Export CSV</button>
+      </div>
+    </div>
+    <table class="data-table" id="fxGlTable">
+      <thead>
+        <tr>
+          <th>Transaction Ref</th>
+          <th>Currency</th>
+          <th>Original Amount</th>
+          <th>Functional Amount @ Txn Rate</th>
+          <th>Functional Amount @ Current Rate</th>
+          <th>Gain / Loss</th>
+        </tr>
+      </thead>
+      <tbody id="fxGlBody"></tbody>
+    </table>
+  </div>
+
+  <!-- ═══ REVALUATION RUN ═══ -->
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-header">
+      <div class="card-title">Month-End Revaluation</div>
+      <span class="badge badge-navy" id="revalPeriodBadge">Period: August 2026</span>
+    </div>
+    <div class="card-body">
+      <div class="fx-run-panel">
+        <div class="fx-run-desc">
+          Recalculates unrealized gain/loss for all open foreign-currency balances against the latest closing rates, then posts the revaluation journal entry to the functional-currency ledger. Run once per close cycle.
+        </div>
+        <button class="btn btn-coral" id="runRevalBtn" onclick="runRevaluation()">Run Month-End Revaluation</button>
+      </div>
+      <div class="fx-run-log" id="revalLog"></div>
+    </div>
+  </div>
+
+  <!-- ═══ MULTI-CURRENCY TOGGLE ═══ -->
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-body fx-toggle-card">
+      <div class="fx-toggle-left">
+        <div class="fx-toggle-title">Multi-Currency</div>
+        <div class="fx-toggle-note">Enabling Multi-Currency exposes currency fields across AR, AP, and GL - every invoice, bill, and journal line gains a transaction-currency selector alongside the functional-currency amount.</div>
+      </div>
+      <div class="fx-toggle-right">
+        <span class="fx-toggle-state" id="fxToggleState">Enabled</span>
+        <label class="v-switch">
+          <input type="checkbox" id="multiCurrencyToggle" onchange="onMultiCurrencyToggle(this.checked)">
+          <span class="v-slider"></span>
+        </label>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script>
+  /* ══════════════════════════════════════════════
+     DATA
+  ══════════════════════════════════════════════ */
+  const FX_RATES = [
+    { pair: 'EUR/USD', type: 'Spot',    rate: '1.084500', source: 'OER',       date: '2026-08-20' },
+    { pair: 'GBP/USD', type: 'Spot',    rate: '1.271800', source: 'Fixer.io',  date: '2026-08-20' },
+    { pair: 'USD/JPY', type: 'Spot',    rate: '148.320000', source: 'ECB',     date: '2026-08-20' },
+    { pair: 'EUR/USD', type: 'Average', rate: '1.079200', source: 'ECB',       date: '2026-08-01' },
+    { pair: 'GBP/USD', type: 'Average', rate: '1.264900', source: 'OER',       date: '2026-08-01' },
+    { pair: 'USD/CAD', type: 'Closing', rate: '1.362700', source: 'Fixer.io',  date: '2026-07-31' },
+    { pair: 'AUD/USD', type: 'Closing', rate: '0.658400', source: 'OER',       date: '2026-07-31' },
+    { pair: 'USD/CHF', type: 'Spot',    rate: '0.879100', source: 'ECB',       date: '2026-08-20' },
+  ];
+
+  const FX_GL = [
+    { ref: 'INV-10042', ccy: 'EUR', orig: '€48,200.00',  txnAmt: 52296.24, curAmt: 52299.69, gl: 3.45 },
+    { ref: 'INV-10058', ccy: 'GBP', orig: '£31,000.00',  txnAmt: 39221.90, curAmt: 39425.80, gl: 203.90 },
+    { ref: 'BILL-8821', ccy: 'JPY', orig: '¥6,400,000',  txnAmt: 43241.11, curAmt: 43152.87, gl: -88.24 },
+    { ref: 'INV-10071', ccy: 'CAD', orig: 'C$18,500.00', txnAmt: 13580.00, curAmt: 13580.00, gl: 0.00 },
+    { ref: 'BILL-8834', ccy: 'AUD', orig: 'A$22,100.00', txnAmt: 14550.20, curAmt: 14547.44, gl: -2.76 },
+    { ref: 'INV-10083', ccy: 'GBP', orig: '£9,750.00',   txnAmt: 12331.05, curAmt: 12400.05, gl: 69.00 },
+    { ref: 'BILL-8850', ccy: 'CHF', orig: 'CHF 15,300.00', txnAmt: 17432.10, curAmt: 17406.02, gl: -26.08 },
+    { ref: 'INV-10091', ccy: 'EUR', orig: '€61,000.00',  txnAmt: 66127.30, curAmt: 66154.73, gl: 27.43 },
+  ];
+
+  const RATE_TYPE_BADGE = { Spot: 'badge-blue', Average: 'badge-orange', Closing: 'badge-navy' };
+
+  let unrealizedGL = 186.70;
+  let lastRevalDate = 'Jul 31, 2026';
+
+  /* ══════════════════════════════════════════════
+     STAT CARDS
+  ══════════════════════════════════════════════ */
+  function renderStats() {
+    const cfg = getTenantConfig();
+    const functionalCcy = cfg.functionalCurrency || 'USD';
+    const activeCurrencies = new Set(FX_GL.map(r => r.ccy));
+    activeCurrencies.add(functionalCcy);
+
+    const glPositive = unrealizedGL >= 0;
+
+    document.getElementById('fxStats').innerHTML = `
+      <div class="stat-card">
+        <div class="stat-icon si-navy">🏦</div>
+        <div class="stat-info">
+          <div class="stat-value">${functionalCcy}</div>
+          <div class="stat-label">Functional Currency</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-coral">🌐</div>
+        <div class="stat-info">
+          <div class="stat-value">${activeCurrencies.size}</div>
+          <div class="stat-label">Currencies Active</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon ${glPositive ? 'si-green' : 'si-orange'}">📈</div>
+        <div class="stat-info">
+          <div class="stat-value" id="statUnrealizedGL" style="color:${glPositive ? 'var(--green)' : 'var(--red)'};">${fmtSigned(unrealizedGL)}</div>
+          <div class="stat-label">Unrealized Gain/Loss (YTD)</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-navy">🕓</div>
+        <div class="stat-info">
+          <div class="stat-value" id="statLastReval" style="font-size:16px;">${lastRevalDate}</div>
+          <div class="stat-label">Last Revaluation Run</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function fmtSigned(n) {
+    const sign = n > 0 ? '+' : n < 0 ? '−' : '';
+    return sign + '$' + Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  /* ══════════════════════════════════════════════
+     FX RATE TABLE
+  ══════════════════════════════════════════════ */
+  function renderRates() {
+    document.getElementById('fxRateBody').innerHTML = FX_RATES.map(r => `
+      <tr>
+        <td><strong>${r.pair}</strong></td>
+        <td><span class="badge ${RATE_TYPE_BADGE[r.type] || 'badge-gray'}">${r.type}</span></td>
+        <td>${r.rate}</td>
+        <td>${r.source}</td>
+        <td>${r.date}</td>
+      </tr>
+    `).join('');
+  }
+
+  function addRate(evt) {
+    evt.preventDefault();
+    const pair = document.getElementById('addRateCurrencyPair').value;
+    const type = document.getElementById('addRateType').value;
+    const rateVal = parseFloat(document.getElementById('addRateValue').value);
+    const source = document.getElementById('addRateSource').value;
+    const date = document.getElementById('addRateDate').value;
+
+    if (!rateVal || rateVal <= 0) {
+      showToast('Enter a valid rate value', 'error');
+      return false;
+    }
+    if (!date) {
+      showToast('Select an effective date', 'error');
+      return false;
+    }
+
+    FX_RATES.unshift({
+      pair, type,
+      rate: rateVal.toFixed(6),
+      source,
+      date,
+    });
+    renderRates();
+    renderStats();
+    document.getElementById('addRateForm').reset();
+    showToast(`Rate added - ${pair} ${type} @ ${rateVal.toFixed(6)}`, 'success');
+    return false;
+  }
+
+  /* ══════════════════════════════════════════════
+     GAIN / LOSS TABLE
+  ══════════════════════════════════════════════ */
+  function renderGL() {
+    document.getElementById('fxGlBody').innerHTML = FX_GL.map(r => {
+      const isGain = r.gl > 0;
+      const isFlat = r.gl === 0;
+      const badgeCls = isFlat ? 'badge-gray' : isGain ? 'badge-green' : 'badge-red';
+      const label = isFlat ? 'Flat' : (isGain ? '+' : '') + '$' + r.gl.toFixed(2);
+      return `<tr>
+        <td><strong>${r.ref}</strong></td>
+        <td>${r.ccy}</td>
+        <td>${r.orig}</td>
+        <td>$${r.txnAmt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        <td>$${r.curAmt.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
+        <td><span class="badge ${badgeCls}">${label}</span></td>
+      </tr>`;
+    }).join('');
+  }
+
+  /* ══════════════════════════════════════════════
+     REVALUATION RUN SIMULATION
+  ══════════════════════════════════════════════ */
+  function runRevaluation() {
+    const btn = document.getElementById('runRevalBtn');
+    const log = document.getElementById('revalLog');
+    btn.disabled = true;
+    btn.style.opacity = '0.6';
+    btn.style.cursor = 'not-allowed';
+    btn.textContent = 'Running…';
+    log.innerHTML = '';
+
+    const steps = [
+      { msg: 'Fetching current rates…', delay: 400 },
+      { msg: 'Recalculating unrealized G/L…', delay: 1300 },
+      { msg: 'Posting revaluation journal entry…', delay: 2200 },
+      { msg: 'Revaluation complete', delay: 3100, type: 'success' },
+    ];
+
+    steps.forEach(step => {
+      setTimeout(() => {
+        showToast(step.msg, step.type || 'info');
+        const item = document.createElement('div');
+        item.className = 'fx-run-log-item';
+        item.innerHTML = `<span class="dot"></span><span>${step.msg}</span>`;
+        log.appendChild(item);
+      }, step.delay);
+    });
+
+    setTimeout(() => {
+      const delta = (Math.random() * 400 - 150);
+      unrealizedGL = Math.round((unrealizedGL + delta) * 100) / 100;
+      const now = new Date();
+      lastRevalDate = now.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+      renderStats();
+
+      btn.disabled = false;
+      btn.style.opacity = '';
+      btn.style.cursor = '';
+      btn.textContent = 'Run Month-End Revaluation';
+    }, 3400);
+  }
+
+  /* ══════════════════════════════════════════════
+     MULTI-CURRENCY TOGGLE
+  ══════════════════════════════════════════════ */
+  function onMultiCurrencyToggle(checked) {
+    const cfg = getTenantConfig();
+    saveTenantConfig(Object.assign({}, cfg, { multiCurrency: checked }));
+    document.getElementById('fxToggleState').textContent = checked ? 'Enabled' : 'Disabled';
+    document.getElementById('fxToggleState').style.color = checked ? 'var(--v-teal)' : 'var(--gray-400)';
+    showToast(checked ? 'Multi-Currency enabled across AR, AP and GL' : 'Multi-Currency disabled', checked ? 'success' : 'warning');
+  }
+
+  function initMultiCurrencyToggle() {
+    const cfg = getTenantConfig();
+    const checked = !!cfg.multiCurrency;
+    document.getElementById('multiCurrencyToggle').checked = checked;
+    document.getElementById('fxToggleState').textContent = checked ? 'Enabled' : 'Disabled';
+    document.getElementById('fxToggleState').style.color = checked ? 'var(--v-teal)' : 'var(--gray-400)';
+  }
+
+  /* ══════════════════════════════════════════════
+     INIT (page content - independent of layout init below)
+  ══════════════════════════════════════════════ */
+  renderStats();
+  renderRates();
+  renderGL();
+  initMultiCurrencyToggle();
+  document.getElementById('addRateDate').value = new Date().toISOString().slice(0, 10);
+</script>
+<script src="js/app.js"></script>
+<script>
+  initLayout('fx');
+</script>
+</body>
+</html>

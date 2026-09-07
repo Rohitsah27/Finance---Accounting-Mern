@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>API & Integration Hub — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>API &amp; Integration</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">API Hub</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-plug" style="color: var(--brand);"></i> API &amp; Webhook Integration Hub <span class="file-tag">api-integration-hub.html</span></h1>
+      <p>
+        Provides programmatic connectivity to external PAS systems, banking rails, and agency management platforms through secure REST APIs, Bearer API keys, and event-driven webhooks.
+      </p>
+    </div>
+
+    <div class="module-card">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-teal">REST API</span>
+            <span class="badge badge-purple">Webhooks</span>
+          </div>
+          <h2 class="module-title">API Endpoints &amp; Webhooks</h2>
+        </div>
+        <a href="../api-integration-hub.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open API Hub</a>
+      </div>
+
+      <div class="grid-2">
+        <div class="info-card">
+          <h4>Core REST API Endpoints</h4>
+          <ul style="font-size:12px; margin-left:16px; color:var(--text-secondary); line-height:1.8;">
+            <li><code>POST /api/v1/policies/bind</code> — Bind policy &amp; generate AR invoice.</li>
+            <li><code>POST /api/v1/journals</code> — Post manual/automated journal entry.</li>
+            <li><code>GET /api/v1/reports/trial-balance</code> — Fetch live trial balance.</li>
+            <li><code>POST /api/v1/subledger/bordereau</code> — Ingest monthly MGA BX.</li>
+          </ul>
+        </div>
+        <div class="info-card">
+          <h4>Outbound Webhooks</h4>
+          <ul style="font-size:12px; margin-left:16px; color:var(--text-secondary); line-height:1.8;">
+            <li><code>policy.bound</code> — Triggered on binding confirmation.</li>
+            <li><code>payment.reconciled</code> — Fired when bank recon matches.</li>
+            <li><code>approval.required</code> — Notifies external Slack/Teams channels.</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="excel-onboarding.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">Excel Onboarding</span>
+      </a>
+      <a href="document-management.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Submodule &rarr;</span>
+        <span class="nav-page-title">Document Management</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('api-integration-hub');
+</script>
+</body>
+</html>

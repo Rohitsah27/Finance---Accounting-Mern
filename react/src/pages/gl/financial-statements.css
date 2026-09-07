@@ -1,0 +1,47 @@
+/* ============================================================
+   VeriDex Financial Statements — 1-to-1 parity with prototype
+   ============================================================ */
+
+.fs-fbar { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; background: #f8f9fb; border: 1.5px solid var(--color-border); border-radius: 8px; padding: 10px 14px; margin-bottom: 14px; }
+.fbar-label { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--color-muted); white-space: nowrap; }
+.fbar-divider { width: 1px; height: 18px; background: var(--color-border); flex-shrink: 0; }
+
+.fs-kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 16px; }
+@media (max-width: 900px) { .fs-kpi-row { grid-template-columns: repeat(2, 1fr); } }
+
+.fs-kpi { background: #fff; border: 1.5px solid var(--color-border); border-radius: 10px; padding: 14px; position: relative; overflow: hidden; }
+.fs-kpi::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; }
+.fs-kpi.k-asset::before { background: #102a2e; }
+.fs-kpi.k-liab::before { background: #c9791f; }
+.fs-kpi.k-equity::before { background: #2e7d32; }
+.fs-kpi.k-income::before { background: #1565c0; }
+.fs-kpi-lbl { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px; color: var(--color-muted); }
+.fs-kpi-val { font-size: 22px; font-weight: 800; color: var(--color-ink); margin: 4px 0 2px; line-height: 1.1; }
+.fs-kpi-val.good { color: #2e7d32; }
+.fs-kpi-sub { font-size: 10.5px; color: var(--color-muted); margin-top: 2px; }
+
+.fs-tabs-wrap { background: #fff; border: 1.5px solid var(--color-border); border-radius: 10px; overflow: hidden; }
+.fs-tabbar { display: flex; align-items: center; border-bottom: 1.5px solid var(--color-border); background: #f8f9fb; }
+.fs-tab { padding: 11px 20px; font-size: 12.5px; font-weight: 600; color: var(--color-muted); cursor: pointer; border-bottom: 2.5px solid transparent; margin-bottom: -1.5px; white-space: nowrap; transition: color .15s; }
+.fs-tab.active { color: var(--color-ink); border-bottom-color: var(--color-brand); background: #fff; }
+.fs-tab:hover:not(.active) { color: var(--color-ink-secondary); }
+
+.fs-panel { display: none; }
+.fs-panel.active { display: block; }
+
+.fs-table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+.fs-table th { font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; color: var(--color-muted); padding: 9px 14px; border-bottom: 2px solid var(--color-border); text-align: left; background: #f8f9fb; }
+.fs-table th.r { text-align: right; }
+.fs-table td { padding: 8px 14px; border-bottom: 1px solid var(--color-border); color: var(--color-ink-secondary); }
+.fs-table td.r { text-align: right; font-variant-numeric: tabular-nums; }
+.fs-table td.ind1 { padding-left: 28px; }
+.fs-table tr.sec-hdr td { background: #f0f3fa; font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: .4px; color: var(--color-ink); padding: 8px 14px; }
+.fs-table tr.subtot td { background: #f8f9fb; font-weight: 600; color: var(--color-ink); }
+.fs-table tr.total-row td { background: #eef1f8; font-weight: 700; color: var(--color-ink); font-size: 13px; border-top: 2px solid var(--color-border); border-bottom: 2px solid var(--color-border); }
+.fs-table tr.net-income td { background: rgba(46, 125, 50, 0.06); font-weight: 800; color: #1b5e20; font-size: 13.5px; }
+.fs-table tr:hover:not(.sec-hdr):not(.subtot):not(.total-row):not(.net-income) { background: var(--color-surface); }
+
+.fs-note { font-size: 10.5px; color: var(--color-muted); padding: 10px 14px; border-top: 1px solid var(--color-border); background: #fafafa; }
+.period-chip { font-size: 11px; color: var(--color-muted); margin-left: auto; }
+
+.badge-red { background: var(--color-danger-bg, #FEE2E2) !important; color: var(--color-danger, #DC2626) !important; font-weight: 600; }

@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auditor Workspace — Dashboard | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/layout.js"></script>
+  <style>
+    .aud-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;}
+    @media(max-width:900px){.aud-stats{grid-template-columns:1fr 1fr;}}
+    .sample-box{background:#fff;border:1px solid var(--gray-200);border-radius:10px;box-shadow:var(--shadow-sm);padding:16px 18px;margin-bottom:18px;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;}
+    .sample-title{font-size:13px;font-weight:700;color:var(--gray-900);}
+    .sample-sub{font-size:11.5px;color:var(--gray-500);margin-top:2px;}
+    .sample-result{margin-top:10px;font-size:12px;background:var(--gray-50);border:1px dashed var(--gray-300);border-radius:8px;padding:10px 14px;display:none;}
+    .sample-result.show{display:block;}
+    .two-col{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:18px;}
+    @media(max-width:1000px){.two-col{grid-template-columns:1fr;}}
+  </style>
+</head>
+<body>
+<main class="main-content" id="main-content">
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">Auditor Dashboard</div>
+      <div class="page-subtitle" id="dash-subtitle">Controls &amp; compliance overview</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline btn-sm" onclick="refreshDash()">Refresh</button>
+      <button class="btn btn-primary btn-sm" onclick="window.location.href='audit-trail.html'">Open Full Audit Trail</button>
+    </div>
+  </div>
+
+  <div class="filter-bar">
+    <span class="filter-bar-label">Risk Level</span>
+    <select class="filter-select" id="sel-risk" onchange="setFilter('risk',this.value)">
+      <option value="all">All Levels</option>
+      <option value="high">High</option>
+      <option value="medium">Medium</option>
+    </select>
+    <span class="filter-bar-label">Date Range</span>
+    <select class="filter-select" id="sel-range" onchange="setFilter('range',this.value)">
+      <option value="7">Last 7 Days</option>
+      <option value="30" selected>Last 30 Days</option>
+      <option value="90">Last 90 Days</option>
+    </select>
+    <div class="filter-spacer"></div>
+    <input type="text" class="filter-input" placeholder="Search events…" style="width:200px;" oninput="setSearch(this.value)">
+    <button class="btn btn-outline btn-sm" onclick="resetFilters()">Clear Filters</button>
+  </div>
+
+  <div class="aud-stats" id="stat-row"></div>
+
+  <div class="table-wrap" style="margin-bottom:18px;">
+    <div class="table-head-row">
+      <div class="table-head-title">High-Risk Audit Trail Events</div>
+      <div class="table-head-actions"><span id="event-count" style="font-size:11px;color:var(--gray-400);"></span></div>
+    </div>
+    <table class="data-table">
+      <thead><tr><th>Timestamp</th><th>Entity</th><th>Event</th><th>User</th><th>Detail</th><th>Risk</th></tr></thead>
+      <tbody id="events-tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="two-col">
+    <div class="table-wrap">
+      <div class="table-head-row"><div class="table-head-title">Segregation-of-Duties Exceptions</div></div>
+      <table class="data-table">
+        <thead><tr><th>User</th><th>Conflicting Roles</th><th>Status</th></tr></thead>
+        <tbody id="sod-tbody"></tbody>
+      </table>
+    </div>
+    <div class="table-wrap">
+      <div class="table-head-row"><div class="table-head-title">Period-Lock Violation Attempts</div></div>
+      <table class="data-table">
+        <thead><tr><th>User</th><th>Period</th><th>Attempted Action</th><th>Result</th></tr></thead>
+        <tbody id="lock-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="sample-box" style="margin-top:18px;">
+    <div>
+      <div class="sample-title">Sample Selection Tool</div>
+      <div class="sample-sub">Pull a random statistical sample of transactions for substantive testing</div>
+      <div class="sample-result" id="sample-result"></div>
+    </div>
+    <button class="btn btn-primary btn-sm" onclick="pullSample()">Pull Random Sample</button>
+  </div>
+
+</main>
+
+<script src="js/app.js"></script>
+<script>
+const CFG = getTenantConfig();
+const ACTIVE_ENTITY = getActiveEntity();
+document.getElementById('dash-subtitle').textContent = 'Controls & compliance overview · ' + ACTIVE_ENTITY.name;
+
+/* ═══════════════════ SEED DATA ═══════════════════ */
+const IS_DEMO = true;
+const EVENTS = IS_DEMO ? [
+  { ts:'2026-08-20 23:14', entity:'Southlake Insurance Co.', event:'Manual JE > $250,000 posted', user:'M. Alvarez', detail:'JE-2026-0306 - Ceded reserve adjustment', risk:'high', days:0 },
+  { ts:'2026-08-19 22:47', entity:'AC Manufacturing Inc.',   event:'After-hours posting',          user:'D. Kessler', detail:'JE-2026-0302 posted at 22:47 local time', risk:'medium', days:1 },
+  { ts:'2026-08-18 09:02', entity:'Southlake Insurance Co.', event:'Permission override granted',  user:'System Admin', detail:'Temporary GL write access granted to R. Osei', risk:'high', days:2 },
+  { ts:'2026-08-15 21:58', entity:'AC Wholesale Distribution', event:'After-hours posting',        user:'R. Osei',    detail:'JE-2026-0303 posted at 21:58 local time', risk:'medium', days:5 },
+  { ts:'2026-08-11 14:23', entity:'Links Insurance Agency',  event:'Manual JE > $250,000 posted',  user:'J. Fontaine', detail:'JE-2026-0290 - Commission true-up', risk:'high', days:9 },
+  { ts:'2026-07-29 08:15', entity:'Starlight Re',             event:'Permission override granted',  user:'System Admin', detail:'Elevated approval limit for M. Alvarez (temporary)', risk:'medium', days:22 },
+] : [];
+
+const SOD = IS_DEMO ? [
+  { user:'R. Osei',     roles:'AP Clerk + Bank Reconciliation Approver', status:'open' },
+  { user:'M. Alvarez',  roles:'JE Preparer + JE Approver (same entity)',  status:'open' },
+  { user:'J. Fontaine', roles:'AR Clerk + Cash Application',              status:'remediated' },
+] : [];
+
+const LOCK_VIOLATIONS = IS_DEMO ? [
+  { user:'D. Kessler',   period:'July 2026', action:'Attempted to post JE to closed period', result:'blocked' },
+  { user:'P. Nazari',    period:'June 2026',  action:'Attempted AP bill edit in locked period', result:'blocked' },
+  { user:'R. Osei',      period:'July 2026',  action:'Attempted reclass entry post-close', result:'blocked' },
+] : [];
+
+/* ═══════════════════ FILTER STATE ═══════════════════ */
+const F = { risk:'all', range:30, search:'' };
+
+function filteredEvents() {
+  return EVENTS.filter(e => {
+    if (F.risk !== 'all' && e.risk !== F.risk) return false;
+    if (e.days > F.range) return false;
+    if (F.search && !(e.event+e.user+e.entity+e.detail).toLowerCase().includes(F.search)) return false;
+    return true;
+  });
+}
+
+function renderStats() {
+  const list = filteredEvents();
+  const stats = [
+    { label:'High-Risk Events', val:list.filter(e=>e.risk==='high').length, sub:'Manual JEs, overrides', icon:'🚩' },
+    { label:'SoD Exceptions', val:SOD.filter(s=>s.status==='open').length, sub:SOD.length+' total tracked', icon:'👥' },
+    { label:'Period-Lock Violations', val:LOCK_VIOLATIONS.length, sub:'All attempts blocked', icon:'🔒' },
+    { label:'Events in Range', val:list.length, sub:'Last '+F.range+' days', icon:'📋' },
+  ];
+  document.getElementById('stat-row').innerHTML = stats.map(s => `
+    <div class="stat-card">
+      <div class="stat-icon si-coral" style="font-size:18px;">${s.icon}</div>
+      <div class="stat-info">
+        <div class="stat-value">${s.val}</div>
+        <div class="stat-label">${s.label}</div>
+        <div class="stat-change" style="color:var(--gray-400);">${s.sub}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderEvents() {
+  const list = filteredEvents();
+  document.getElementById('event-count').textContent = list.length + ' events shown';
+  document.getElementById('events-tbody').innerHTML = list.length ? list.map(e => `
+    <tr>
+      <td style="white-space:nowrap;">${e.ts}</td>
+      <td>${e.entity}</td>
+      <td>${e.event}</td>
+      <td>${e.user}</td>
+      <td style="color:var(--gray-500);">${e.detail}</td>
+      <td><span class="badge ${e.risk==='high'?'badge-red':'badge-orange'}">${e.risk==='high'?'High':'Medium'}</span></td>
+    </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;padding:18px;color:var(--gray-400);">No events match current filters</td></tr>';
+}
+
+function renderSOD() {
+  document.getElementById('sod-tbody').innerHTML = SOD.map(s => `
+    <tr><td>${s.user}</td><td>${s.roles}</td>
+    <td><span class="badge ${s.status==='open'?'badge-red':'badge-green'}">${s.status==='open'?'Open':'Remediated'}</span></td></tr>`).join('');
+}
+
+function renderLock() {
+  document.getElementById('lock-tbody').innerHTML = LOCK_VIOLATIONS.map(l => `
+    <tr><td>${l.user}</td><td>${l.period}</td><td>${l.action}</td><td><span class="badge badge-gray">Blocked</span></td></tr>`).join('');
+}
+
+/* ═══════════════════ SAMPLE SELECTION TOOL ═══════════════════ */
+const SAMPLE_POOL = [
+  'JE-2026-0301 ($184,250)','JE-2026-0289 ($22,480)','INV-5521 ($9,120)','BILL-3390 ($6,750)',
+  'JE-2026-0296 ($41,200)','PMT-1187 ($54,120)','JE-2026-0281 ($3,400)','BILL-3372 ($18,200)'
+];
+function pullSample() {
+  const n = 3 + Math.floor(Math.random()*3);
+  const shuffled = [...SAMPLE_POOL].sort(()=>Math.random()-0.5).slice(0,n);
+  const box = document.getElementById('sample-result');
+  box.innerHTML = '<strong>Sample pulled (' + n + ' items):</strong> ' + shuffled.join(', ');
+  box.classList.add('show');
+  showToast('Random sample of ' + n + ' transactions pulled', 'success');
+}
+
+/* ═══════════════════ FILTER CONTROLS ═══════════════════ */
+function setFilter(key, val) { F[key] = key==='range' ? Number(val) : val; renderAll(); }
+function setSearch(v) { F.search = v.toLowerCase(); renderEvents(); }
+function resetFilters() {
+  F.risk='all'; F.range=30; F.search='';
+  document.getElementById('sel-risk').value='all';
+  document.getElementById('sel-range').value='30';
+  renderAll();
+  showToast('Filters cleared','info');
+}
+
+function refreshDash() {
+  const t = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('dash-subtitle').textContent = 'Controls & compliance overview · ' + ACTIVE_ENTITY.name + ' · Updated ' + t;
+  showToast('Dashboard refreshed','success');
+}
+
+function renderAll() { renderStats(); renderEvents(); renderSOD(); renderLock(); }
+
+document.addEventListener('DOMContentLoaded', renderAll);
+</script>
+<script>
+  initLayout('dashboard');
+</script>
+</body>
+</html>

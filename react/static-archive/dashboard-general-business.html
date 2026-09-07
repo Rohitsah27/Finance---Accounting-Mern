@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Business Workspace — Dashboard | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/layout.js"></script>
+  <style>
+    .gb-pillbar{display:flex;gap:8px;margin-bottom:18px;flex-wrap:wrap;}
+    .gb-pill{padding:9px 18px;font-size:13px;font-weight:700;border:1.5px solid var(--gray-200);border-radius:22px;background:#fff;color:var(--gray-600);cursor:pointer;display:flex;align-items:center;gap:8px;transition:all .15s;}
+    .gb-pill.active{background:var(--navy);border-color:var(--navy);color:#fff;}
+    .gb-pill:hover:not(.active){border-color:var(--gray-400);}
+    .gb-entity-tag{font-size:10.5px;font-weight:400;opacity:.8;}
+
+    .gb-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px;}
+    @media(max-width:900px){.gb-stats{grid-template-columns:1fr 1fr;}}
+
+    .gb-charts{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:18px;}
+    @media(max-width:1000px){.gb-charts{grid-template-columns:1fr;}}
+    .chart-card{background:#fff;border:1px solid var(--gray-200);border-radius:10px;padding:14px;box-shadow:var(--shadow-sm);}
+    .chart-title{font-size:12.5px;font-weight:700;color:var(--gray-900);margin-bottom:8px;}
+    .chart-legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;}
+    .legend-item{display:flex;align-items:center;gap:4px;font-size:10.5px;color:var(--gray-600);}
+    .legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+
+    .gb-panel{display:none;}
+    .gb-panel.active{display:block;}
+  </style>
+</head>
+<body>
+<main class="main-content" id="main-content">
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">General Business Dashboard</div>
+      <div class="page-subtitle" id="dash-subtitle">AC Manufacturing Inc. and its downstream distribution &amp; retail entities</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline btn-sm" onclick="refreshDash()">Refresh</button>
+    </div>
+  </div>
+
+  <div class="gb-pillbar" id="gb-pillbar"></div>
+
+  <div class="filter-bar">
+    <span class="filter-bar-label">Period</span>
+    <select class="filter-select" id="sel-period" onchange="setFilter('period',this.value)">
+      <option value="mtd">MTD</option>
+      <option value="qtd" selected>QTD</option>
+      <option value="ytd">YTD</option>
+    </select>
+    <span class="filter-bar-label">Search</span>
+    <input type="text" class="filter-input" placeholder="Search this tab's tables…" style="width:220px;" oninput="setSearch(this.value)">
+    <div class="filter-spacer"></div>
+    <span id="fbar-applied" style="font-size:11px;color:var(--gray-400);"></span>
+  </div>
+
+  <div class="gb-stats" id="stat-row"></div>
+
+  <!-- ══ MANUFACTURING PANEL ══ -->
+  <div class="gb-panel" id="panel-manufacturing">
+    <div class="gb-charts">
+      <div class="chart-card">
+        <div class="chart-title">Inventory Value by Stage</div>
+        <div id="mfg-inv-chart"></div>
+        <div class="chart-legend"><div class="legend-item"><div class="legend-dot" style="background:#0d1b4b;"></div>Raw Material · WIP · Finished Goods ($K)</div></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">BOM Cost Variance - Standard vs Actual</div>
+        <div id="mfg-bom-chart"></div>
+        <div class="chart-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#c8ccd6;"></div>Standard</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#0d1b4b;"></div>Actual</div>
+        </div>
+      </div>
+    </div>
+    <div class="table-wrap">
+      <div class="table-head-row"><div class="table-head-title">Production Order Status</div><div class="table-head-actions"><button class="btn btn-outline btn-sm" onclick="window.location.href='inventory-costing.html'">Open Inventory &amp; Manufacturing</button></div></div>
+      <table class="data-table">
+        <thead><tr><th>Order #</th><th>Product</th><th>Qty</th><th>Stage</th><th>Std. Cost</th><th>Actual Cost</th><th>Variance</th></tr></thead>
+        <tbody id="mfg-po-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ WHOLESALE PANEL ══ -->
+  <div class="gb-panel" id="panel-wholesale">
+    <div class="gb-charts">
+      <div class="chart-card">
+        <div class="chart-title">Inventory Turnover (rolling 6 periods)</div>
+        <div id="whl-turn-chart"></div>
+        <div class="chart-legend"><div class="legend-item"><div class="legend-dot" style="background:#1565c0;"></div>Turns per period</div></div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Volume-Discount Tier Summary</div>
+        <div id="whl-tier-chart"></div>
+        <div class="chart-legend"><div class="legend-item"><div class="legend-dot" style="background:#00838f;"></div>Order volume by tier ($K)</div></div>
+      </div>
+    </div>
+    <div class="table-wrap" style="margin-bottom:14px;">
+      <div class="table-head-row"><div class="table-head-title">Bulk Order Pipeline</div></div>
+      <table class="data-table">
+        <thead><tr><th>Order #</th><th>Retailer</th><th>Units</th><th>Value</th><th>Stage</th></tr></thead>
+        <tbody id="whl-pipeline-tbody"></tbody>
+      </table>
+    </div>
+    <div class="table-wrap">
+      <div class="table-head-row"><div class="table-head-title">Retailer Credit Exposure</div></div>
+      <table class="data-table">
+        <thead><tr><th>Retailer</th><th>Credit Limit</th><th>Outstanding</th><th>Utilization</th></tr></thead>
+        <tbody id="whl-credit-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ RETAIL PANEL ══ -->
+  <div class="gb-panel" id="panel-retail">
+    <div class="chart-card" style="margin-bottom:14px;">
+      <div class="chart-title">Store-by-Store Sales</div>
+      <div id="rtl-store-chart"></div>
+      <div class="chart-legend"><div class="legend-item"><div class="legend-dot" style="background:#2e7d32;"></div>Sales ($K)</div></div>
+    </div>
+    <div class="table-wrap" style="margin-bottom:14px;">
+      <div class="table-head-row"><div class="table-head-title">SKU-Level Margin</div></div>
+      <table class="data-table">
+        <thead><tr><th>SKU</th><th>Description</th><th>Units Sold</th><th>Revenue</th><th>Margin %</th></tr></thead>
+        <tbody id="rtl-sku-tbody"></tbody>
+      </table>
+    </div>
+    <div class="table-wrap">
+      <div class="table-head-row"><div class="table-head-title">Sales Tax Liability by Jurisdiction</div></div>
+      <table class="data-table">
+        <thead><tr><th>Jurisdiction</th><th>Taxable Sales</th><th>Rate</th><th>Liability</th></tr></thead>
+        <tbody id="rtl-tax-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<script src="js/app.js"></script>
+<script>
+const CFG = getTenantConfig();
+function findEntity(id) { return CFG.secondaryEntities.find(e=>e.id===id); }
+const ENT_MFG = findEntity('ENT-MFG-01') || { id:'ENT-MFG-01', name:'AC Manufacturing Inc.', businessType:'manufacturing' };
+const ENT_WHL = findEntity('ENT-WHL-01') || { id:'ENT-WHL-01', name:'AC Wholesale Distribution', businessType:'wholesale' };
+const ENT_RTL = findEntity('ENT-RTL-01') || { id:'ENT-RTL-01', name:'AC Retail Stores', businessType:'retail' };
+
+const TABS = [
+  { id:'manufacturing', label:'Manufacturing', entity:ENT_MFG },
+  { id:'wholesale',     label:'Wholesale',     entity:ENT_WHL },
+  { id:'retail',        label:'Retail',        entity:ENT_RTL },
+];
+
+/* ═══════════════════ FILTER / TAB STATE ═══════════════════ */
+const F = { tab:'manufacturing', period:'qtd', search:'' };
+const PERIOD_MULT = { mtd:1, qtd:3.05, ytd:11.4 };
+function fUSD(v){ return '$' + Number(Math.round(v)).toLocaleString('en-US'); }
+function fK(v){ return '$' + v.toFixed(0) + 'K'; }
+
+/* ═══════════════════ PILL BAR ═══════════════════ */
+function renderPillbar() {
+  document.getElementById('gb-pillbar').innerHTML = TABS.map(t => `
+    <button class="gb-pill ${F.tab===t.id?'active':''}" onclick="setTab('${t.id}')">
+      ${t.label} <span class="gb-entity-tag">${t.entity.name}</span>
+    </button>`).join('');
+}
+
+function setTab(id) {
+  F.tab = id;
+  renderPillbar();
+  document.querySelectorAll('.gb-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  const t = TABS.find(x=>x.id===id);
+  document.getElementById('dash-subtitle').textContent = t.entity.name + ' · ' + getBusinessType(t.entity.businessType).label;
+  updateAppliedLabel();
+  renderAll();
+}
+
+/* ═══════════════════ SEED DATA - MANUFACTURING ═══════════════════ */
+const MFG_INV = { raw:340, wip:210, fg:480 };
+const MFG_BOM = [
+  { product:'AC-Compressor Unit R12', std:284, act:301 },
+  { product:'AC-Condenser Coil Assy',  std:112, act:108 },
+  { product:'AC-Blower Motor Kit',     std:76,  act:81 },
+];
+const MFG_PO = [
+  { po:'PO-8801', product:'Split-AC 1.5T Unit', qty:400, stage:'In Production', std:284000, act:299800 },
+  { po:'PO-8802', product:'Split-AC 2.0T Unit', qty:250, stage:'QA Hold',        std:198500, act:196200 },
+  { po:'PO-8803', product:'Window AC 1.0T Unit', qty:600, stage:'Released to WH', std:156000, act:151400 },
+  { po:'PO-8804', product:'Split-AC 2.5T Unit', qty:150, stage:'Scheduled',       std:142500, act:0 },
+];
+
+/* ═══════════════════ SEED DATA - WHOLESALE ═══════════════════ */
+const WHL_TURN = [4.1, 4.4, 4.0, 4.6, 4.9, 5.1];
+const WHL_TIERS = [ ['Tier 1 (1-50 units)', 82], ['Tier 2 (51-200 units)', 164], ['Tier 3 (201-500 units)', 231], ['Tier 4 (500+ units)', 118] ];
+const WHL_PIPELINE = [
+  { po:'BO-4410', retailer:'Harbor Retail Group', units:320, value:198400, stage:'Confirmed' },
+  { po:'BO-4411', retailer:'Coastal HVAC Supply',  units:180, value:114600, stage:'Pending Credit Review' },
+  { po:'BO-4412', retailer:'Northgate Builders',   units:95,  value:60800,  stage:'Shipped' },
+  { po:'BO-4413', retailer:'Prairie Home Improvement', units:410, value:255900, stage:'Confirmed' },
+];
+const WHL_CREDIT = [
+  { retailer:'Harbor Retail Group', limit:250000, outstanding:198400 },
+  { retailer:'Coastal HVAC Supply',  limit:150000, outstanding:142100 },
+  { retailer:'Northgate Builders',   limit:100000, outstanding:60800 },
+  { retailer:'Prairie Home Improvement', limit:300000, outstanding:255900 },
+];
+
+/* ═══════════════════ SEED DATA - RETAIL ═══════════════════ */
+const RTL_STORES = [ ['Store 1 - Dallas', 142], ['Store 2 - Austin', 118], ['Store 3 - Houston', 165], ['Store 4 - San Antonio', 97] ];
+const RTL_SKU = [
+  { sku:'SKU-AC-1015', desc:'Split-AC 1.5T Unit (Retail)', units:210, revenue:346500, margin:28.4 },
+  { sku:'SKU-AC-1020', desc:'Split-AC 2.0T Unit (Retail)', units:150, revenue:284000, margin:26.1 },
+  { sku:'SKU-AC-0810', desc:'Window AC 1.0T Unit (Retail)', units:340, revenue:190400, margin:31.5 },
+  { sku:'SKU-AC-FLT1', desc:'Replacement Air Filter 3-Pack', units:960, revenue:28800,  margin:52.0 },
+];
+const RTL_TAX = [
+  { j:'Texas - State', sales:1240000, rate:6.25 },
+  { j:'Dallas County - Local', sales:1240000, rate:1.00 },
+  { j:'Travis County - Local', sales:520000,  rate:1.50 },
+];
+
+/* ═══════════════════ STATS ═══════════════════ */
+function renderStats() {
+  const m = PERIOD_MULT[F.period];
+  let stats = [];
+  if (F.tab === 'manufacturing') {
+    const cogm = 612000 * m / PERIOD_MULT.mtd * 0.33;
+    stats = [
+      { label:'Raw Material Inventory', val:fK(MFG_INV.raw), sub:'On hand', icon:'🧱' },
+      { label:'WIP Inventory',           val:fK(MFG_INV.wip), sub:'In process', icon:'⚙️' },
+      { label:'Finished Goods Inventory',val:fK(MFG_INV.fg),  sub:'Ready to ship', icon:'📦' },
+      { label:'Cost of Goods Manufactured', val:fUSD(cogm), sub:F.period.toUpperCase(), icon:'🏭' },
+    ];
+  } else if (F.tab === 'wholesale') {
+    const turns = WHL_TURN[WHL_TURN.length-1];
+    const pipelineVal = WHL_PIPELINE.reduce((a,p)=>a+p.value,0);
+    const creditExp = WHL_CREDIT.reduce((a,c)=>a+c.outstanding,0);
+    stats = [
+      { label:'Inventory Turnover',    val:turns.toFixed(1)+'x', sub:'Latest period', icon:'🔄' },
+      { label:'Bulk Order Pipeline',   val:fUSD(pipelineVal), sub:WHL_PIPELINE.length+' orders', icon:'📋' },
+      { label:'Retailer Credit Exposure', val:fUSD(creditExp), sub:WHL_CREDIT.length+' accounts', icon:'💳' },
+      { label:'Volume-Discount Orders', val:WHL_TIERS.reduce((a,[,v])=>a+v,0)+'K', sub:'Across 4 tiers', icon:'📈' },
+    ];
+  } else {
+    const totalSales = RTL_STORES.reduce((a,[,v])=>a+v,0);
+    const avgMargin = RTL_SKU.reduce((a,s)=>a+s.margin,0)/RTL_SKU.length;
+    const taxLiability = RTL_TAX.reduce((a,t)=>a+t.sales*t.rate/100,0);
+    stats = [
+      { label:'Total Store Sales', val:fK(totalSales), sub:RTL_STORES.length+' stores', icon:'🛒' },
+      { label:'Average SKU Margin', val:avgMargin.toFixed(1)+'%', sub:RTL_SKU.length+' SKUs tracked', icon:'💰' },
+      { label:'Sales Tax Liability', val:fUSD(taxLiability), sub:RTL_TAX.length+' jurisdictions', icon:'🧾' },
+      { label:'Units Sold', val:RTL_SKU.reduce((a,s)=>a+s.units,0), sub:F.period.toUpperCase(), icon:'📦' },
+    ];
+  }
+  document.getElementById('stat-row').innerHTML = stats.map(s => `
+    <div class="stat-card">
+      <div class="stat-icon si-navy" style="font-size:18px;">${s.icon}</div>
+      <div class="stat-info">
+        <div class="stat-value">${s.val}</div>
+        <div class="stat-label">${s.label}</div>
+        <div class="stat-change" style="color:var(--gray-400);">${s.sub}</div>
+      </div>
+    </div>`).join('');
+}
+
+/* ═══════════════════ MANUFACTURING RENDER ═══════════════════ */
+function renderManufacturing() {
+  document.getElementById('mfg-inv-chart').innerHTML = svgBar([MFG_INV.raw, MFG_INV.wip, MFG_INV.fg], ['Raw Material','WIP','Finished Goods'], { color:'#0d1b4b', accent:'#1565c0', h:150 });
+  document.getElementById('mfg-bom-chart').innerHTML = svgGroupedBar([
+    { label:'Standard', values: MFG_BOM.map(b=>b.std), color:'#c8ccd6' },
+    { label:'Actual',   values: MFG_BOM.map(b=>b.act), color:'#0d1b4b' }
+  ], MFG_BOM.map(b=>b.product.split(' ')[1] || b.product));
+  const list = MFG_PO.filter(p => !F.search || (p.po+p.product+p.stage).toLowerCase().includes(F.search));
+  document.getElementById('mfg-po-tbody').innerHTML = list.length ? list.map(p => {
+    const variance = p.act > 0 ? p.act - p.std : 0;
+    return `<tr>
+      <td class="font-semibold">${p.po}</td><td>${p.product}</td><td>${p.qty}</td>
+      <td><span class="badge badge-navy">${p.stage}</span></td>
+      <td>${fUSD(p.std)}</td><td>${p.act>0?fUSD(p.act):' - '}</td>
+      <td style="color:${variance>0?'var(--red)':'var(--green)'};">${p.act>0?(variance>0?'+':'')+fUSD(variance):' - '}</td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="7" style="text-align:center;padding:18px;color:var(--gray-400);">No production orders match search</td></tr>';
+}
+
+/* ═══════════════════ WHOLESALE RENDER ═══════════════════ */
+function renderWholesale() {
+  document.getElementById('whl-turn-chart').innerHTML = svgLine([{ data:WHL_TURN, color:'#1565c0', fill:'rgba(21,101,192,.08)' }], ['P1','P2','P3','P4','P5','P6'], { h:150 });
+  document.getElementById('whl-tier-chart').innerHTML = svgBar(WHL_TIERS.map(t=>t[1]), WHL_TIERS.map(t=>t[0].split(' ')[1]), { color:'#00838f', accent:'#006064', h:150 });
+  const pipeline = WHL_PIPELINE.filter(p => !F.search || (p.po+p.retailer+p.stage).toLowerCase().includes(F.search));
+  document.getElementById('whl-pipeline-tbody').innerHTML = pipeline.length ? pipeline.map(p => `
+    <tr><td class="font-semibold">${p.po}</td><td>${p.retailer}</td><td>${p.units}</td><td>${fUSD(p.value)}</td>
+    <td><span class="badge ${p.stage==='Confirmed'?'badge-green':p.stage==='Shipped'?'badge-blue':'badge-orange'}">${p.stage}</span></td></tr>`).join('')
+    : '<tr><td colspan="5" style="text-align:center;padding:18px;color:var(--gray-400);">No orders match search</td></tr>';
+  const credit = WHL_CREDIT.filter(c => !F.search || c.retailer.toLowerCase().includes(F.search));
+  document.getElementById('whl-credit-tbody').innerHTML = credit.length ? credit.map(c => {
+    const util = c.outstanding / c.limit * 100;
+    return `<tr><td>${c.retailer}</td><td>${fUSD(c.limit)}</td><td>${fUSD(c.outstanding)}</td>
+      <td style="color:${util>85?'var(--red)':util>65?'var(--orange)':'var(--green)'};">${util.toFixed(0)}%</td></tr>`;
+  }).join('') : '<tr><td colspan="4" style="text-align:center;padding:18px;color:var(--gray-400);">No retailers match search</td></tr>';
+}
+
+/* ═══════════════════ RETAIL RENDER ═══════════════════ */
+function renderRetail() {
+  document.getElementById('rtl-store-chart').innerHTML = svgBar(RTL_STORES.map(s=>s[1]), RTL_STORES.map(s=>s[0].split(' - ')[1]), { color:'#2e7d32', accent:'#1b5e20', h:150 });
+  const sku = RTL_SKU.filter(s => !F.search || (s.sku+s.desc).toLowerCase().includes(F.search));
+  document.getElementById('rtl-sku-tbody').innerHTML = sku.length ? sku.map(s => `
+    <tr><td class="font-semibold">${s.sku}</td><td>${s.desc}</td><td>${s.units}</td><td>${fUSD(s.revenue)}</td>
+    <td style="color:${s.margin>=30?'var(--green)':'var(--orange)'};">${s.margin.toFixed(1)}%</td></tr>`).join('')
+    : '<tr><td colspan="5" style="text-align:center;padding:18px;color:var(--gray-400);">No SKUs match search</td></tr>';
+  const tax = RTL_TAX.filter(t => !F.search || t.j.toLowerCase().includes(F.search));
+  document.getElementById('rtl-tax-tbody').innerHTML = tax.length ? tax.map(t => `
+    <tr><td>${t.j}</td><td>${fUSD(t.sales)}</td><td>${t.rate.toFixed(2)}%</td><td>${fUSD(t.sales*t.rate/100)}</td></tr>`).join('')
+    : '<tr><td colspan="4" style="text-align:center;padding:18px;color:var(--gray-400);">No jurisdictions match search</td></tr>';
+}
+
+/* ═══════════════════ FILTER CONTROLS ═══════════════════ */
+function setFilter(key, val) { F[key] = val; updateAppliedLabel(); renderAll(); }
+function setSearch(v) { F.search = v.toLowerCase(); renderAll(); }
+function updateAppliedLabel() {
+  document.getElementById('fbar-applied').textContent = 'Viewing: ' + TABS.find(t=>t.id===F.tab).label + ' · ' + F.period.toUpperCase();
+}
+
+function refreshDash() {
+  showToast('Dashboard refreshed', 'success');
+  renderAll();
+}
+
+function renderAll() {
+  renderStats();
+  if (F.tab === 'manufacturing') renderManufacturing();
+  else if (F.tab === 'wholesale') renderWholesale();
+  else renderRetail();
+}
+
+/* ═══════════════════ SVG CHARTS ═══════════════════ */
+function svgBar(data,labels,opts={}){
+  const h=opts.h||150,w=480,px=28,gap=10;
+  const mx=Math.max(...data)*1.18||1;
+  const n=data.length, bw=(w-px*2-gap*(n-1))/n;
+  const toY=v=>px+(h-px*2)*(1-v/mx);
+  let out='';
+  data.forEach((v,i)=>{
+    const x=px+i*(bw+gap), y=toY(v), bh=h-px-y;
+    const last=i===n-1;
+    out+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(bh,1).toFixed(1)}" rx="3" fill="${last?opts.accent||opts.color:opts.color}" opacity="${last?1:0.75}"/>`;
+    out+=`<text x="${(x+bw/2).toFixed(1)}" y="${(h-7).toFixed(1)}" text-anchor="middle" font-size="9.5" fill="#9aa">${labels[i]}</text>`;
+    out+=`<text x="${(x+bw/2).toFixed(1)}" y="${(y-5).toFixed(1)}" text-anchor="middle" font-size="9.5" fill="${last?opts.accent||opts.color:'#666'}" font-weight="600">${v}</text>`;
+  });
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" style="display:block;">${out}</svg>`;
+}
+
+function svgLine(datasets,labels,opts={}){
+  const h=opts.h||150,w=480,px=30,py=18;
+  const allV=datasets.flatMap(d=>d.data);
+  const mn=Math.floor(Math.min(...allV)*0.85);
+  const mx=Math.ceil(Math.max(...allV)*1.12)||100;
+  const n=labels.length, xS=(w-px*2)/(n>1?n-1:1);
+  const toX=i=>px+i*xS, toY=v=>py+(h-py*2)*(1-(v-mn)/(mx-mn));
+  let out='';
+  datasets.forEach(ds=>{
+    const pts=ds.data.map((v,i)=>`${toX(i).toFixed(1)},${toY(v).toFixed(1)}`).join(' ');
+    const aP=`M${toX(0).toFixed(1)},${toY(ds.data[0]).toFixed(1)} `+
+      ds.data.slice(1).map((v,i)=>`L${toX(i+1).toFixed(1)},${toY(v).toFixed(1)}`).join(' ')+
+      ` L${toX(n-1).toFixed(1)},${toY(mn).toFixed(1)} L${toX(0).toFixed(1)},${toY(mn).toFixed(1)} Z`;
+    out+=`<path d="${aP}" fill="${ds.fill||'transparent'}"/>`;
+    out+=`<polyline points="${pts}" fill="none" stroke="${ds.color}" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    ds.data.forEach((v,i)=>{ out+=`<circle cx="${toX(i).toFixed(1)}" cy="${toY(v).toFixed(1)}" r="2.8" fill="${ds.color}"/>`; });
+  });
+  labels.forEach((l,i)=>{ out+=`<text x="${toX(i).toFixed(1)}" y="${(h-4).toFixed(1)}" text-anchor="middle" font-size="9.5" fill="#9aa">${l}</text>`; });
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" style="display:block;">${out}</svg>`;
+}
+
+function svgGroupedBar(datasets,groups){
+  const h=170,w=480,px=32,py=20;
+  const allV=datasets.flatMap(d=>d.values); const mx=Math.max(...allV)*1.2||1;
+  const n=groups.length,m=datasets.length,gW=(w-px*2)/n;
+  const bw=(gW*0.72)/m, bgap=(gW*0.28)/(m+1);
+  const toY=v=>py+(h-py*2)*(1-v/mx);
+  let out='';
+  datasets.forEach((ds,di)=>{ groups.forEach((g,gi)=>{
+    const v=ds.values[gi], x=px+gi*gW+bgap*(di+1)+bw*di, y=toY(v), bh=h-py-y;
+    out+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(bh,1).toFixed(1)}" rx="2" fill="${ds.color}" opacity="0.9"/>`;
+    out+=`<text x="${(x+bw/2).toFixed(1)}" y="${(y-3).toFixed(1)}" text-anchor="middle" font-size="8" fill="#666">${v}</text>`;
+  });});
+  groups.forEach((g,gi)=>{ out+=`<text x="${(px+gi*gW+gW/2).toFixed(1)}" y="${(h-5).toFixed(1)}" text-anchor="middle" font-size="9.5" fill="#9aa">${g}</text>`; });
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" style="display:block;">${out}</svg>`;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderPillbar();
+  document.getElementById('panel-manufacturing').classList.add('active');
+  document.getElementById('dash-subtitle').textContent = ENT_MFG.name + ' · ' + getBusinessType(ENT_MFG.businessType).label;
+  updateAppliedLabel();
+  renderAll();
+});
+</script>
+<script>
+  initLayout('dashboard');
+</script>
+</body>
+</html>

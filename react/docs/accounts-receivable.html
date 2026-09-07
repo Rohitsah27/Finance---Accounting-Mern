@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Accounts Receivable (AR) — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Accounts Receivable &amp; Billing</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Accounts Receivable (AR)</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-arrow-down-left-and-arrow-up-right-to-center" style="color: var(--green);"></i> Accounts Receivable (AR) Engine</h1>
+      <p>
+        Accounts Receivable manages all outstanding monies owed by policyholders and broker partners. It automates premium collection tracking, aging buckets (Current, 30, 60, 90+ days), dunning notices, customer statements, and bad debt write-offs.
+      </p>
+    </div>
+
+    <!-- AR Register -->
+    <div class="module-card" id="ar-register">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-green">Cash Inflows</span>
+            <span class="badge badge-blue">AR Register</span>
+          </div>
+          <h2 class="module-title">1. AR Register &amp; Invoices (`accounts-receivable.html`)</h2>
+        </div>
+        <a href="../accounts-receivable.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open AR Register</a>
+      </div>
+
+      <p class="section-p">
+        <strong>What it does:</strong> Displays every active invoice issued for bound policies (e.g. `INV-V8NHT-1` for $39,260.00 to Ayushi). Allows applying cash payments, partial payments, credit memos, and write-offs.
+      </p>
+
+      <h3 class="section-h3"><i class="fa-solid fa-calculator"></i> Standard AR Accounting Entry:</h3>
+      <table class="je-table">
+        <thead>
+          <tr>
+            <th>Event</th>
+            <th>Account Code &amp; Name</th>
+            <th style="text-align:right;">Debit ($)</th>
+            <th style="text-align:right;">Credit ($)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td rowspan="2"><strong>Policy Bound / Invoice Issued</strong></td>
+            <td>1100 Premium Receivable — Insured</td>
+            <td class="dr-amount">$39,260.00</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td class="indent-cr">4100 Gross Written Premium (or 2100 Unearned)</td>
+            <td></td>
+            <td class="cr-amount">$39,260.00</td>
+          </tr>
+          <tr>
+            <td rowspan="2"><strong>Customer Pays Cash</strong></td>
+            <td>1001 Cash / Bank Operating</td>
+            <td class="dr-amount">$39,260.00</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td class="indent-cr">1100 Premium Receivable — Insured</td>
+            <td></td>
+            <td class="cr-amount">$39,260.00</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- AR Aging -->
+    <div class="module-card" id="ar-aging">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-amber">Aging Analysis</span>
+            <span class="badge badge-teal">Credit Risk</span>
+          </div>
+          <h2 class="module-title">2. AR Aging Analysis (`accounts-receivable.html#ar-aging`)</h2>
+        </div>
+        <a href="../accounts-receivable.html#ar-aging" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open AR Aging</a>
+      </div>
+
+      <p class="section-p">
+        <strong>What it does:</strong> Breaks down outstanding customer balances into standard aging buckets:
+      </p>
+
+      <div class="grid-2">
+        <div class="info-card">
+          <h4>Current (0 – 30 Days)</h4>
+          <p>Recently invoiced policies within standard payment terms. Low credit risk.</p>
+        </div>
+        <div class="info-card">
+          <h4>31 – 60 Days</h4>
+          <p>First reminder sent. Broker is notified of pending policyholder payment.</p>
+        </div>
+        <div class="info-card">
+          <h4>61 – 90 Days</h4>
+          <p>Formal dunning letter issued. Notice of intent to cancel (NOIC) generated.</p>
+        </div>
+        <div class="info-card">
+          <h4>90+ Days Overdue</h4>
+          <p>High default risk. Eligible for statutory bad-debt reserve provision or cancellation for non-payment.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- AR Collections & Statements -->
+    <div class="module-card" id="ar-collections">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-purple">Dunning</span>
+            <span class="badge badge-blue">Statements</span>
+          </div>
+          <h2 class="module-title">3. Collections &amp; Customer Statements</h2>
+        </div>
+        <a href="../accounts-receivable.html#ar-statements" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Statements</a>
+      </div>
+
+      <p class="section-p">
+        <strong>What it does:</strong> Generates monthly PDF customer billing statements, itemizes open invoices vs. unapplied cash payments, and sends automatic email payment reminders.
+      </p>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="general-ledger.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">General Ledger (GL)</span>
+      </a>
+      <a href="billing-invoicing.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Module &rarr;</span>
+        <span class="nav-page-title">Billing &amp; Invoicing</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('accounts-receivable');
+</script>
+</body>
+</html>

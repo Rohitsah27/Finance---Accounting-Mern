@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Budgets & Forecasts — Planning | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/layout.js"></script>
+  <style>
+    .bud-chart-wrap { padding:16px 20px 4px; }
+    .bud-chart-legend { display:flex; gap:18px; font-size:11.5px; color:var(--gray-500); margin-bottom:10px; }
+    .bud-chart-legend span { display:flex; align-items:center; gap:6px; }
+    .bud-chart-legend i { width:10px; height:10px; border-radius:2px; display:inline-block; }
+    .bud-driver-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:16px; margin-bottom:16px; }
+    @media (max-width:900px) { .bud-driver-grid { grid-template-columns:1fr; } }
+    .bud-driver-output { display:grid; grid-template-columns:1fr 1fr; gap:16px; padding-top:14px; border-top:1px solid var(--gray-200); }
+    .bud-driver-output-item { text-align:center; }
+    .bud-driver-output-val { font-size:22px; font-weight:800; color:var(--gray-900); }
+    .bud-driver-output-label { font-size:11.5px; color:var(--gray-500); margin-top:2px; }
+    .bud-driver-note { font-size:11px; color:var(--gray-400); margin-top:10px; text-align:center; }
+    .bud-scenario-row { display:flex; gap:8px; margin-bottom:16px; }
+    .bud-scenario-btn { flex:1; padding:10px 14px; border:1px solid var(--gray-300); border-radius:var(--radius); background:#fff; font-size:12.5px; font-weight:600; color:var(--gray-600); cursor:pointer; text-align:center; transition:var(--transition); }
+    .bud-scenario-btn:hover { border-color:var(--gray-400); }
+    .bud-scenario-btn.active { border-color:var(--v-teal); background:var(--v-teal-bg); color:var(--v-teal); }
+    .bud-industry-card { border:1px dashed var(--gray-300); border-radius:var(--radius); padding:16px 18px; background:var(--gray-50); }
+    .v-badge-industry-only { background:rgba(201,121,31,0.12); color:#a15b16; font-size:10px; font-weight:700; padding:2px 8px; border-radius:20px; letter-spacing:0.02em; text-transform:uppercase; }
+  </style>
+</head>
+<body>
+<main class="main-content" id="main-content">
+
+  <!-- ═══ PAGE HEADER ═══ -->
+  <div class="page-header">
+    <div>
+      <div class="page-title">Budgeting &amp; Forecasting</div>
+      <div class="page-subtitle">Budget vs actual, driver-based planning, and scenario modeling</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline btn-sm" onclick="exportBudgetWorkbook(this)">Export</button>
+      <button class="btn btn-primary btn-sm" onclick="addNewBudgetVersion()">+ Create New Budget</button>
+    </div>
+  </div>
+
+  <!-- ═══ STAT CARDS ═══ -->
+  <div class="stats-row" id="budStats"></div>
+
+  <!-- ═══ BUDGET VS ACTUAL ═══ -->
+  <div class="table-wrap" style="margin-bottom:20px;">
+    <div class="table-head-row">
+      <div class="table-head-title">Budget vs Actual</div>
+      <div class="table-head-actions">
+        <button class="btn btn-outline btn-sm" onclick="exportBudgetDetail(this)">Export CSV</button>
+      </div>
+    </div>
+    <div class="bud-chart-wrap">
+      <div class="bud-chart-legend">
+        <span><i style="background:var(--navy);"></i> Budget</span>
+        <span><i style="background:var(--coral);"></i> Actual</span>
+      </div>
+      <svg id="budChart" width="100%" height="180" viewBox="0 0 760 180" preserveAspectRatio="xMinYMin meet"></svg>
+    </div>
+    <table class="data-table" id="budgetTable">
+      <thead>
+        <tr><th>Account / Department</th><th>Budget</th><th>Actual</th><th>Variance $</th><th>Variance %</th><th>Status</th></tr>
+      </thead>
+      <tbody id="budgetBody"></tbody>
+    </table>
+  </div>
+
+  <!-- ═══ BUDGET VERSIONS ═══ -->
+  <div class="table-wrap" style="margin-bottom:20px;">
+    <div class="table-head-row">
+      <div class="table-head-title">Budget Versions</div>
+      <div class="table-head-actions">
+        <button class="btn btn-outline btn-sm" onclick="addNewVersionOfLatestDraft()">+ New Version</button>
+      </div>
+    </div>
+    <table class="data-table">
+      <thead><tr><th>Version</th><th>Status</th><th>Created By</th><th>Date</th><th></th></tr></thead>
+      <tbody id="versionsBody"></tbody>
+    </table>
+    <div id="versionDetailPanel" style="padding:14px 18px; border-top:1px solid var(--gray-200); background:var(--gray-50); font-size:12.5px; color:var(--gray-500);">
+      Select a version above to view its details.
+    </div>
+  </div>
+
+  <!-- ═══ DRIVER-BASED PLANNING ═══ -->
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-header">
+      <div class="card-title">Driver-Based Planning</div>
+      <span class="badge badge-blue">Live Recalculation</span>
+    </div>
+    <div class="card-body">
+      <div class="bud-driver-grid">
+        <div class="form-field" style="margin-bottom:0;">
+          <label class="field-label">Headcount</label>
+          <input class="field-input" type="number" id="driverHeadcount" value="86" min="0" oninput="recalcDrivers()">
+        </div>
+        <div class="form-field" style="margin-bottom:0;">
+          <label class="field-label">Units Sold</label>
+          <input class="field-input" type="number" id="driverUnits" value="12400" min="0" oninput="recalcDrivers()">
+        </div>
+        <div class="form-field" style="margin-bottom:0;">
+          <label class="field-label">Policies-in-Force</label>
+          <input class="field-input" type="number" id="driverPIF" value="9200" min="0" oninput="recalcDrivers()">
+        </div>
+      </div>
+      <div class="bud-driver-output">
+        <div class="bud-driver-output-item">
+          <div class="bud-driver-output-val" id="driverRevenue">$0</div>
+          <div class="bud-driver-output-label">Calculated Revenue</div>
+        </div>
+        <div class="bud-driver-output-item">
+          <div class="bud-driver-output-val" id="driverExpense">$0</div>
+          <div class="bud-driver-output-label">Calculated Expense</div>
+        </div>
+      </div>
+      <div class="bud-driver-note">Revenue = Policies-in-Force × $1,240 avg. annual premium + Units Sold × $18 avg. unit price. Expense = Headcount × $96,500 fully-loaded cost + Units Sold × $6.50 variable unit cost.</div>
+    </div>
+  </div>
+
+  <!-- ═══ SCENARIO PLANNING ═══ -->
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-header">
+      <div class="card-title">Scenario Planning</div>
+      <span class="badge badge-navy" id="scenarioBadge">Base Case</span>
+    </div>
+    <div class="card-body">
+      <div class="bud-scenario-row">
+        <button class="bud-scenario-btn" data-scenario="best" onclick="setScenario('best')">Best Case</button>
+        <button class="bud-scenario-btn active" data-scenario="base" onclick="setScenario('base')">Base Case</button>
+        <button class="bud-scenario-btn" data-scenario="worst" onclick="setScenario('worst')">Worst Case</button>
+      </div>
+      <div style="font-size:11.5px;color:var(--gray-500);">Switching scenarios rescales the Budget column, Variance, and the Annual Budget Total / Variance % stat cards above using a scenario multiplier - Best Case +8%, Base Case unchanged, Worst Case −10%.</div>
+    </div>
+  </div>
+
+  <!-- ═══ INSURANCE-SPECIFIC BUDGET ═══ -->
+  <div class="card" style="margin-bottom:20px;">
+    <div class="card-header">
+      <div class="card-title">Insurance-Specific Budget <span class="v-badge-industry-only">Insurance Only</span></div>
+    </div>
+    <div class="card-body">
+      <div class="bud-industry-card">
+        <div class="stats-row" style="margin-bottom:0;">
+          <div class="stat-card">
+            <div class="stat-icon si-navy">📈</div>
+            <div class="stat-info">
+              <div class="stat-value">$114.6M</div>
+              <div class="stat-label">GWP Forecast</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon si-coral">📊</div>
+            <div class="stat-info">
+              <div class="stat-value">$98.2M</div>
+              <div class="stat-label">Earned Premium Model</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon si-orange">🎯</div>
+            <div class="stat-info">
+              <div class="stat-value">62.5%</div>
+              <div class="stat-label">Loss Ratio Target</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon si-green">🧮</div>
+            <div class="stat-info">
+              <div class="stat-value">96.8%</div>
+              <div class="stat-label">Combined Ratio Budget</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</main>
+
+<script src="js/app.js"></script>
+<script>
+  const BUDGET_ROWS = [
+    { name: 'Underwriting Operations',  budget: 4200000, actual: 4085000 },
+    { name: 'Claims Administration',    budget: 3600000, actual: 3780000 },
+    { name: 'Sales & Distribution',     budget: 2950000, actual: 2810000 },
+    { name: 'Information Technology',   budget: 2100000, actual: 2340000 },
+    { name: 'General & Administrative', budget: 1850000, actual: 1795000 },
+    { name: 'Marketing',                budget: 1200000, actual: 1265000 },
+    { name: 'Human Resources',          budget: 980000,  actual: 940000  },
+    { name: 'Facilities',               budget: 720000,  actual: 705000  },
+  ];
+
+  const SCENARIO_MULT = { best: 1.08, base: 1.00, worst: 0.90 };
+  let currentScenario = 'base';
+
+  let BUDGET_VERSIONS = [
+    { id: 1, name: 'FY2026 Operating Budget v3', status: 'Locked',   createdBy: 'Priya Nathan', date: '2026-01-15' },
+    { id: 2, name: 'FY2026 Operating Budget v4', status: 'Approved', createdBy: 'Priya Nathan', date: '2026-03-02' },
+    { id: 3, name: 'FY2027 Draft Budget v1',     status: 'Draft',    createdBy: 'Marcus Webb',  date: '2026-07-28' },
+    { id: 4, name: 'FY2027 Draft Budget v2',     status: 'Draft',    createdBy: 'Marcus Webb',  date: '2026-08-12' },
+    { id: 5, name: 'Q3 2026 Reforecast',         status: 'Approved', createdBy: 'Priya Nathan', date: '2026-07-05' },
+  ];
+  let nextVersionId = 6;
+  let nextNewBudgetFY = 2028;
+  let selectedVersionId = null;
+
+  function renderStats() {
+    const totalBudget = BUDGET_ROWS.reduce((s, r) => s + r.budget, 0) * SCENARIO_MULT[currentScenario];
+    const totalActual = BUDGET_ROWS.reduce((s, r) => s + r.actual, 0);
+    const variancePct = ((totalActual - totalBudget) / totalBudget) * 100;
+    document.getElementById('budStats').innerHTML = `
+      <div class="stat-card">
+        <div class="stat-icon si-navy">💵</div>
+        <div class="stat-info">
+          <div class="stat-value">$${(totalBudget / 1e6).toFixed(2)}M</div>
+          <div class="stat-label">Annual Budget Total</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-coral">📆</div>
+        <div class="stat-info">
+          <div class="stat-value">$${(totalActual / 1e6).toFixed(2)}M</div>
+          <div class="stat-label">YTD Actual</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon ${variancePct <= 0 ? 'si-green' : 'si-orange'}">📉</div>
+        <div class="stat-info">
+          <div class="stat-value" style="color:${variancePct <= 0 ? 'var(--green)' : 'var(--red)'};">${variancePct >= 0 ? '+' : ''}${variancePct.toFixed(1)}%</div>
+          <div class="stat-label">Variance %</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-orange">🧭</div>
+        <div class="stat-info">
+          <div class="stat-value">3</div>
+          <div class="stat-label">Active Scenarios</div>
+        </div>
+      </div>
+    `;
+  }
+
+  function renderBudgetTable() {
+    const mult = SCENARIO_MULT[currentScenario];
+    document.getElementById('budgetBody').innerHTML = BUDGET_ROWS.map(r => {
+      const budget = r.budget * mult;
+      const varDollar = r.actual - budget;
+      const varPct = (varDollar / budget) * 100;
+      const favorable = varDollar <= 0;
+      return `<tr>
+        <td><strong>${r.name}</strong></td>
+        <td>$${budget.toLocaleString('en-US', { maximumFractionDigits: 0 })}</td>
+        <td>$${r.actual.toLocaleString('en-US')}</td>
+        <td style="color:${favorable ? 'var(--green)' : 'var(--red)'};">${varDollar >= 0 ? '+' : ''}$${Math.round(varDollar).toLocaleString('en-US')}</td>
+        <td>${varPct >= 0 ? '+' : ''}${varPct.toFixed(1)}%</td>
+        <td><span class="badge ${favorable ? 'badge-green' : 'badge-red'}">${favorable ? 'Favorable' : 'Unfavorable'}</span></td>
+      </tr>`;
+    }).join('');
+  }
+
+  function renderChart() {
+    const mult = SCENARIO_MULT[currentScenario];
+    const w = 760, h = 180, pad = 30;
+    const maxVal = Math.max(...BUDGET_ROWS.map(r => Math.max(r.budget * mult, r.actual)));
+    const groupW = (w - pad * 2) / BUDGET_ROWS.length;
+    const barW = groupW / 3;
+    let svg = '';
+    BUDGET_ROWS.forEach((r, i) => {
+      const x = pad + i * groupW;
+      const budget = r.budget * mult;
+      const bH = (budget / maxVal) * (h - 40);
+      const aH = (r.actual / maxVal) * (h - 40);
+      svg += `<rect x="${x}" y="${h - 24 - bH}" width="${barW}" height="${bH}" fill="var(--navy,#0d1b4b)" rx="2"></rect>`;
+      svg += `<rect x="${x + barW + 3}" y="${h - 24 - aH}" width="${barW}" height="${aH}" fill="var(--coral,#e05470)" rx="2"></rect>`;
+      svg += `<text x="${x + barW}" y="${h - 8}" font-size="8.5" fill="var(--gray-500,#6b7280)" text-anchor="middle">${r.name.split(' ')[0]}</text>`;
+    });
+    document.getElementById('budChart').innerHTML = svg;
+  }
+
+  function setScenario(scenario) {
+    currentScenario = scenario;
+    document.querySelectorAll('.bud-scenario-btn').forEach(b => b.classList.toggle('active', b.dataset.scenario === scenario));
+    const labels = { best: 'Best Case', base: 'Base Case', worst: 'Worst Case' };
+    document.getElementById('scenarioBadge').textContent = labels[scenario];
+    renderStats();
+    renderBudgetTable();
+    renderChart();
+    showToast(`Scenario switched to ${labels[scenario]}`, 'info');
+  }
+
+  function versionBadgeClass(status) {
+    return { Locked: 'badge-navy', Approved: 'badge-green', Draft: 'badge-orange', 'Pending Approval': 'badge-blue' }[status] || 'badge-navy';
+  }
+
+  function renderVersionsTable() {
+    const tbody = document.getElementById('versionsBody');
+    tbody.innerHTML = BUDGET_VERSIONS.map(v => {
+      let actions;
+      if (v.status === 'Draft') {
+        actions = `<button class="btn btn-ghost btn-sm" onclick="selectVersion(${v.id})">Edit</button>
+          <button class="btn btn-outline btn-sm" onclick="submitVersionForApproval(${v.id})">Submit for Approval</button>`;
+      } else if (v.status === 'Pending Approval') {
+        actions = `<button class="btn btn-ghost btn-sm" onclick="selectVersion(${v.id})">View</button>
+          <button class="btn btn-primary btn-sm" onclick="approveVersion(${v.id})">Approve</button>`;
+      } else {
+        actions = `<button class="btn btn-ghost btn-sm" onclick="selectVersion(${v.id})">View</button>`;
+      }
+      const rowStyle = v.id === selectedVersionId ? ' style="background:var(--gray-50);"' : '';
+      return `<tr${rowStyle}>
+        <td><strong>${v.name}</strong></td>
+        <td><span class="badge ${versionBadgeClass(v.status)}">${v.status}</span></td>
+        <td>${v.createdBy}</td>
+        <td>${v.date}</td>
+        <td>${actions}</td>
+      </tr>`;
+    }).join('');
+    renderVersionDetail();
+  }
+
+  function renderVersionDetail() {
+    const panel = document.getElementById('versionDetailPanel');
+    if (!panel) return;
+    const v = BUDGET_VERSIONS.find(x => x.id === selectedVersionId);
+    if (!v) {
+      panel.innerHTML = 'Select a version above to view its details.';
+      return;
+    }
+    panel.innerHTML = `
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;">
+        <div>
+          <div style="font-size:13.5px; font-weight:700; color:var(--gray-900);">${v.name}</div>
+          <div style="font-size:11.5px; color:var(--gray-500); margin-top:4px;">Created by ${v.createdBy} on ${v.date}</div>
+        </div>
+        <span class="badge ${versionBadgeClass(v.status)}">${v.status}</span>
+      </div>`;
+  }
+
+  function selectVersion(id) {
+    selectedVersionId = id;
+    renderVersionsTable();
+    const v = BUDGET_VERSIONS.find(x => x.id === id);
+    if (v) showToast(`Viewing ${v.name}`, 'info');
+  }
+
+  function submitVersionForApproval(id) {
+    const v = BUDGET_VERSIONS.find(x => x.id === id);
+    if (!v) return;
+    v.status = 'Pending Approval';
+    selectedVersionId = id;
+    renderVersionsTable();
+    showToast(`${v.name} submitted for approval`, 'success');
+  }
+
+  function approveVersion(id) {
+    const v = BUDGET_VERSIONS.find(x => x.id === id);
+    if (!v) return;
+    v.status = 'Approved';
+    selectedVersionId = id;
+    renderVersionsTable();
+    showToast(`${v.name} approved`, 'success');
+  }
+
+  function addNewBudgetVersion() {
+    const name = `FY${nextNewBudgetFY} Operating Budget v1`;
+    BUDGET_VERSIONS.push({ id: nextVersionId++, name, status: 'Draft', createdBy: 'You', date: today() });
+    nextNewBudgetFY++;
+    selectedVersionId = null;
+    renderVersionsTable();
+    showToast(`${name} created`, 'success');
+  }
+
+  function addNewVersionOfLatestDraft() {
+    const drafts = BUDGET_VERSIONS.filter(v => /Draft Budget v\d+$/.test(v.name));
+    let base, nextNum;
+    if (drafts.length) {
+      drafts.sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+      const last = drafts[drafts.length - 1];
+      const m = last.name.match(/^(.*) v(\d+)$/);
+      base = m[1];
+      nextNum = parseInt(m[2], 10) + 1;
+    } else {
+      base = `FY${nextNewBudgetFY - 1} Draft Budget`;
+      nextNum = 1;
+    }
+    const name = `${base} v${nextNum}`;
+    BUDGET_VERSIONS.push({ id: nextVersionId++, name, status: 'Draft', createdBy: 'You', date: today() });
+    selectedVersionId = null;
+    renderVersionsTable();
+    showToast(`${name} created`, 'success');
+  }
+
+  function exportBudgetWorkbook(btn) {
+    btn.disabled = true;
+    const original = btn.textContent;
+    btn.textContent = 'Exporting…';
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.textContent = original;
+      showToast('Budget workbook exported', 'success');
+    }, 900);
+  }
+
+  function exportBudgetDetail(btn) {
+    btn.disabled = true;
+    const original = btn.textContent;
+    btn.textContent = 'Exporting…';
+    setTimeout(() => {
+      btn.disabled = false;
+      btn.textContent = original;
+      showToast('Budget vs actual detail exported as CSV', 'success');
+    }, 900);
+  }
+
+  function recalcDrivers() {
+    const headcount = parseFloat(document.getElementById('driverHeadcount').value) || 0;
+    const units = parseFloat(document.getElementById('driverUnits').value) || 0;
+    const pif = parseFloat(document.getElementById('driverPIF').value) || 0;
+    const revenue = pif * 1240 + units * 18;
+    const expense = headcount * 96500 + units * 6.5;
+    document.getElementById('driverRevenue').textContent = '$' + Math.round(revenue).toLocaleString('en-US');
+    document.getElementById('driverExpense').textContent = '$' + Math.round(expense).toLocaleString('en-US');
+  }
+
+  renderStats();
+  renderBudgetTable();
+  renderChart();
+  recalcDrivers();
+  renderVersionsTable();
+</script>
+<script>
+  initLayout('budgeting');
+  renderImportResultBanner('budget');
+</script>
+</body>
+</html>

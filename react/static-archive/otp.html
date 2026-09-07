@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify OTP — Authentication | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+</head>
+<body>
+  <div class="auth-wrap">
+    <div class="auth-panel">
+
+      <div class="auth-left">
+        <div class="auth-left-content">
+          <svg width="64" height="64" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="otpVdGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#F97316"/>
+                <stop offset="100%" stop-color="#F59E0B"/>
+              </linearGradient>
+            </defs>
+            <rect width="32" height="32" rx="6" fill="#22262E"/>
+            <path d="M7 10L13 22L17 14" stroke="url(#otpVdGrad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M17 10H21C23.76 10 26 12.24 26 15C26 17.76 23.76 20 21 20H17V10Z" stroke="url(#otpVdGrad)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <div style="text-align:center;">
+            <div style="font-size:28px;font-weight:700;letter-spacing:-0.5px;display:flex;align-items:center;justify-content:center;">
+              <span style="color:#FFFFFF;">Veri</span><span style="color:var(--color-brand);">Dex</span>
+            </div>
+            <div style="font-size:11px;font-weight:600;color:var(--color-muted);letter-spacing:2px;margin-top:4px;">SECURITY & IDENTITY</div>
+          </div>
+          <div class="auth-left-tagline">Two-Factor Security Verification</div>
+        </div>
+      </div>
+
+      <div class="auth-right">
+        <div class="auth-title">Verify your OTP</div>
+        <div class="auth-subtitle">Please enter your 6-digit access code.</div>
+
+        <div class="otp-email-hint" id="otp-email-hint">Enter OTP sent to your email</div>
+
+        <div class="otp-inputs">
+          <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" autocomplete="one-time-code" aria-label="Digit 1">
+          <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" aria-label="Digit 2">
+          <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" aria-label="Digit 3">
+          <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" aria-label="Digit 4">
+          <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" aria-label="Digit 5">
+          <input class="otp-digit" type="text" inputmode="numeric" maxlength="1" aria-label="Digit 6">
+        </div>
+
+        <button type="button" class="auth-btn" onclick="verifyOtp()">Verify Code →</button>
+
+        <div class="otp-resend">
+          Didn't receive the OTP? &nbsp;
+          <a onclick="resendOtp()">Resend Code</a>
+        </div>
+
+        <div class="auth-link" style="margin-top:24px;" onclick="window.location.href='index.html'">
+          ← Back to Sign In
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script src="js/app.js"></script>
+  <script>
+    const DEMO_USERS = {
+      'carrier': { id:'USR-002', name:'Lena Novak',     role:'carrier-controller', initials:'LN', avatarColor:'#1D4ED8' },
+      'mga':     { id:'USR-003', name:'Diego Alvarez',  role:'mga-ops',            initials:'DA', avatarColor:'#B45309' },
+      'broker':  { id:'USR-004', name:'Priya Menon',    role:'agency-principal',   initials:'PM', avatarColor:'#15803D' },
+      'insured': { id:'USR-001', name:'Jordan Blake',   role:'admin',               initials:'JB', avatarColor:'#0369A1' },
+      'jordan':  { id:'USR-001', name:'Jordan Blake',   role:'admin',               initials:'JB', avatarColor:'#0369A1' },
+      'sarah':   { id:'USR-002', name:'Sarah Chen',     role:'cfo',                 initials:'SC', avatarColor:'#B45309' },
+      'james':   { id:'USR-003', name:'James Smith',    role:'controller',         initials:'JS', avatarColor:'#1D4ED8' },
+      'robert':  { id:'USR-004', name:'Robert Patel',   role:'accountant',         initials:'RP', avatarColor:'#15803D' },
+      'emily':   { id:'USR-005', name:'Emily Davis',    role:'auditor',            initials:'ED', avatarColor:'#7C3AED' },
+      'priya':   { id:'USR-006', name:'Priya Menon',    role:'agency-principal',   initials:'PM', avatarColor:'#15803D' },
+      'diego':   { id:'USR-007', name:'Diego Alvarez',  role:'mga-ops',            initials:'DA', avatarColor:'#B45309' },
+      'lena':    { id:'USR-008', name:'Lena Novak',     role:'carrier-controller', initials:'LN', avatarColor:'#1D4ED8' },
+      'marcus':  { id:'USR-009', name:'Marcus Lee',     role:'admin',               initials:'ML', avatarColor:'#0369A1' },
+    };
+
+    function resolveUserFromEmail(email) {
+      const local = (email || '').split('@')[0].toLowerCase();
+      for (const key of Object.keys(DEMO_USERS)) {
+        if (local === key || local.includes(key)) return { ...DEMO_USERS[key], email };
+      }
+      return { id:'USR-001', name:'Jordan Blake', role:'admin', initials:'JB', avatarColor:'#0369A1', email };
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const email = sessionStorage.getItem('login_email');
+      if (email) document.getElementById('otp-email-hint').textContent = 'Enter OTP sent to ' + email;
+      const first = document.querySelector('.otp-digit');
+      if (first) first.focus();
+      document.querySelectorAll('.otp-digit').forEach((inp, i, all) => {
+        inp.addEventListener('input', () => { if (inp.value && i < all.length-1) all[i+1].focus(); });
+        inp.addEventListener('keydown', e => { if (e.key === 'Backspace' && !inp.value && i > 0) all[i-1].focus(); });
+      });
+    });
+
+    function resendOtp() {
+      VeriDexComponents.showToast('New OTP sent to your registered email.', 'info');
+    }
+
+    function verifyOtp() {
+      const digits = Array.from(document.querySelectorAll('.otp-digit')).map(d => d.value.trim()).join('');
+      if (digits.length < 6) {
+        VeriDexComponents.showToast('Please enter all 6 digits of the OTP.', 'warning');
+        return;
+      }
+
+      const email = sessionStorage.getItem('login_email') || 'insured@gmail.com';
+      const user = resolveUserFromEmail(email);
+
+      sessionStorage.setItem('v_current_user', JSON.stringify(user));
+
+      const remember = sessionStorage.getItem('login_remember') === '1';
+      if (remember) {
+        localStorage.setItem('v_remembered_user', JSON.stringify(user));
+        localStorage.setItem('v_remember_until', String(Date.now() + 30*24*60*60*1000));
+      }
+
+      const cfg = getTenantConfig();
+      const activeId = cfg.activeEntityId || 'ENT-MINE';
+      const activeConfig = cfg.entityConfigs?.[activeId] || {};
+
+      if (!cfg.onboarded || activeConfig.onboarded === false) {
+        if (sessionStorage.getItem('skip_onboarding') === '1') {
+          const bType = cfg.businessType || 'mga';
+          const allGoals = goalsForBusinessType(bType);
+          const goalIds = allGoals.map(g => g.id);
+          
+          let companyName = 'My Business';
+          let businessLabel = 'Business';
+          let ownerName = user.name;
+          
+          if (bType === 'carrier') {
+            companyName = 'SOUTHLAKE';
+            businessLabel = 'Risk Carrier';
+            ownerName = 'SOUTHLAKE';
+          } else if (bType === 'mga') {
+            companyName = 'NTA';
+            businessLabel = 'MGA Operators';
+            ownerName = 'NTA';
+          } else if (bType === 'agency' || bType === 'broker') {
+            companyName = 'HIT';
+            businessLabel = 'Agency Operators';
+            ownerName = 'HIT';
+          } else if (bType === 'insured') {
+            companyName = 'Ayushi';
+            businessLabel = 'Insured Org';
+            ownerName = 'Ayushi';
+          }
+          
+          const templates = coaTemplatesForBusinessType(bType);
+          const coaTemplate = templates.length > 0 ? templates[0].id : 'COA-CORP-01';
+          
+          applyOnboarding({
+            businessType: bType,
+            goalIds: goalIds,
+            ownerName: ownerName,
+            companyName: companyName,
+            businessLabel: businessLabel,
+            coaTemplate: coaTemplate,
+            moduleOverrides: {},
+            dimensionOverrides: {}
+          }, 'done');
+          
+          window.location.href = 'home.html';
+          return;
+        }
+
+        window.location.href = 'onboarding.html';
+        return;
+      }
+
+      if (isSetupGuardActive()) {
+        window.location.href = setupGuardTarget();
+        return;
+      }
+
+      window.location.href = 'home.html';
+    }
+  </script>
+</body>
+</html>

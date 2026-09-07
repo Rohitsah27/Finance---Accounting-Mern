@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Journal Entry — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>General Ledger</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Journal Entry</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-pen-to-square" style="color: var(--purple);"></i> Journal Entry &amp; Manual Posting <span class="file-tag">journal-entry.html</span></h1>
+      <p>
+        The Journal Entry hub allows accountants to create, review, submit, and approve balanced general ledger transactions. The system strictly enforces the fundamental accounting equation: <code>Total Debits === Total Credits</code> before allowing any entry to be posted.
+      </p>
+    </div>
+
+    <div class="module-card">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-purple">Double-Entry</span>
+            <span class="badge badge-green">Audit Trail</span>
+          </div>
+          <h2 class="module-title">Creating &amp; Posting a Journal Entry</h2>
+        </div>
+        <a href="../journal-entry.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Journal Hub</a>
+      </div>
+
+      <div class="flow-steps">
+        <div class="flow-step-item">
+          <div class="step-num">1</div>
+          <div class="step-content">
+            <strong>Input Header Details</strong>
+            <span>Select Posting Date, Journal Number (auto-generated, e.g. `JE-2026-0042`), Description, and Currency.</span>
+          </div>
+        </div>
+        <div class="flow-step-item">
+          <div class="step-num">2</div>
+          <div class="step-content">
+            <strong>Add Debit &amp; Credit Line Items</strong>
+            <span>Choose GL Account Code, enter Debit or Credit amount, and assign Multi-Dimensional Tags (`Carrier`, `MGA`, `Broker`, `State`, `LOB`).</span>
+          </div>
+        </div>
+        <div class="flow-step-item">
+          <div class="step-num">3</div>
+          <div class="step-content">
+            <strong>Validation &amp; Approval Routing</strong>
+            <span>Veridex checks for balance equality. Entries above $10,000 are automatically routed to Level 2 or CFO approval queues.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="chart-of-accounts.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">Chart of Accounts</span>
+      </a>
+      <a href="financial-statements.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Submodule &rarr;</span>
+        <span class="nav-page-title">Financial Statements</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('journal-entry');
+</script>
+</body>
+</html>

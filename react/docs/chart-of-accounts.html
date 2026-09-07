@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chart of Accounts — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>General Ledger</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Chart of Accounts</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-list-ol" style="color: var(--brand);"></i> Chart of Accounts <span class="file-tag">chart-of-accounts.html</span></h1>
+      <p>
+        The Chart of Accounts (COA) is the numerical backbone of your financial ledger. It defines every account code, class, normal balance (Debit/Credit), and dimension tagging rules.
+      </p>
+    </div>
+
+    <div class="module-card">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-blue">COA Master</span>
+            <span class="badge badge-teal">Account Hierarchy</span>
+          </div>
+          <h2 class="module-title">Account Numbering Standards</h2>
+        </div>
+        <a href="../chart-of-accounts.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Live COA</a>
+      </div>
+
+      <p class="section-p">
+        Veridex uses 4-digit and 6-digit standard insurance accounting codes:
+      </p>
+
+      <table class="je-table">
+        <thead>
+          <tr>
+            <th>Number Range</th>
+            <th>Classification</th>
+            <th>Normal Balance</th>
+            <th>Primary Usage</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>1000 – 1999</strong></td>
+            <td>Assets</td>
+            <td>Debit</td>
+            <td>Bank operating cash (1001), Premium trust cash (1020), Premium AR (1100), Reinsurance recoverables (1300).</td>
+          </tr>
+          <tr>
+            <td><strong>2000 – 2999</strong></td>
+            <td>Liabilities</td>
+            <td>Credit</td>
+            <td>Unearned premium reserves (2100), Broker commission payable (2150), Carrier settlement payable (2200), Surplus lines taxes payable (2300).</td>
+          </tr>
+          <tr>
+            <td><strong>3000 – 3999</strong></td>
+            <td>Equity</td>
+            <td>Credit</td>
+            <td>Retained earnings (3001), Common stock, Additional paid-in capital.</td>
+          </tr>
+          <tr>
+            <td><strong>4000 – 4999</strong></td>
+            <td>Revenue</td>
+            <td>Credit</td>
+            <td>Gross written premium (4100), Ceding commissions (4600), Broker commission revenue (6100 on broker books).</td>
+          </tr>
+          <tr>
+            <td><strong>5000 – 7999</strong></td>
+            <td>Expenses</td>
+            <td>Debit</td>
+            <td>Claims incurred losses (5000), LAE (5800), Producer commission expense (6100), Staff salaries (6000), Depreciation (6700).</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="entity-hierarchy.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">Entity Hierarchy</span>
+      </a>
+      <a href="journal-entry.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Submodule &rarr;</span>
+        <span class="nav-page-title">Journal Entry</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('chart-of-accounts');
+</script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audit Trail — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Audit &amp; Controls</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Audit Trail</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-clock-rotate-left" style="color: var(--purple);"></i> Immutable Audit Trail <span class="file-tag">audit-trail.html</span></h1>
+      <p>
+        Maintains an unalterable, chronological activity log of every transaction created, updated, approved, or deleted in the system for SOC 1 / SOC 2 compliance.
+      </p>
+    </div>
+
+    <div class="module-card">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-purple">SOC Compliance</span>
+            <span class="badge badge-green">Cryptographic Log</span>
+          </div>
+          <h2 class="module-title">Audit Logging Features</h2>
+        </div>
+        <a href="../audit-trail.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Audit Trail</a>
+      </div>
+
+      <div class="grid-2">
+        <div class="info-card">
+          <h4>Metadata Captured on Every Event</h4>
+          <p>User ID, Timestamp (UTC), Client IP, Module ID, Before/After record snapshot diff, and Approval Sign-Off ID.</p>
+        </div>
+        <div class="info-card">
+          <h4>Export for External Auditors</h4>
+          <p>Filtered audit extracts ready for PwC, EY, Deloitte, and state DOI examination audits.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="compliance-filings.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">Compliance Filings</span>
+      </a>
+      <a href="admin-config-center.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Submodule &rarr;</span>
+        <span class="nav-page-title">Configuration Centre</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('audit-trail');
+</script>
+</body>
+</html>

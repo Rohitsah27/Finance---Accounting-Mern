@@ -1,0 +1,1571 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MGA Operations — Program Hub | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/gl-engine.js"></script>
+  <script src="js/insurance-ops.js"></script>
+  <script src="js/layout.js"></script>
+  <style>
+    /* Responsive Styling for MGA Operations */
+    html, body {
+      max-width: 100vw;
+      overflow-x: hidden;
+    }
+    .main-content {
+      width: calc(100% - var(--sidebar-width));
+      max-width: calc(100% - var(--sidebar-width));
+      box-sizing: border-box;
+      overflow-x: hidden;
+      transition: margin-left 0.2s ease, width 0.2s ease, max-width 0.2s ease, padding 0.2s ease;
+    }
+    body.sb-collapsed .main-content {
+      width: calc(100% - var(--sidebar-collapsed-width));
+      max-width: calc(100% - var(--sidebar-collapsed-width));
+    }
+    .stats-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: var(--space-6);
+    }
+    .stat-card {
+      min-width: 0;
+    }
+    .page-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin-bottom: var(--space-6);
+    }
+    .page-actions {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    .page-tabs {
+      display: flex;
+      overflow-x: auto;
+      white-space: nowrap;
+      scrollbar-width: thin;
+      -webkit-overflow-scrolling: touch;
+    }
+    .table-responsive {
+      width: 100%;
+      max-width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      border-radius: 6px;
+      scrollbar-width: thin;
+      margin-bottom: 16px;
+    }
+    .table-responsive::-webkit-scrollbar {
+      height: 6px;
+    }
+    .table-responsive::-webkit-scrollbar-track {
+      background: var(--color-surface);
+      border-radius: 4px;
+    }
+    .table-responsive::-webkit-scrollbar-thumb {
+      background: var(--color-border);
+      border-radius: 4px;
+    }
+    .table-responsive::-webkit-scrollbar-thumb:hover {
+      background: var(--color-control-border);
+    }
+    .table-head-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 12px;
+    }
+    .comm-metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 14px;
+      margin-top: 20px;
+    }
+    .settlement-card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .workflow-steps-wrap {
+      overflow-x: auto;
+      white-space: nowrap;
+      padding-bottom: 4px;
+      scrollbar-width: thin;
+    }
+
+    @media (max-width: 1200px) {
+      .stats-row {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 900px) {
+      .main-content {
+        padding: 16px;
+      }
+      .comm-metrics-grid {
+        grid-template-columns: 1fr;
+      }
+      .page-header {
+        flex-direction: column;
+        align-items: stretch;
+      }
+      .page-actions {
+        width: 100%;
+        justify-content: flex-start;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .stats-row {
+        grid-template-columns: 1fr;
+      }
+      .stat-card {
+        padding: 14px;
+      }
+      .page-title {
+        font-size: 20px !important;
+      }
+      .page-subtitle {
+        font-size: 12px !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="main-content" id="main-content">
+
+    <div class="page-header">
+      <div>
+        <div class="page-title" id="mga-page-title">MGA Operations</div>
+        <div class="page-subtitle" id="mga-page-subtitle">Bordereaux · Summary engine · Commission calc · Settlement workflow · MGA performance</div>
+      </div>
+      <div class="page-actions" id="mga-page-actions">
+        <button class="btn btn-outline" onclick="switchTab('mga-tabs','settlement')">Settlement Report</button>
+        <button class="btn btn-primary" onclick="openBordereauUpload()">+ Upload Bordereaux</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon si-navy"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 5h14M3 10h14M3 15h8" stroke="#0d1b4b" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        <div class="stat-info">
+          <div class="stat-value" id="card-active-mgas-val">0</div>
+          <div class="stat-label" id="card-active-mgas-lbl">Active MGAs</div>
+          <div class="stat-change text-muted" id="card-active-mgas-sub">No active MGAs</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-green"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 3v14M5 8l5-5 5 5" stroke="#2e7d32" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="stat-info">
+          <div class="stat-value" id="card-premium-val">$0.00</div>
+          <div class="stat-label" id="card-premium-lbl">Premium Collected MTD</div>
+          <div class="stat-change trend-up" id="card-premium-sub">0 policies active</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-coral"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 3v14M5 12l5 5 5-5" stroke="#e05470" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="stat-info">
+          <div class="stat-value" id="card-commission-val">$0.00</div>
+          <div class="stat-label" id="card-commission-lbl">Commission Due</div>
+          <div class="stat-change text-muted" id="card-commission-sub">Avg 15% commission rate</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-orange"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="#e65100" stroke-width="1.8"/><path d="M10 7v3l2 2" stroke="#e65100" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        <div class="stat-info">
+          <div class="stat-value" id="card-settlements-val">0</div>
+          <div class="stat-label" id="card-settlements-lbl">Pending Settlements</div>
+          <div class="stat-change" style="color:var(--orange);" id="card-settlements-sub">$0.00 outstanding</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div id="mga-tabs">
+      <div class="page-tabs" style="border-radius:8px 8px 0 0;">
+        <div class="page-tab active" data-tab="bordereau" onclick="switchTab('mga-tabs','bordereau');closeSplitDetails();">Bordereaux</div>
+        <div class="page-tab" data-tab="commission" onclick="switchTab('mga-tabs','commission');closeSplitDetails();">Commissions</div>
+        <div class="page-tab" data-tab="settlement" onclick="switchTab('mga-tabs','settlement');closeSplitDetails();">Settlement</div>
+        <div class="page-tab" data-tab="performance" id="tab-nav-performance" onclick="switchTab('mga-tabs','performance');closeSplitDetails();">MGA Performance</div>
+      </div>
+
+      <!-- Bordereaux Tab -->
+      <div class="tab-panel active" data-panel="bordereau">
+        <div class="form-card" style="border-radius:0 0 8px 8px;padding:20px;">
+
+
+          <!-- Bordereaux Table -->
+          <div class="table-head-row mt-16">
+            <div class="table-head-title" id="bordereaux-tab-title">Recent Bordereaux Uploads</div>
+            <div class="table-head-actions">
+              <button class="btn btn-outline btn-sm" onclick="downloadBordereauTemplate()">Download Template</button>
+              <button class="btn btn-outline btn-sm" onclick="exportBordereauList()">Export</button>
+            </div>
+          </div>
+          <div class="table-responsive">
+            <table class="data-table" style="min-width:960px;">
+              <thead id="bordereaux-thead">
+                <tr>
+                  <th>Upload ID</th>
+                  <th>MGA</th>
+                  <th>File Name</th>
+                  <th>Period</th>
+                  <th>Policies</th>
+                  <th class="text-right">Total Premium ($)</th>
+                  <th>Uploaded By</th>
+                  <th>Upload Date</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="bordereaux-tbody">
+                <!-- Rendered dynamically from localStorage -->
+              </tbody>
+            </table>
+          </div>
+          <!-- Split Details Placeholder -->
+          <div id="split-details-container"></div>
+        </div>
+      </div>
+
+      <!-- Commissions Tab -->
+      <div class="tab-panel" data-panel="commission">
+        <div class="form-card" style="border-radius:0 0 8px 8px;padding:20px;">
+          <div class="card-title mb-16" id="commissions-tab-title">Commission Schedules &amp; Accruals - May 2026</div>
+          <div class="table-responsive">
+            <table class="data-table" style="min-width:900px;">
+              <thead id="commissions-thead">
+                <tr>
+                  <th>MGA</th>
+                  <th>LOB</th>
+                  <th>Commission Type</th>
+                  <th class="text-right">Base Rate</th>
+                  <th class="text-right">Contingent Rate</th>
+                  <th class="text-right">Gross Premium ($)</th>
+                  <th class="text-right">Commission Earned ($)</th>
+                  <th class="text-right">Paid ($)</th>
+                  <th class="text-right">Accrued ($)</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="commissions-tbody">
+                <!-- Rendered dynamically from localStorage -->
+              </tbody>
+            </table>
+          </div>
+
+          <div class="comm-metrics-grid">
+            <div style="background:var(--bg);border-radius:8px;padding:16px;text-align:center;">
+              <div style="font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;margin-bottom:6px;" id="comm-box1-lbl">Total Earned</div>
+              <div style="font-size:20px;font-weight:800;color:var(--gray-900);" id="comm-total-earned">$0.00</div>
+              <div style="font-size:11.5px;color:var(--gray-500);margin-top:4px;" id="comm-box1-sub">MTD commission</div>
+            </div>
+            <div style="background:var(--green-bg);border-radius:8px;padding:16px;text-align:center;">
+              <div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;margin-bottom:6px;" id="comm-box2-lbl">Paid Out</div>
+              <div style="font-size:20px;font-weight:800;color:var(--green);" id="comm-paid-out">$0.00</div>
+              <div style="font-size:11.5px;color:var(--green);margin-top:4px;" id="comm-box2-sub">Direct MGA payments</div>
+            </div>
+            <div style="background:#fff8f0;border-radius:8px;padding:16px;text-align:center;">
+              <div style="font-size:11px;font-weight:700;color:var(--orange);text-transform:uppercase;margin-bottom:6px;" id="comm-box3-lbl">Accrued Liability</div>
+              <div style="font-size:20px;font-weight:800;color:var(--orange);" id="comm-accrued-liability">$0.00</div>
+              <div style="font-size:11.5px;color:var(--orange);margin-top:4px;" id="comm-box3-sub">Due next settlement</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Settlement Tab -->
+      <div class="tab-panel" data-panel="settlement">
+        <div class="form-card" style="border-radius:0 0 8px 8px;padding:20px;">
+          <div class="card-title mb-16" id="settlements-tab-title">Settlement Workflow - Pending Settlements</div>
+
+          <!-- Settlement Cards -->
+          <div id="settlements-container" style="display:flex;flex-direction:column;gap:16px;">
+            <!-- Rendered dynamically from localStorage -->
+          </div>
+        </div>
+      </div>
+
+      <!-- MGA Performance Tab -->
+      <div class="tab-panel" data-panel="performance" id="tab-panel-performance">
+        <div class="form-card" style="border-radius:0 0 8px 8px;padding:20px;">
+          <div class="card-title mb-16" id="performance-tab-title">MGA Performance Dashboard - YTD 2026</div>
+          <div class="table-responsive">
+            <table class="data-table" style="min-width:880px;">
+              <thead id="performance-thead">
+                <tr>
+                  <th>MGA</th>
+                  <th class="text-right">Policies</th>
+                  <th class="text-right">Gross Written Prem ($)</th>
+                  <th class="text-right">Net Premium ($)</th>
+                  <th class="text-right">Claims Ratio</th>
+                  <th class="text-right">Commission Ratio</th>
+                  <th class="text-right">Combined Ratio</th>
+                  <th>Score</th>
+                  <th>Trend</th>
+                </tr>
+              </thead>
+              <tbody id="mga-performance-tbody">
+                <!-- Rendered dynamically from localStorage -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+
+
+    </div>
+
+  </main>
+
+  <script src="js/app.js"></script>
+  <script>
+    initLayout('mga-operations');
+    renderImportResultBanner('bordereau');
+    (function(){
+      var h = location.hash.replace('#','');
+      var tabs = ['bordereau','split','commission','settlement','performance','partners'];
+      if (tabs.indexOf(h) !== -1) switchTab('mga-tabs', h);
+    })();
+
+    /* ---------- Quick Simulate: one-click, real data ---------- */
+    function renderQuickScenarioSelect() {
+      const sel = document.getElementById('qs-scenario-select');
+      if (!sel) return;
+      sel.innerHTML = IO_QUICK_SCENARIOS.map(s => `<option value="${s.id}">${s.label}</option>`).join('');
+      renderQuickScenarioSummary();
+    }
+    function renderQuickScenarioSummary() {
+      const s = getQuickScenario(document.getElementById('qs-scenario-select').value);
+      document.getElementById('qs-scenario-summary').textContent = s.summary;
+    }
+    function onRunQuickScenario() {
+      const id = document.getElementById('qs-scenario-select').value;
+      const result = runQuickScenario(id);
+      renderMgaTable();
+      showToast(result.mga.name + ' run complete: ' + fmtCurrency(result.invoice.total) + ' invoiced, ' + fmtCurrency(result.bankLine.amount) + ' received. Check Journal Entry, Chart of Accounts, or Bank Reconciliation to see it.', 'success', 5000);
+    }
+
+    /* ---------- Trading Partners: real MGA master data ---------- */
+    function onAddMGA() {
+      const name = document.getElementById('pm-mga-name').value;
+      const code = document.getElementById('pm-mga-code').value;
+      const bindingAuthority = document.getElementById('pm-mga-limit').value;
+      try {
+        const mga = addMGA({ name, code, bindingAuthority });
+        document.getElementById('pm-mga-name').value = '';
+        document.getElementById('pm-mga-code').value = '';
+        document.getElementById('pm-mga-limit').value = '';
+        renderMgaTable();
+        showToast(mga.name + ' added, code ' + mga.code, 'success');
+      } catch (e) {
+        showToast(e.message, 'error');
+      }
+    }
+
+    function renderMgaTable() {
+      const tbody = document.getElementById('pm-mga-tbody');
+      if (!tbody) return;
+      const mgas = getMGAs();
+      tbody.innerHTML = mgas.map(m => `
+        <tr>
+          <td class="cell-link">${m.name}</td>
+          <td>${m.code}</td>
+          <td>${m.bindingAuthority ? fmtCurrency(m.bindingAuthority) : ' - '}</td>
+          <td><span class="badge badge-green">Active</span></td>
+          <td class="text-muted">${new Date(m.createdAt).toLocaleDateString()}</td>
+        </tr>`).join('') || '<tr><td colspan="5" style="text-align:center;color:var(--gray-400);padding:20px;">No MGAs added yet, add one above.</td></tr>';
+    }
+    renderMgaTable();
+    renderQuickScenarioSelect();
+
+    function openBordereauUpload() {
+      document.getElementById('bord-file').click();
+    }
+
+    function handleBordUpload(input) {
+      if (input.files && input.files[0]) {
+        const zone = document.getElementById('bord-upload-zone');
+        zone.innerHTML = `<div style="text-align:center;padding:8px;"><div style="font-size:13px;font-weight:600;color:var(--green);margin-bottom:4px;">✓ ${input.files[0].name}</div><div style="font-size:11.5px;color:var(--gray-500);">Processing bordereaux...</div></div>`;
+        showToast('Bordereaux uploaded - Summary engine running...', 'info');
+        setTimeout(() => showToast('Split complete - 142 policies processed, 0 exceptions', 'success'), 2000);
+      }
+    }
+
+    function approveSettlement(id) {
+      if (confirm(`Approve and initiate payment for ${id}?`)) {
+        showToast(`Settlement ${id} approved - payment initiated`, 'success');
+      }
+    }
+
+    function openSplitResults(bxId, mgaName) {
+      switchTab('mga-tabs', 'split');
+      const title = document.getElementById('split-engine-title');
+      if (title) title.textContent = `Summary Engine - May 2026 (${bxId} · ${mgaName})`;
+      showToast(`Showing split results for ${bxId}`, 'info');
+    }
+
+    function toggleExceptions(btn) {
+      const row = document.getElementById('bx-0045-exceptions');
+      if (!row) return;
+      const open = row.style.display !== 'none';
+      row.style.display = open ? 'none' : 'table-row';
+      btn.textContent = open ? 'Fix Issues' : 'Hide Issues';
+    }
+
+    function resolveException(btn) {
+      const row = btn.closest('div');
+      row.style.opacity = '0.5';
+      btn.textContent = 'Resolved ✓';
+      btn.disabled = true;
+      showToast('Exception marked resolved', 'success');
+    }
+
+    function toggleSettlementDetail(panelId, btn) {
+      const panel = document.getElementById(panelId);
+      if (!panel) return;
+      const open = panel.style.display !== 'none';
+      panel.style.display = open ? 'none' : 'block';
+      btn.textContent = open ? 'View Detail' : 'Hide Detail';
+    }
+
+    function requestRevision(id, btn) {
+      const actionsRow = document.getElementById('sel-0022-actions');
+      const cardEl = actionsRow.closest('div[style*="border:1px solid var(--border)"]');
+      const statusBadge = cardEl ? cardEl.querySelector('.badge') : null;
+      if (statusBadge) { statusBadge.className = 'badge badge-red'; statusBadge.textContent = 'Revision Requested'; }
+      btn.disabled = true;
+      btn.textContent = 'Revision Requested';
+      showToast(`Revision requested for ${id} - MGA notified`, 'warning');
+    }
+
+    function escalateSettlement(id, btn) {
+      const actionsRow = document.getElementById('sel-0021-actions');
+      const cardEl = actionsRow.closest('div[style*="border:1px solid var(--border)"]');
+      const statusBadge = cardEl ? cardEl.querySelector('.badge') : null;
+      if (statusBadge) { statusBadge.className = 'badge badge-red'; statusBadge.textContent = 'Escalated'; }
+      btn.disabled = true;
+      btn.textContent = 'Escalated ✓';
+      showToast(`${id} escalated to Controller`, 'info');
+    }
+
+    /* ---------- Dynamic Operations & Settlements Engine ---------- */
+    function checkSettlementPaid(selId) {
+      const paidList = JSON.parse(localStorage.getItem('v_settlements_paid') || '{}');
+      return !!paidList[selId];
+    }
+    
+    function approveDynamicSettlement(selId) {
+      if (confirm(`Approve and initiate net settlement payment for ${selId}?`)) {
+        const paidList = JSON.parse(localStorage.getItem('v_settlements_paid') || '{}');
+        paidList[selId] = true;
+        localStorage.setItem('v_settlements_paid', JSON.stringify(paidList));
+        
+        // Update badge and buttons in the DOM
+        const badge = document.getElementById(`badge-${selId}`);
+        if (badge) {
+          badge.className = 'badge badge-green';
+          badge.textContent = 'Settled & Paid';
+        }
+        const actions = document.getElementById(`${selId}-actions`);
+        if (actions) {
+          actions.innerHTML = `<button class="btn btn-ghost btn-sm" disabled>✓ Settle and Paid</button>`;
+        }
+        showToast(`Settlement ${selId} approved - Net payment wire processed!`, 'success');
+        
+        // Refresh dynamic UI elements
+        renderDynamicOperations();
+      }
+    }
+
+    function requestDynamicRevision(selId, btn) {
+      showToast(`Revision requested for ${selId} - MGA notified`, 'warning');
+      btn.disabled = true;
+      btn.textContent = 'Revision Requested';
+      const badge = document.getElementById(`badge-${selId}`);
+      if (badge) {
+        badge.className = 'badge badge-red';
+        badge.textContent = 'Revision Requested';
+      }
+    }
+
+    function toggleBordereauDetail(btn, bxId, file, period, count, premium) {
+      const row = btn.closest('tr');
+      const table = row.closest('table');
+      const next = row.nextElementSibling;
+      if (next && next.classList.contains('detail-expand-row')) {
+        next.remove();
+        btn.textContent = 'View';
+        return;
+      }
+      // Remove other open details
+      table.querySelectorAll('.detail-expand-row').forEach(r => r.remove());
+      table.querySelectorAll('tbody tr button').forEach(b => { if (b.textContent === 'Close') b.textContent = 'View'; });
+      
+      const detail = document.createElement('tr');
+      detail.className = 'detail-expand-row';
+      detail.innerHTML = `
+        <td colspan="10" style="background:#f8f9fb;padding:16px 20px;font-size:12.5px;color:var(--gray-700);border-bottom:1.5px solid var(--border);">
+          <div style="display:grid;grid-template-columns:1.5fr 1fr 1fr;gap:20px;">
+            <div>
+              <div style="font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;margin-bottom:6px;">File Details</div>
+              <div style="margin-bottom:4px;"><strong>File Name:</strong> ${file}</div>
+              <div style="margin-bottom:4px;"><strong>Upload ID:</strong> ${bxId}</div>
+              <div><strong>Uploaded By:</strong> Diego Alvarez (Operations Manager)</div>
+            </div>
+            <div>
+              <div style="font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;margin-bottom:6px;">Volume & Date</div>
+              <div style="margin-bottom:4px;"><strong>Reporting Period:</strong> ${period}</div>
+              <div style="margin-bottom:4px;"><strong>Policies Bound:</strong> ${count} policies</div>
+              <div><strong>Total Premium:</strong> $${premium.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
+            </div>
+            <div>
+              <div style="font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;margin-bottom:6px;">Status Tracker</div>
+              <div style="margin-bottom:4px;"><strong>System Status:</strong> <span class="badge badge-green">Processed</span></div>
+              <div style="margin-bottom:4px;"><strong>GL Journal:</strong> Posted (JE-2026-0049)</div>
+              <div><strong>Audit Verification:</strong> Verified ✓</div>
+            </div>
+          </div>
+        </td>
+      `;
+      row.after(detail);
+      btn.textContent = 'Close';
+    }
+
+    function openSplitResults(bxId, mgaName, premium, commission, net) {
+      const container = document.getElementById('split-details-container');
+      if (container) {
+        container.innerHTML = `
+          <div class="form-card" style="padding:20px; border-top: 1.5px solid var(--border); margin-top:20px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+              <div class="card-title" id="split-engine-title">Summary Engine - ${bxId} (${mgaName})</div>
+              <button class="btn btn-ghost btn-sm" onclick="closeSplitDetails()">Close Detail</button>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:20px;">
+              <!-- Split Rules -->
+              <div>
+                <div style="font-size:12px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Split Rules Applied</div>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                  <div style="padding:10px 14px;background:var(--green-bg);border-radius:6px;font-size:12.5px;color:var(--green);display:flex;justify-content:space-between;">
+                    <span>✓ Net of Commission (15%)</span><span class="font-bold">$${(premium - commission).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div style="padding:10px 14px;background:var(--green-bg);border-radius:6px;font-size:12.5px;color:var(--green);display:flex;justify-content:space-between;">
+                    <span>✓ MGA Commission Accrued</span><span class="font-bold">$${commission.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div style="padding:10px 14px;background:var(--green-bg);border-radius:6px;font-size:12.5px;color:var(--green);display:flex;justify-content:space-between;">
+                    <span>✓ Reinsurance Quota Share (25%)</span><span class="font-bold">$${(premium * 0.25).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div style="padding:10px 14px;background:var(--green-bg);border-radius:6px;font-size:12.5px;color:var(--green);display:flex;justify-content:space-between;">
+                    <span>✓ Premium Tax (2.35%)</span><span class="font-bold">$${(premium * 0.0235).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                  </div>
+                </div>
+              </div>
+              <!-- Split Summary -->
+              <div>
+                <div style="font-size:12px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Split Summary</div>
+                <div style="background:var(--bg);border-radius:8px;padding:16px;">
+                  <div class="recon-status-row"><span class="recon-status-label">Gross Bordereaux Premium</span><span class="recon-status-value font-bold">$${premium.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></div>
+                  <div class="recon-status-row"><span class="recon-status-label">Less: MGA Commission (15%)</span><span class="recon-status-value text-coral">− $${commission.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></div>
+                  <div class="recon-status-row"><span class="recon-status-label">Less: Premium Tax (2.35%)</span><span class="recon-status-value text-coral">− $${(premium * 0.0235).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></div>
+                  <div class="recon-status-row"><span class="recon-status-label">Less: RI Cession (25%)</span><span class="recon-status-value text-coral">− $${(premium * 0.25).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></div>
+                  <div class="divider"></div>
+                  <div class="recon-status-row"><span class="recon-status-label font-bold">Net to Veridex</span><span class="recon-status-value text-green font-bold">$${(premium - commission - (premium * 0.0235) - (premium * 0.25)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span></div>
+                </div>
+              </div>
+            </div>
+            
+            <!-- Policy Detail inside Splits -->
+            <div style="font-size:12px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">Bordereau Policy Details</div>
+            <div style="overflow-x:auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Policy No.</th>
+                    <th>Effective Date</th>
+                    <th>LOB</th>
+                    <th class="text-right">Written Prem ($)</th>
+                    <th class="text-right">MGA Comm ($)</th>
+                    <th class="text-right">RI Cession ($)</th>
+                    <th class="text-right">Tax ($)</th>
+                    <th class="text-right">Net ($)</th>
+                  </tr>
+                </thead>
+                <tbody id="splits-policy-details-tbody">
+                  <!-- Rendered by helper -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        `;
+        
+        renderSplitPolicyDetails();
+        container.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      showToast(`Showing split results for ${bxId}`, 'info');
+    }
+
+    function closeSplitDetails() {
+      const container = document.getElementById('split-details-container');
+      if (container) {
+        container.innerHTML = '';
+      }
+    }
+
+    function renderSplitPolicyDetails() {
+      const tbody = document.getElementById('splits-policy-details-tbody');
+      if (!tbody) return;
+      
+      const active = typeof getActiveEntity === 'function' ? getActiveEntity() : null;
+      const bType = active ? active.businessType : 'mga';
+      const currentUser = JSON.parse(sessionStorage.getItem('v_current_user') || '{}');
+      const prefix = (currentUser.email === 'carrier@gmail.com') ? 'carrier_' : 'mga_';
+      
+      const policies = JSON.parse(localStorage.getItem(prefix + 'pas_policies') || '[]');
+      
+      tbody.innerHTML = policies.map(p => {
+        const prem = parseFloat(p.premium) || 0;
+        const comm = prem * 0.15;
+        const reins = prem * 0.25;
+        const tax = prem * 0.0235;
+        const net = prem - comm - reins - tax;
+        
+        return `
+          <tr>
+            <td class="cell-link">${p.number}</td>
+            <td>${p.date || '2026-08-31'}</td>
+            <td>General Liability</td>
+            <td class="text-right">$${prem.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+            <td class="text-right text-coral">$${comm.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+            <td class="text-right text-coral">$${reins.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+            <td class="text-right text-coral">$${tax.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+            <td class="text-right text-green font-semibold">$${net.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
+    function renderDynamicOperations() {
+      const active = typeof getActiveEntity === 'function' ? getActiveEntity() : null;
+      const bType = active ? active.businessType : 'mga';
+      const currentUser = JSON.parse(sessionStorage.getItem('v_current_user') || '{}');
+      const isCarrier = (currentUser.email === 'carrier@gmail.com' || bType === 'carrier');
+      const prefix = isCarrier ? 'carrier_' : 'mga_';
+      
+      // Dynamic Page Header and Actions
+      const pageTitleEl = document.getElementById('mga-page-title');
+      const pageSubEl = document.getElementById('mga-page-subtitle');
+      const pageActsEl = document.getElementById('mga-page-actions');
+
+      if (pageTitleEl && pageSubEl && pageActsEl) {
+        if (isCarrier) {
+          pageTitleEl.textContent = 'MGA Operations & Program Oversight';
+          pageSubEl.textContent = 'Inbound Bordereaux Ingestion · MGA Commission Audit · Net Wire Reconciliation · Program Surveillance';
+          pageActsEl.innerHTML = `
+            <button class="btn btn-outline" onclick="switchTab('mga-tabs','settlement')">Audit Settlement</button>
+            <button class="btn btn-primary" onclick="handleCarrierHeaderIngest()">+ Ingest Bordereaux</button>
+          `;
+        } else {
+          pageTitleEl.textContent = 'MGA Operations & Carrier Reporting';
+          pageSubEl.textContent = 'Monthly Bordereaux Reporting · Carrier Remittance · Commission Override Ledger · Broker Network';
+          pageActsEl.innerHTML = `
+            <button class="btn btn-outline" onclick="switchTab('mga-tabs','settlement')">Remittance Statement</button>
+            <button class="btn btn-primary" onclick="handleMGAGenerateBordereau()">+ Generate &amp; Submit Bordereau</button>
+          `;
+        }
+      }
+
+      // Role-specific Tab Visibility:
+      // • Bordereaux: Active for BOTH MGA & Carrier (MGA submits, Carrier audits/ingests)
+      // • Commissions: Active for BOTH MGA & Carrier (MGA tracks revenue/splits, Carrier records expense)
+      // • Settlement: Active for BOTH MGA & Carrier (MGA remits wire, Carrier matches cash)
+      // • MGA Performance: CARRIER ONLY (Carrier monitors appointed MGAs). HIDDEN for MGA.
+      const perfNav = document.getElementById('tab-nav-performance');
+      const perfPanel = document.getElementById('tab-panel-performance');
+      if (perfNav && perfPanel) {
+        if (isCarrier) {
+          perfNav.style.display = '';
+          if (perfNav.classList.contains('active')) {
+            perfPanel.style.display = '';
+          }
+        } else {
+          perfNav.style.display = 'none';
+          perfPanel.style.display = 'none';
+          if (perfNav.classList.contains('active')) {
+            if (typeof switchTab === 'function') {
+              switchTab('mga-tabs', 'bordereau');
+            }
+          }
+        }
+      }
+
+      let policies = JSON.parse(localStorage.getItem(prefix + 'pas_policies') || '[]');
+      if (!policies || policies.length === 0) {
+        policies = JSON.parse(localStorage.getItem('mga_pas_policies') || localStorage.getItem('carrier_pas_policies') || '[]');
+      }
+      if (!policies || policies.length === 0) {
+        policies = [{
+          number: "POL-V8NHT",
+          name: "Ayushi",
+          date: "2026-08-20",
+          premium: 39260.00,
+          commissionPct: 15,
+          status: "BOUND",
+          brokerName: "HIT",
+          mgaName: active && active.name ? active.name : "NTA"
+        }];
+        try {
+          localStorage.setItem(prefix + 'pas_policies', JSON.stringify(policies));
+          localStorage.setItem('mga_pas_policies', JSON.stringify(policies));
+        } catch (e) {}
+      }
+      
+      const bordTbody = document.getElementById('bordereaux-tbody');
+      const setContainer = document.getElementById('settlements-container');
+      const perfTbody = document.getElementById('mga-performance-tbody');
+      
+      if (!bordTbody || !setContainer) return;
+      
+      // Group policies by month/year
+      const groups = {};
+      policies.forEach(p => {
+        const d = new Date(p.date || Date.now());
+        const monthLabel = d.toLocaleString('en-US', { month: 'long', year: 'numeric' }); // e.g. "August 2026"
+        if (!groups[monthLabel]) {
+          groups[monthLabel] = {
+            mgaName: active && active.businessType === 'mga' ? active.name : "NTA",
+            carrierName: "Southlake Specialty",
+            monthLabel: monthLabel,
+            policies: [],
+            premium: 0,
+            commission: 0,
+            net: 0,
+            dateKey: p.date || new Date().toISOString().slice(0, 10)
+          };
+        }
+        const commPct = p.commissionPct || 15;
+        const premVal = parseFloat(p.premium) || 0;
+        const commVal = premVal * (commPct / 100);
+        groups[monthLabel].policies.push(p);
+        groups[monthLabel].premium += premVal;
+        groups[monthLabel].commission += commVal;
+        groups[monthLabel].net += (premVal - commVal);
+      });
+      
+      const sortedGroups = Object.values(groups).sort((a,b) => new Date(b.dateKey) - new Date(a.dateKey));
+      
+      // Update top stats cards with strict role-specific metrics
+      const cardAmVal = document.getElementById('card-active-mgas-val');
+      const cardAmLbl = document.getElementById('card-active-mgas-lbl');
+      const cardAmSub = document.getElementById('card-active-mgas-sub');
+
+      const cardPremVal = document.getElementById('card-premium-val');
+      const cardPremLbl = document.getElementById('card-premium-lbl');
+      const cardPremSub = document.getElementById('card-premium-sub');
+
+      const cardCommVal = document.getElementById('card-commission-val');
+      const cardCommLbl = document.getElementById('card-commission-lbl');
+      const cardCommSub = document.getElementById('card-commission-sub');
+
+      const cardSetVal = document.getElementById('card-settlements-val');
+      const cardSetLbl = document.getElementById('card-settlements-lbl');
+      const cardSetSub = document.getElementById('card-settlements-sub');
+
+      if (isCarrier) {
+        // Carrier View: Oversees MGAs, gross written premium reported, MGA commission expense, net receivable
+        const isBxSubmitted = checkBordereauSubmitted('BX-2026-0010');
+        const isBxIngested = checkBordereauIngested('BX-2026-0010');
+
+        if (cardAmLbl) cardAmLbl.textContent = 'Active MGAs';
+        if (cardAmVal) cardAmVal.textContent = '1';
+        if (cardAmSub) cardAmSub.textContent = 'NTA · Program Manager';
+
+        if (cardPremLbl) cardPremLbl.textContent = 'Reported GWP MTD';
+        if (cardPremVal) cardPremVal.textContent = isBxSubmitted ? '$33,257.00' : '$0.00';
+        if (cardPremSub) cardPremSub.textContent = isBxSubmitted 
+          ? (isBxIngested ? '1 policy ingested into GL' : '1 policy reported via Bordereau')
+          : 'Awaiting MGA Bordereau submission';
+
+        if (cardCommLbl) cardCommLbl.textContent = 'MGA Commission Expense';
+        if (cardCommVal) cardCommVal.textContent = isBxSubmitted ? '$3,500.00' : '$0.00';
+        if (cardCommSub) cardCommSub.textContent = isBxSubmitted 
+          ? 'DUAA Program Override (10.52%)' 
+          : 'Pending monthly report';
+
+        if (cardSetLbl) cardSetLbl.textContent = 'Net Receivable from MGA';
+        if (cardSetVal) cardSetVal.textContent = isBxSubmitted ? '1' : '0';
+        if (cardSetSub) cardSetSub.textContent = isBxSubmitted 
+          ? (isBxIngested ? '$29,757.00 awaiting cash wire match' : '$29,757.00 pending GL ingestion') 
+          : '$0.00 open receivable';
+      } else {
+        // MGA View: Underwriting Carrier partner, broker collections, retained revenue, net carrier remittance
+        if (cardAmLbl) cardAmLbl.textContent = 'Underwriting Carrier';
+        if (cardAmVal) cardAmVal.textContent = 'Southlake';
+        if (cardAmSub) cardAmSub.textContent = 'Southlake Specialty · DUAA Partner';
+
+        if (cardPremLbl) cardPremLbl.textContent = 'Broker Premium Collected';
+        if (cardPremVal) cardPremVal.textContent = '$36,760.00';
+        if (cardPremSub) cardPremSub.textContent = 'From HIT (Broker) · $39,260 total billed';
+
+        if (cardCommLbl) cardCommLbl.textContent = 'MGA Revenue & Fees';
+        if (cardCommVal) cardCommVal.textContent = '$3,500.00';
+        if (cardCommSub) cardCommSub.textContent = 'Retained Override & Policy Fee';
+
+        if (cardSetLbl) cardSetLbl.textContent = 'Net Payable to Carrier';
+        if (cardSetVal) cardSetVal.textContent = '1';
+        if (cardSetSub) cardSetSub.textContent = '$29,757.00 remittance due to Southlake';
+      }
+      
+      // 1. Render Bordereaux Table (Role-specific headers & data)
+      const bxTitle = document.getElementById('bordereaux-tab-title');
+      const bxThead = document.getElementById('bordereaux-thead');
+
+      if (bxTitle) {
+        bxTitle.textContent = isCarrier ? 'Inbound MGA Bordereaux Submissions' : 'Bordereaux Register — Reporting to Carrier';
+      }
+
+      if (bxThead) {
+        if (isCarrier) {
+          bxThead.innerHTML = `
+            <tr>
+              <th>Upload ID</th>
+              <th>Reporting MGA</th>
+              <th>File Name</th>
+              <th>Period</th>
+              <th>Policies</th>
+              <th class="text-right">Reported GWP ($)</th>
+              <th class="text-right">MGA Comm ($)</th>
+              <th class="text-right">Net Due to Carrier ($)</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          `;
+        } else {
+          bxThead.innerHTML = `
+            <tr>
+              <th>Report ID</th>
+              <th>Carrier Partner</th>
+              <th>File Name</th>
+              <th>Period</th>
+              <th>Policies</th>
+              <th class="text-right">Broker Net ($)</th>
+              <th class="text-right">MGA Override ($)</th>
+              <th class="text-right">Carrier Remittance ($)</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          `;
+        }
+      }
+
+      if (isCarrier) {
+        const submittedGroups = sortedGroups.filter((g, idx) => {
+          const bxId = `BX-2026-00${String(10 + idx).slice(-2)}`;
+          return checkBordereauSubmitted(bxId);
+        });
+
+        if (submittedGroups.length === 0) {
+          bordTbody.innerHTML = `
+            <tr>
+              <td colspan="10" style="text-align:center;padding:48px 20px;color:var(--gray-400);">
+                <div style="font-size:32px;margin-bottom:10px;">📭</div>
+                <div class="font-semibold" style="font-size:14px;color:var(--gray-700);margin-bottom:6px;">No Inbound Bordereaux Received Yet</div>
+                <div style="font-size:12.5px;color:var(--gray-500);max-width:520px;margin:0 auto;line-height:1.5;">
+                  MGA NTA has not transmitted the monthly Bordereau report. When NTA submits the report, it will appear here for Carrier audit and General Ledger ingestion.
+                </div>
+              </td>
+            </tr>
+          `;
+        } else {
+          bordTbody.innerHTML = submittedGroups.map((g, idx) => {
+            const bxId = `BX-2026-00${String(10 + idx).slice(-2)}`;
+            const fileName = `${g.mgaName.replace(/\s+/g, '_')}_${g.monthLabel.replace(/\s+/g, '')}_Bordereau.xlsx`;
+            const isBxIngested = checkBordereauIngested(bxId);
+            return `
+              <tr>
+                <td class="cell-link">${bxId}</td>
+                <td><span class="badge badge-navy">${g.mgaName}</span></td>
+                <td>${fileName}</td>
+                <td>${g.monthLabel}</td>
+                <td>1</td>
+                <td class="text-right font-semibold">$33,257.00</td>
+                <td class="text-right text-coral">$3,500.00</td>
+                <td class="text-right text-green font-semibold">$29,757.00</td>
+                <td><span class="badge ${isBxIngested ? 'badge-green' : 'badge-orange'}">${isBxIngested ? 'Ingested to Ledger' : 'Pending Ingestion'}</span></td>
+                <td style="white-space: nowrap;">
+                  <div style="display:inline-flex; gap:6px; align-items:center;">
+                    <button class="btn btn-ghost btn-sm" onclick="toggleBordereauDetail(this, '${bxId}', '${fileName}', '${g.monthLabel}', 1, 33257)">Audit</button>
+                    <button class="btn btn-outline btn-sm" onclick="openSplitResults('${bxId}', '${g.mgaName}', 33257, 3500, 29757)">Splits</button>
+                    ${!isBxIngested ? `<button class="btn btn-primary btn-sm" onclick="ingestBordereauToCarrier('${bxId}', '${g.mgaName}', 33257)">Ingest to Carrier GL</button>` : ''}
+                  </div>
+                </td>
+              </tr>
+            `;
+          }).join('');
+        }
+      } else {
+        // MGA view: Sees reporting to Southlake, download XLSX, submit button
+        bordTbody.innerHTML = sortedGroups.map((g, idx) => {
+          const bxId = `BX-2026-00${String(10 + idx).slice(-2)}`;
+          const fileName = `${g.mgaName.replace(/\s+/g, '_')}_${g.monthLabel.replace(/\s+/g, '')}_Bordereau.xlsx`;
+          const isBxSubmitted = checkBordereauSubmitted(bxId);
+          const isBxIngested = checkBordereauIngested(bxId);
+
+          let statusBadge = '';
+          if (isBxIngested) {
+            statusBadge = '<span class="badge badge-green">Ingested by Southlake</span>';
+          } else if (isBxSubmitted) {
+            statusBadge = '<span class="badge badge-blue">Submitted to Southlake</span>';
+          } else {
+            statusBadge = '<span class="badge badge-orange">Ready to Submit</span>';
+          }
+
+          return `
+            <tr>
+              <td class="cell-link">${bxId}</td>
+              <td><span class="badge badge-navy">Southlake Specialty</span></td>
+              <td>${fileName}</td>
+              <td>${g.monthLabel}</td>
+              <td>1</td>
+              <td class="text-right font-semibold">$36,760.00</td>
+              <td class="text-right text-coral">$3,500.00</td>
+              <td class="text-right text-green font-semibold">$29,757.00</td>
+              <td>${statusBadge}</td>
+              <td style="white-space: nowrap;">
+                <div style="display:inline-flex; gap:6px; align-items:center;">
+                  <button class="btn btn-ghost btn-sm" onclick="toggleBordereauDetail(this, '${bxId}', '${fileName}', '${g.monthLabel}', 1, 36760)">View</button>
+                  <button class="btn btn-outline btn-sm" onclick="openSplitResults('${bxId}', 'Southlake Specialty', 36760, 3500, 29757)">Financial Splits</button>
+                  ${!isBxSubmitted ? `
+                    <button class="btn btn-primary btn-sm" onclick="submitBordereauToCarrier('${bxId}', 'Southlake Specialty')">Submit to Carrier</button>
+                  ` : `
+                    <button class="btn btn-ghost btn-sm" disabled>✓ Transmitted</button>
+                  `}
+                  <button class="btn btn-outline btn-sm" onclick="downloadBordereauTemplate()">Download XLSX</button>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
+      }
+      
+      // 2. Render Settlements Cards (Role-specific workflows)
+      const setTile = document.getElementById('settlements-tab-title');
+      if (setTile) {
+        setTile.textContent = isCarrier 
+          ? 'Carrier Inbound Net Wire Settlement — Pending MGA Remittances' 
+          : 'Carrier Remittance Settlement Workflow — Outbound Net Premium Wire';
+      }
+
+      if (isCarrier) {
+        const isBxSubmitted = checkBordereauSubmitted('BX-2026-0010');
+        if (!isBxSubmitted) {
+          setContainer.innerHTML = `
+            <div style="text-align:center;padding:48px 20px;color:var(--gray-400);border:1px dashed var(--border);border-radius:8px;">
+              <div style="font-size:32px;margin-bottom:10px;">⏳</div>
+              <div class="font-semibold" style="font-size:14px;color:var(--gray-700);margin-bottom:6px;">No Inbound Settlement Awaiting Wire Match</div>
+              <div style="font-size:12.5px;color:var(--gray-500);max-width:520px;margin:0 auto;line-height:1.5;">
+                MGA NTA has not transmitted the monthly Bordereau report yet. The Bordereau must be submitted and ingested into Carrier GL before wire reconciliation can begin.
+              </div>
+            </div>
+          `;
+        } else {
+          setContainer.innerHTML = sortedGroups.map((g, idx) => {
+            const selId = `SEL-2026-00${String(20 + idx).slice(-2)}`;
+            const bxId = `BX-2026-00${String(10 + idx).slice(-2)}`;
+            const isPaid = (localStorage.getItem('v_carrier_wire_matched_POL-V8NHT') === 'true' || checkSettlementPaid(selId));
+            
+            return `
+              <div style="border:1px solid var(--border);border-radius:8px;padding:16px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+                  <div>
+                    <div class="font-semibold" style="font-size:14px;">NTA - ${g.monthLabel} Inbound Settlement</div>
+                    <div style="font-size:12px;color:var(--gray-500);">${selId} · Date: ${new Date(g.dateKey).toLocaleDateString()}</div>
+                  </div>
+                  <span class="badge ${isPaid ? 'badge-green' : 'badge-orange'}" id="badge-${selId}">
+                    ${isPaid ? 'Settled & Wire Matched' : 'Awaiting Inbound Wire'}
+                  </span>
+                </div>
+                <div class="settlement-card-grid">
+                  <div style="font-size:12px;"><div style="color:var(--gray-500);margin-bottom:2px;">Reported GWP</div><div class="font-bold">$33,257.00</div></div>
+                  <div style="font-size:12px;"><div style="color:var(--gray-500);margin-bottom:2px;">MGA Commission Offset</div><div class="font-bold text-coral">-$3,500.00</div></div>
+                  <div style="font-size:12px;"><div style="color:var(--gray-500);margin-bottom:2px;">Claims Paid via MGA</div><div class="font-bold">$0.00</div></div>
+                  <div style="font-size:12px;"><div style="color:var(--gray-500);margin-bottom:2px;">Net Wire Expected</div><div class="font-bold text-green font-semibold">$29,757.00</div></div>
+                </div>
+                <div class="workflow-steps-wrap">
+                  <div class="workflow-steps mb-12" style="min-width:460px;">
+                    <span class="wf-step done">Bordereau Ingested</span>
+                    <span class="wf-arrow">›</span>
+                    <span class="wf-step done">AR Established</span>
+                    <span class="wf-arrow">›</span>
+                    <span class="wf-step ${isPaid ? 'done' : 'active'}">Wire Verification</span>
+                    <span class="wf-arrow">›</span>
+                    <span class="wf-step ${isPaid ? 'active' : ''}">Cash Reconciled</span>
+                  </div>
+                </div>
+                <div style="display:flex;gap:8px;flex-wrap:wrap;" id="${selId}-actions">
+                  ${isPaid ? `
+                    <button class="btn btn-ghost btn-sm" disabled>✓ Wire Matched &amp; Reconciled ($29,757.00)</button>
+                  ` : `
+                    <button class="btn btn-primary btn-sm" id="btn-pay-${selId}" onclick="matchCarrierWire('${selId}')">Match Wire ($29,757.00)</button>
+                    <button class="btn btn-outline btn-sm" onclick="toggleSettlementDetail('${selId}-detail',this)">Audit Detail</button>
+                  `}
+                </div>
+                <div id="${selId}-detail" style="display:none;margin-top:12px;padding:12px 14px;background:var(--bg);border-radius:8px;font-size:12px;">
+                  <div style="display:flex;justify-content:space-between;padding:4px 0;"><span>Bordereau Reference</span><span class="font-semibold">${bxId}</span></div>
+                  <div style="display:flex;justify-content:space-between;padding:4px 0;"><span>Reporting MGA</span><span class="font-semibold">NTA</span></div>
+                  <div style="display:flex;justify-content:space-between;padding:4px 0;"><span>Legal AR Account</span><span class="font-semibold">1100 - Premium AR (NTA)</span></div>
+                  <div style="display:flex;justify-content:space-between;padding:4px 0;"><span>Expected Inbound Settlement</span><span class="font-semibold">$29,757.00</span></div>
+                </div>
+              </div>
+            `;
+          }).join('');
+        }
+      } else {
+        // MGA View: Outbound remittance to Southlake
+        setContainer.innerHTML = sortedGroups.map((g, idx) => {
+          const selId = `SEL-2026-00${String(20 + idx).slice(-2)}`;
+          const bxId = `BX-2026-00${String(10 + idx).slice(-2)}`;
+          const isPaid = (localStorage.getItem('v_mga_settlement_paid_POL-V8NHT') === 'true' || checkSettlementPaid(selId));
+          return `
+            <div style="border:1px solid var(--border);border-radius:8px;padding:16px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;">
+                <div>
+                  <div class="font-semibold" style="font-size:14px;">Southlake Specialty - ${g.monthLabel} DUAA Remittance</div>
+                  <div style="font-size:12px;color:var(--gray-500);">${selId} · Date: ${new Date(g.dateKey).toLocaleDateString()}</div>
+                </div>
+                <span class="badge ${isPaid ? 'badge-green' : 'badge-orange'}" id="badge-${selId}">
+                  ${isPaid ? 'Remitted & Paid' : 'Remittance Due'}
+                </span>
+              </div>
+              <div class="settlement-card-grid">
+                <div style="font-size:12px;"><div style="color:var(--gray-500);margin-bottom:2px;">Broker Remittance Collected</div><div class="font-bold">$36,760.00</div></div>
+                <div style="font-size:12px;"><div style="color:var(--gray-500);margin-bottom:2px;">Retained MGA Revenue</div><div class="font-bold text-green">-$3,500.00</div></div>
+                <div style="font-size:12px;"><div style="color:var(--gray-500);margin-bottom:2px;">Texas Tax Escrow</div><div class="font-bold text-coral">-$3,503.00</div></div>
+                <div style="font-size:12px;"><div style="color:var(--gray-500);margin-bottom:2px;">Carrier Net Remittance</div><div class="font-bold text-navy font-semibold">$29,757.00</div></div>
+              </div>
+              <div class="workflow-steps-wrap">
+                <div class="workflow-steps mb-12" style="min-width:460px;">
+                  <span class="wf-step done">Broker Collected</span>
+                  <span class="wf-arrow">›</span>
+                  <span class="wf-step done">Revenue Retained</span>
+                  <span class="wf-arrow">›</span>
+                  <span class="wf-step ${isPaid ? 'done' : 'active'}">Remittance Authorization</span>
+                  <span class="wf-arrow">›</span>
+                  <span class="wf-step ${isPaid ? 'active' : ''}">Carrier Wire Paid</span>
+                </div>
+              </div>
+              <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;" id="${selId}-actions">
+                ${isPaid ? `
+                  <button class="btn btn-ghost btn-sm" disabled>✓ Remitted to Southlake ($29,757.00)</button>
+                  <button class="btn btn-outline btn-sm" onclick="toggleSettlementDetail('${selId}-detail',this)">View Statement</button>
+                ` : `
+                  <button class="btn btn-outline btn-sm" onclick="toggleSettlementDetail('${selId}-detail',this)">View Statement</button>
+                  <a href="accounts-payable.html" class="btn btn-primary btn-sm" style="text-decoration:none;">Pay in Accounts Payable →</a>
+                `}
+              </div>
+              <div id="${selId}-detail" style="display:none;margin-top:12px;padding:12px 14px;background:var(--bg);border-radius:8px;font-size:12px;">
+                <div style="display:flex;justify-content:space-between;padding:4px 0;"><span>Bordereau Reference</span><span class="font-semibold">${bxId}</span></div>
+                <div style="display:flex;justify-content:space-between;padding:4px 0;"><span>Carrier Partner</span><span class="font-semibold">Southlake Specialty</span></div>
+                <div style="display:flex;justify-content:space-between;padding:4px 0;"><span>Remittance AP Account</span><span class="font-semibold">2200 - Premium Payable (Southlake)</span></div>
+                <div style="display:flex;justify-content:space-between;padding:4px 0;"><span>Wire Amount</span><span class="font-semibold">$29,757.00</span></div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // 3. Render Commissions Table & Metrics (Role-specific)
+      const commTitle = document.getElementById('commissions-tab-title');
+      const commThead = document.getElementById('commissions-thead');
+      const commTbody = document.getElementById('commissions-tbody');
+
+      if (commTitle) {
+        commTitle.textContent = isCarrier 
+          ? 'MGA Program Commission Schedules & Accruals — May 2026' 
+          : 'MGA Program Override Revenue & Intermediary Split Schedules — May 2026';
+      }
+
+      if (commThead) {
+        if (isCarrier) {
+          commThead.innerHTML = `
+            <tr>
+              <th>Reporting MGA</th>
+              <th>Line of Business</th>
+              <th>Program Agreement</th>
+              <th class="text-right">Override Rate</th>
+              <th class="text-right">Reported GWP ($)</th>
+              <th class="text-right">Commission Expense ($)</th>
+              <th class="text-right">Paid ($)</th>
+              <th class="text-right">Accrued ($)</th>
+              <th>Status</th>
+            </tr>
+          `;
+        } else {
+          commThead.innerHTML = `
+            <tr>
+              <th>Carrier Partner</th>
+              <th>Program / LOB</th>
+              <th>Broker / Producer</th>
+              <th class="text-right">Billed Premium ($)</th>
+              <th class="text-right">Broker Comm ($)</th>
+              <th class="text-right">MGA Fee/Override ($)</th>
+              <th class="text-right">Surplus Tax ($)</th>
+              <th class="text-right">Net Remittance ($)</th>
+            </tr>
+          `;
+        }
+      }
+
+      if (commTbody) {
+        if (isCarrier) {
+          const isBxSubmitted = checkBordereauSubmitted('BX-2026-0010');
+          if (!isBxSubmitted) {
+            commTbody.innerHTML = `
+              <tr>
+                <td colspan="9" style="text-align:center;padding:48px 20px;color:var(--gray-400);">
+                  <div style="font-size:32px;margin-bottom:10px;">📋</div>
+                  <div class="font-semibold" style="font-size:14px;color:var(--gray-700);margin-bottom:6px;">No Commission Accruals Pending</div>
+                  <div style="font-size:12.5px;color:var(--gray-500);max-width:520px;margin:0 auto;line-height:1.5;">
+                    MGA NTA has not transmitted the monthly Bordereau report yet. Commission expense schedules and DUAA override accruals will be calculated upon Bordereau ingestion.
+                  </div>
+                </td>
+              </tr>
+            `;
+            const b1Val = document.getElementById('comm-total-earned');
+            const b2Val = document.getElementById('comm-paid-out');
+            const b3Val = document.getElementById('comm-accrued-liability');
+            if (b1Val) b1Val.textContent = '$0.00';
+            if (b2Val) b2Val.textContent = '$0.00';
+            if (b3Val) b3Val.textContent = '$0.00';
+          } else {
+            commTbody.innerHTML = `
+              <tr>
+                <td><span class="badge badge-navy">NTA</span></td>
+                <td>Commercial Trucking</td>
+                <td>DUAA Program Override</td>
+                <td class="text-right">10.52%</td>
+                <td class="text-right font-semibold">$33,257.00</td>
+                <td class="text-right text-coral font-semibold">$3,500.00</td>
+                <td class="text-right text-green">$0.00</td>
+                <td class="text-right text-coral">$3,500.00</td>
+                <td><span class="badge badge-orange">Accrued</span></td>
+              </tr>
+            `;
+            const b1Lbl = document.getElementById('comm-box1-lbl');
+            const b1Val = document.getElementById('comm-total-earned');
+            const b1Sub = document.getElementById('comm-box1-sub');
+            if (b1Lbl) b1Lbl.textContent = 'Total Commission Expense';
+            if (b1Val) b1Val.textContent = '$3,500.00';
+            if (b1Sub) b1Sub.textContent = 'MTD MGA Incurred';
+
+            const b2Lbl = document.getElementById('comm-box2-lbl');
+            const b2Val = document.getElementById('comm-paid-out');
+            const b2Sub = document.getElementById('comm-box2-sub');
+            if (b2Lbl) b2Lbl.textContent = 'Paid Out';
+            if (b2Val) b2Val.textContent = '$0.00';
+            if (b2Sub) b2Sub.textContent = 'Net Settled';
+
+            const b3Lbl = document.getElementById('comm-box3-lbl');
+            const b3Val = document.getElementById('comm-accrued-liability');
+            const b3Sub = document.getElementById('comm-box3-sub');
+            if (b3Lbl) b3Lbl.textContent = 'Accrued Liability';
+            if (b3Val) b3Val.textContent = '$3,500.00';
+            if (b3Sub) b3Sub.textContent = 'Open Bordereau Offset';
+          }
+        } else {
+          commTbody.innerHTML = `
+            <tr>
+              <td><span class="badge badge-navy">Southlake Specialty</span></td>
+              <td>Commercial Trucking</td>
+              <td>HIT (Broker)</td>
+              <td class="text-right font-semibold">$39,260.00</td>
+              <td class="text-right text-coral">$2,500.00</td>
+              <td class="text-right text-green font-semibold">$3,500.00</td>
+              <td class="text-right">$3,503.00</td>
+              <td class="text-right font-bold text-navy">$29,757.00</td>
+            </tr>
+          `;
+          const b1Lbl = document.getElementById('comm-box1-lbl');
+          const b1Val = document.getElementById('comm-total-earned');
+          const b1Sub = document.getElementById('comm-box1-sub');
+          if (b1Lbl) b1Lbl.textContent = 'MGA Revenue Earned';
+          if (b1Val) b1Val.textContent = '$3,500.00';
+          if (b1Sub) b1Sub.textContent = 'Program Override & Policy Fee';
+
+          const b2Lbl = document.getElementById('comm-box2-lbl');
+          const b2Val = document.getElementById('comm-paid-out');
+          const b2Sub = document.getElementById('comm-box2-sub');
+          if (b2Lbl) b2Lbl.textContent = 'Broker Commission Retained';
+          if (b2Val) b2Val.textContent = '$2,500.00';
+          if (b2Sub) b2Sub.textContent = 'Producer Commission (HIT)';
+
+          const b3Lbl = document.getElementById('comm-box3-lbl');
+          const b3Val = document.getElementById('comm-accrued-liability');
+          const b3Sub = document.getElementById('comm-box3-sub');
+          if (b3Lbl) b3Lbl.textContent = 'Texas Surplus Tax Escrow';
+          if (b3Val) b3Val.textContent = '$3,503.00';
+          if (b3Sub) b3Sub.textContent = 'State Tax Liability Due';
+        }
+      }
+
+      // 4. Render Performance Table (Role-specific)
+      const perfTitle = document.getElementById('performance-tab-title');
+      const perfThead = document.getElementById('performance-thead');
+
+      if (perfTitle) {
+        perfTitle.textContent = isCarrier
+          ? 'MGA Program Performance Surveillance — YTD 2026'
+          : 'Carrier & Program Distribution Performance — YTD 2026';
+      }
+
+      if (perfThead) {
+        if (isCarrier) {
+          perfThead.innerHTML = `
+            <tr>
+              <th>MGA</th>
+              <th class="text-right">Policies</th>
+              <th class="text-right">Gross Written Prem ($)</th>
+              <th class="text-right">Net Premium ($)</th>
+              <th class="text-right">Claims Ratio</th>
+              <th class="text-right">Commission Ratio</th>
+              <th class="text-right">Combined Ratio</th>
+              <th>Score</th>
+              <th>Trend</th>
+            </tr>
+          `;
+        } else {
+          perfThead.innerHTML = `
+            <tr>
+              <th>Program / Carrier</th>
+              <th>Primary Broker</th>
+              <th class="text-right">Policies</th>
+              <th class="text-right">Invoiced Premium ($)</th>
+              <th class="text-right">MGA Revenue ($)</th>
+              <th class="text-right">Loss Ratio</th>
+              <th>Remittance Status</th>
+              <th>Program Score</th>
+              <th>Trend</th>
+            </tr>
+          `;
+        }
+      }
+
+      if (perfTbody) {
+        if (isCarrier) {
+          perfTbody.innerHTML = `
+            <tr>
+              <td><span class="badge badge-navy">NTA</span></td>
+              <td class="text-right">1</td>
+              <td class="text-right font-semibold">$33,257.00</td>
+              <td class="text-right">$29,757.00</td>
+              <td class="text-right">0.0%</td>
+              <td class="text-right">10.52%</td>
+              <td class="text-right text-green font-semibold">10.52%</td>
+              <td><span class="badge badge-green">98 (A+)</span></td>
+              <td><span class="trend-up">↑ 5%</span></td>
+            </tr>
+          `;
+        } else {
+          perfTbody.innerHTML = `
+            <tr>
+              <td><span class="badge badge-navy">Southlake Commercial Trucking</span></td>
+              <td>HIT (Insurance Broker)</td>
+              <td class="text-right">1</td>
+              <td class="text-right font-semibold">$39,260.00</td>
+              <td class="text-right text-green font-semibold">$3,500.00</td>
+              <td class="text-right">0.0%</td>
+              <td><span class="badge badge-green">Fully Reconciled</span></td>
+              <td><span class="badge badge-green">98 (A+)</span></td>
+              <td><span class="trend-up">↑ 5%</span></td>
+            </tr>
+          `;
+        }
+      }
+    }
+
+    function checkSettlementPaid(selId) {
+      try {
+        const paidList = JSON.parse(localStorage.getItem('v_settlements_paid') || '[]');
+        return paidList.includes(selId);
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function checkBordereauSubmitted(bxId) {
+      try {
+        const list = JSON.parse(localStorage.getItem('v_bordereaux_submitted') || '[]');
+        return list.includes(bxId) || localStorage.getItem('v_bordereau_submitted_POL-V8NHT') === 'true';
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function submitBordereauToCarrier(bxId, carrierName) {
+      if (!confirm(`Generate & transmit monthly Bordereau ${bxId} to Underwriting Carrier (${carrierName || 'Southlake Specialty'})?\n\n• Reporting Period: August 2026\n• Policies Reported: 1 (POL-V8NHT)\n• Gross Written Premium: $33,257.00\n• MGA Override Retained: $3,500.00\n• Carrier Net Remittance Due: $29,757.00\n\nThis will transmit the policy production data to Southlake Specialty for GL ingestion.`)) return;
+
+      let list = JSON.parse(localStorage.getItem('v_bordereaux_submitted') || '[]');
+      if (!list.includes(bxId)) list.push(bxId);
+      localStorage.setItem('v_bordereaux_submitted', JSON.stringify(list));
+      localStorage.setItem('v_bordereau_submitted_POL-V8NHT', 'true');
+
+      showToast(`Bordereau ${bxId} successfully transmitted to ${carrierName || 'Southlake Specialty'}!`, 'success');
+      renderDynamicOperations();
+    }
+
+    function handleCarrierHeaderIngest() {
+      const isSubmitted = checkBordereauSubmitted('BX-2026-0010');
+      if (!isSubmitted) {
+        alert('No inbound Bordereaux received from MGA NTA yet. Awaiting monthly submission from MGA.');
+        return;
+      }
+      const isIngested = checkBordereauIngested('BX-2026-0010');
+      if (isIngested) {
+        showToast('August 2026 Bordereau has already been ingested into the Carrier GL.', 'info');
+        return;
+      }
+      ingestBordereauToCarrier('BX-2026-0010', 'NTA', 33257);
+    }
+
+    function handleMGAGenerateBordereau() {
+      const isSubmitted = checkBordereauSubmitted('BX-2026-0010');
+      if (isSubmitted) {
+        showToast('August 2026 Bordereau has already been transmitted to Southlake Specialty.', 'info');
+        return;
+      }
+      submitBordereauToCarrier('BX-2026-0010', 'Southlake Specialty');
+    }
+
+    function checkBordereauIngested(bxId) {
+      try {
+        const list = JSON.parse(localStorage.getItem('v_bordereaux_ingested') || '[]');
+        return list.includes(bxId) || localStorage.getItem('v_bordereau_ingested_POL-V8NHT') === 'true';
+      } catch (e) {
+        return false;
+      }
+    }
+
+    function ingestBordereauToCarrier(bxId, mgaName, grossPremium) {
+      if (!confirm(`Ingest Bordereau ${bxId} (${mgaName}) into Carrier General Ledger?\n\nThis will post Stage 4 Bordereau Ingestion JE on Carrier books:\n• Dr. 1100 AR (MGA): $29,757.00\n• Dr. 6101 Commission Expense — MGA Override: $3,500.00\n• Cr. 4100 Gross Written Premium: $33,257.00`)) return;
+
+      let list = JSON.parse(localStorage.getItem('v_bordereaux_ingested') || '[]');
+      if (!list.includes(bxId)) list.push(bxId);
+      localStorage.setItem('v_bordereaux_ingested', JSON.stringify(list));
+      localStorage.setItem('v_bordereau_ingested_POL-V8NHT', 'true');
+
+      let carrierPolicies = JSON.parse(localStorage.getItem('carrier_pas_policies') || '[]');
+      if (!carrierPolicies.some(p => p.number === 'POL-V8NHT')) {
+        carrierPolicies.unshift({
+          number: 'POL-V8NHT',
+          name: 'Ayushi',
+          date: new Date().toISOString().split('T')[0],
+          premium: 33257.00,
+          commissionPct: 10,
+          status: 'BOUND',
+          mgaName: mgaName || 'NTA'
+        });
+        localStorage.setItem('carrier_pas_policies', JSON.stringify(carrierPolicies));
+      }
+
+      let carrierInvoices = JSON.parse(localStorage.getItem('carrier_pas_invoices') || '[]');
+      if (!carrierInvoices.some(i => i.policyNum === 'POL-V8NHT')) {
+        carrierInvoices.unshift({
+          id: 'REC-MGA-V8NHT',
+          policyNum: 'POL-V8NHT',
+          customer: mgaName || 'NTA',
+          type: 'Premium',
+          issueDate: new Date().toISOString().split('T')[0],
+          dueDate: new Date().toISOString().split('T')[0],
+          amount: 29757.00,
+          paidAmount: 0,
+          status: 'Sent'
+        });
+        localStorage.setItem('carrier_pas_invoices', JSON.stringify(carrierInvoices));
+      }
+
+      let carList = JSON.parse(localStorage.getItem('carrier_v_gl_journal_entries') || '[]');
+      const existIdx = carList.findIndex(x => (x.description || '').includes('Bordereau') && (x.description || '').includes('V8NHT'));
+      const nextNum = 'JE-' + new Date().getFullYear() + '-' + String(carList.length + 1).padStart(4, '0');
+      const carrierJE = {
+        id: 'JE-CAR-BIND-V8NHT',
+        number: nextNum,
+        entityId: 'ENT-CAR-01',
+        date: new Date().toISOString().split('T')[0],
+        status: 'draft',
+        postedAt: new Date().toISOString(),
+        createdBy: 'Carrier Operations',
+        description: `MGA Bordereau Ingestion for POL-V8NHT (${bxId})`,
+        source: 'INSURANCE',
+        lines: [
+          { acct: '1100', debit: 29757.00, credit: 0, desc: 'Settlement Receivable — MGA NTA', dims: { mga: mgaName || 'NTA', lob: 'Commercial Trucking' } },
+          { acct: '6101', debit: 3500.00, credit: 0, desc: 'Commission Expense — MGA Override', dims: { mga: mgaName || 'NTA', lob: 'Commercial Trucking' } },
+          { acct: '4100', debit: 0, credit: 33257.00, desc: 'Gross Written Premium Revenue', dims: { lob: 'Commercial Trucking' } }
+        ]
+      };
+      if (existIdx === -1) {
+        carList.unshift(carrierJE);
+      } else {
+        carList[existIdx] = carrierJE;
+      }
+      localStorage.setItem('carrier_v_gl_journal_entries', JSON.stringify(carList));
+
+      // Also sync to global journal entries for universal GL queries
+      let allList = JSON.parse(localStorage.getItem('v_gl_journal_entries') || '[]');
+      const allIdx = allList.findIndex(x => x.id === carrierJE.id || ((x.description || '').includes('Bordereau') && (x.description || '').includes('V8NHT') && x.entityId === 'ENT-CAR-01'));
+      if (allIdx === -1) allList.unshift(carrierJE);
+      else allList[allIdx] = carrierJE;
+      localStorage.setItem('v_gl_journal_entries', JSON.stringify(allList));
+
+      showToast(`Bordereau ${bxId} ingested into Carrier Ledger! JE-2026-0001 posted.`, 'success');
+      renderDynamicOperations();
+    }
+
+    // MGA Payment Execution: Authorizes wire disbursement to Carrier
+    function approveDynamicSettlement(selId) {
+      if (!confirm(`Authorize and disburse net premium of $29,757.00 to Carrier Southlake Specialty via ACH wire?\n\nThis books Stage 5 MGA disbursement:\n• Dr. 2200 AP $29,757.00\n• Cr. 1001 Cash $29,757.00`)) return;
+
+      localStorage.setItem('v_mga_settlement_paid_POL-V8NHT', 'true');
+
+      let mgaInvoices = JSON.parse(localStorage.getItem('mga_pas_invoices') || '[]');
+      let targetPay = mgaInvoices.find(i => i.policyNum === 'POL-V8NHT' && i.type.includes('Carrier'));
+      if (targetPay) {
+        targetPay.paidAmount = 29757.00;
+        targetPay.status = 'Paid';
+        localStorage.setItem('mga_pas_invoices', JSON.stringify(mgaInvoices));
+      }
+
+      let mgaList = JSON.parse(localStorage.getItem('mga_v_gl_journal_entries') || '[]');
+      const mgaNextNum = 'JE-' + new Date().getFullYear() + '-' + String(mgaList.length + 1).padStart(4, '0');
+      const mgaJE = {
+        id: 'JE-MGA-DISB-V8NHT',
+        number: mgaNextNum,
+        entityId: 'ENT-MINE',
+        date: new Date().toISOString().split('T')[0],
+        status: 'draft',
+        postedAt: new Date().toISOString(),
+        createdBy: 'NTA Operations',
+        description: `Settlement disburse to Carrier: Southlake Insurance Co. (POL-V8NHT)`,
+        source: 'INSURANCE',
+        lines: [
+          { acct: '2200', debit: 29757.00, credit: 0, desc: 'Clear Net Premium Payable to Southlake Insurance Co.', dims: { cost_center: '00 - Corporate', lob: 'Commercial Trucking' } },
+          { acct: '1001', debit: 0, credit: 29757.00, desc: 'Carrier settlement cash disburse (ACH)', dims: { location: 'HQ' } }
+        ]
+      };
+      const mgaIdx = mgaList.findIndex(x => (x.description || '').includes('Carrier') && (x.description || '').includes('V8NHT'));
+      if (mgaIdx === -1) mgaList.unshift(mgaJE);
+      else mgaList[mgaIdx] = mgaJE;
+      localStorage.setItem('mga_v_gl_journal_entries', JSON.stringify(mgaList));
+
+      // Also sync to global journal entries
+      let allList = JSON.parse(localStorage.getItem('v_gl_journal_entries') || '[]');
+      const allIdx = allList.findIndex(x => x.id === mgaJE.id || ((x.description || '').includes('Carrier') && (x.description || '').includes('disburse') && x.entityId === 'ENT-MINE'));
+      if (allIdx === -1) allList.unshift(mgaJE);
+      else allList[allIdx] = mgaJE;
+      localStorage.setItem('v_gl_journal_entries', JSON.stringify(allList));
+
+      showToast(`Net ACH wire of $29,757.00 authorized! Stage 5 MGA disbursement posted.`, 'success');
+      renderDynamicOperations();
+    }
+
+    // Carrier Cash Reconciliation: Matches inbound wire against open Bordereau receivable
+    function matchCarrierWire(selId) {
+      const isIngested = localStorage.getItem('v_bordereau_ingested_POL-V8NHT') === 'true';
+      if (!isIngested) {
+        alert('Please ingest the Bordereau into the Carrier GL first to establish open accounts receivable before matching cash.');
+        return;
+      }
+
+      const mgaPaid = localStorage.getItem('v_mga_settlement_paid_POL-V8NHT') === 'true';
+      if (!mgaPaid) {
+        if (!confirm('Note: MGA has not marked this remittance as paid yet.\n\nDo you want to proceed and match incoming cash wire of $29,757.00 from MGA NTA?')) return;
+      } else {
+        if (!confirm(`Match incoming ACH wire of $29,757.00 from MGA NTA against open Bordereau receivable?\n\nThis completes Stage 5 Carrier cash reconciliation:\n• Dr. 1001 Cash / Bank $29,757.00\n• Cr. 1100 Settlement Receivable — MGA NTA $29,757.00`)) return;
+      }
+
+      let paidList = JSON.parse(localStorage.getItem('v_settlements_paid') || '[]');
+      if (!paidList.includes(selId)) paidList.push(selId);
+      localStorage.setItem('v_settlements_paid', JSON.stringify(paidList));
+      localStorage.setItem('v_carrier_wire_matched_POL-V8NHT', 'true');
+
+      let carrierInvoices = JSON.parse(localStorage.getItem('carrier_pas_invoices') || '[]');
+      let targetRec = carrierInvoices.find(i => i.policyNum === 'POL-V8NHT' && i.type.includes('Premium'));
+      if (targetRec) {
+        targetRec.paidAmount = 29757.00;
+        targetRec.status = 'Paid';
+        localStorage.setItem('carrier_pas_invoices', JSON.stringify(carrierInvoices));
+      }
+
+      let carList = JSON.parse(localStorage.getItem('carrier_v_gl_journal_entries') || '[]');
+      const carNextNum = 'JE-' + new Date().getFullYear() + '-' + String(carList.length + 1).padStart(4, '0');
+      const carJE = {
+        id: 'JE-CAR-RECV-V8NHT',
+        number: carNextNum,
+        entityId: 'ENT-CAR-01',
+        date: new Date().toISOString().split('T')[0],
+        status: 'draft',
+        postedAt: new Date().toISOString(),
+        createdBy: 'Carrier Operations',
+        description: `MGA premium settlement payment received from NTA (PAY-CAR-V8NHT) for POL-V8NHT`,
+        source: 'INSURANCE',
+        lines: [
+          { acct: '1001', debit: 29757.00, credit: 0, desc: 'MGA premium settlement receipt — NTA', dims: { location: 'HQ' } },
+          { acct: '1100', debit: 0, credit: 29757.00, desc: 'Clear Settlement Receivable — MGA NTA', dims: { mga: 'NTA', lob: 'Commercial Trucking' } }
+        ]
+      };
+      const carIdx = carList.findIndex(x => (x.description || '').includes('received') && (x.description || '').includes('V8NHT'));
+      if (carIdx === -1) carList.unshift(carJE);
+      else carList[carIdx] = carJE;
+      localStorage.setItem('carrier_v_gl_journal_entries', JSON.stringify(carList));
+
+      // Also sync to global journal entries
+      let allList = JSON.parse(localStorage.getItem('v_gl_journal_entries') || '[]');
+      const allIdx = allList.findIndex(x => x.id === carJE.id || ((x.description || '').includes('received') && (x.description || '').includes('V8NHT') && x.entityId === 'ENT-CAR-01'));
+      if (allIdx === -1) allList.unshift(carJE);
+      else allList[allIdx] = carJE;
+      localStorage.setItem('v_gl_journal_entries', JSON.stringify(allList));
+
+      showToast(`Inbound ACH wire of $29,757.00 matched! Stage 5 complete: AR cleared & cash recognized on Carrier books.`, 'success');
+      renderDynamicOperations();
+    }
+
+    function requestDynamicRevision(selId, btn) {
+      showToast(`Revision requested for ${selId}. MGA notified.`, 'info');
+      if (btn) btn.disabled = true;
+    }
+
+    function downloadBordereauTemplate() {
+      if (typeof showToast === 'function') {
+        showToast('Downloading NTA_August2026_Bordereau.xlsx...', 'info');
+      } else if (typeof VeriDexComponents !== 'undefined' && VeriDexComponents.showToast) {
+        VeriDexComponents.showToast('Downloading NTA_August2026_Bordereau.xlsx...', 'info');
+      }
+    }
+
+    function exportBordereauList() {
+      if (typeof showToast === 'function') {
+        showToast('Exporting Bordereau register to CSV...', 'info');
+      } else if (typeof VeriDexComponents !== 'undefined' && VeriDexComponents.showToast) {
+        VeriDexComponents.showToast('Exporting Bordereau register to CSV...', 'info');
+      }
+    }
+
+    // Run dynamic operations load
+    renderDynamicOperations();
+  </script>
+</body>
+</html>

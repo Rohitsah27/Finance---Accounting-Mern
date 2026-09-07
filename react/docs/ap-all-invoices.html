@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AP All Invoices — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Accounts Payable</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">All Invoices</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-list" style="color: var(--amber);"></i> AP All Invoices <span class="file-tag">accounts-payable.html</span></h1>
+      <p>
+        The All Invoices register manages every pending, approved, and paid liability owed to insurance carriers, retail brokers, claims vendors, and operating suppliers.
+      </p>
+    </div>
+
+    <div class="module-card">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-amber">Payables Master</span>
+            <span class="badge badge-blue">Disbursements</span>
+          </div>
+          <h2 class="module-title">Key Payable Types Tracked</h2>
+        </div>
+        <a href="../accounts-payable.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open AP Invoices</a>
+      </div>
+
+      <div class="grid-2">
+        <div class="info-card">
+          <h4>1. Carrier Net Settlements</h4>
+          <p>Net premium remittances owed to risk carriers (e.g. `SOUTHLAKE Insurance Co.` $32,257.00).</p>
+        </div>
+        <div class="info-card">
+          <h4>2. Producer Commission Remittances</h4>
+          <p>Earned monthly commission disbursements owed to writing brokers (`HIT Agency` $2,500.00).</p>
+        </div>
+        <div class="info-card">
+          <h4>3. Reinsurance Treaty Payables</h4>
+          <p>Quarterly quota-share and excess-of-loss cession settlements (`Munich Re` $18,250.00).</p>
+        </div>
+        <div class="info-card">
+          <h4>4. General Vendor Operating Invoices</h4>
+          <p>Software subscriptions, legal retainers, office rent, and claims adjusters.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="invoices-billing-plans.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">Invoices &amp; Billing Plans</span>
+      </a>
+      <a href="ap-ach-payments.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Submodule &rarr;</span>
+        <span class="nav-page-title">ACH Payments</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('ap-all-invoices');
+</script>
+</body>
+</html>

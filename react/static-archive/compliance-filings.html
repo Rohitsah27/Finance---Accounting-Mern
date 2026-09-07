@@ -1,0 +1,636 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Compliance & Filings — Statutory | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/layout.js"></script>
+</head>
+<body>
+  <main class="main-content" id="main-content">
+
+    <div class="page-header">
+      <div>
+        <div class="page-title">Compliance &amp; Filings</div>
+        <div class="page-subtitle">Filing calendar · NAIC &amp; state filings · 1099 reporting · Compliance score · Audit pack</div>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-outline" onclick="generateAuditPack()">Generate Audit Pack</button>
+        <button class="btn btn-primary" onclick="addNewFiling()">+ New Filing</button>
+      </div>
+    </div>
+
+    <!-- Compliance Score Banner -->
+    <div style="background:linear-gradient(135deg,#0d1b4b,#1a3a6b);border-radius:var(--radius);padding:20px 24px;margin-bottom:20px;color:white;display:flex;align-items:center;justify-content:space-between;">
+      <div>
+        <div style="font-size:16px;font-weight:700;margin-bottom:4px;">Overall Compliance Score</div>
+        <div style="font-size:12.5px;opacity:0.75;">Based on on-time filings, validation pass rate, and outstanding items - rolling 12 months</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:24px;">
+        <div style="text-align:center;">
+          <div style="font-size:36px;font-weight:800;color:#4caf50;">97%</div>
+          <div style="font-size:11px;opacity:0.7;">Score</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:22px;font-weight:700;color:var(--coral);">1</div>
+          <div style="font-size:11px;opacity:0.7;">Open Issue</div>
+        </div>
+        <div style="text-align:center;">
+          <div style="font-size:22px;font-weight:700;color:#4caf50;">34</div>
+          <div style="font-size:11px;opacity:0.7;">Filed YTD</div>
+        </div>
+        <button class="btn btn-coral" id="full-report-btn" onclick="toggleComplianceReport(this)">Full Report →</button>
+      </div>
+    </div>
+    <div id="full-report-panel" style="display:none;background:#fff;border:1.5px solid var(--border);border-top:none;border-radius:0 0 var(--radius) var(--radius);margin:-20px 0 20px;padding:16px 24px;">
+      <div style="font-size:12.5px;font-weight:700;color:var(--navy);margin-bottom:10px;">Compliance Score Breakdown - Rolling 12 Months</div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;font-size:12px;">
+        <div style="display:flex;justify-content:space-between;padding:8px 10px;background:var(--green-bg);border-radius:6px;"><span>On-time filings</span><span class="font-bold text-green">34 / 34</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 10px;background:var(--green-bg);border-radius:6px;"><span>Validation pass rate</span><span class="font-bold text-green">98.5%</span></div>
+        <div style="display:flex;justify-content:space-between;padding:8px 10px;background:var(--orange-bg);border-radius:6px;"><span>Open items</span><span class="font-bold" style="color:var(--orange);">1 - TX Amendment</span></div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon si-green"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 10l3.5 3.5L15 6" stroke="#2e7d32" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="stat-info">
+          <div class="stat-value">34</div>
+          <div class="stat-label">Filed YTD</div>
+          <div class="stat-change text-green">100% on-time</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-orange"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="10" r="7" stroke="#e65100" stroke-width="1.8"/><path d="M10 7v3l2 2" stroke="#e65100" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        <div class="stat-info">
+          <div class="stat-value">5</div>
+          <div class="stat-label">Upcoming (30 days)</div>
+          <div class="stat-change text-muted">Action required</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-coral"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 5v6M10 14v1" stroke="#e05470" stroke-width="2" stroke-linecap="round"/></svg></div>
+        <div class="stat-info">
+          <div class="stat-value">1</div>
+          <div class="stat-label">Overdue</div>
+          <div class="stat-change" style="color:var(--red);">TX Amendment</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-navy"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="3" width="14" height="14" rx="2" stroke="#0d1b4b" stroke-width="1.8"/><path d="M7 10h6M7 13h4" stroke="#0d1b4b" stroke-width="1.5" stroke-linecap="round"/></svg></div>
+        <div class="stat-info">
+          <div class="stat-value">412</div>
+          <div class="stat-label">1099-NEC Issued</div>
+          <div class="stat-change text-green">FY2025 - Filed</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div id="comp-tabs">
+      <div class="page-tabs" style="border-radius:8px 8px 0 0;">
+        <div class="page-tab active" data-tab="calendar" onclick="switchTab('comp-tabs','calendar')">Filing Calendar</div>
+        <div class="page-tab" data-tab="state" onclick="switchTab('comp-tabs','state')">State Filings</div>
+        <div class="page-tab" data-tab="naic" onclick="switchTab('comp-tabs','naic')">NAIC Filings</div>
+        <div class="page-tab" data-tab="tax1099" onclick="switchTab('comp-tabs','tax1099')">1099 Reporting</div>
+        <div class="page-tab" data-tab="auditpack" onclick="switchTab('comp-tabs','auditpack')">Audit Pack</div>
+      </div>
+
+      <!-- Filing Calendar -->
+      <div class="tab-panel active" data-panel="calendar">
+        <div class="form-card" style="border-radius:0 0 8px 8px;padding:0;">
+          <div style="padding:16px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);">
+            <div style="font-size:14px;font-weight:700;">All Upcoming Filings</div>
+            <div style="display:flex;gap:8px;">
+              <select class="filter-select"><option>All Jurisdictions</option><option>Texas</option><option>California</option><option>Florida</option><option>NAIC</option><option>IRS</option></select>
+              <select class="filter-select"><option>All Types</option><option>Premium Tax</option><option>Annual Statement</option><option>Surplus Lines</option><option>1099</option></select>
+              <select class="filter-select"><option>2026</option><option>2025</option></select>
+            </div>
+          </div>
+          <table class="data-table" id="filing-calendar-table">
+            <thead>
+              <tr>
+                <th>Filing</th>
+                <th>Type</th>
+                <th>Jurisdiction</th>
+                <th>Period</th>
+                <th>Due Date</th>
+                <th>Days Left</th>
+                <th>Assignee</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="background:rgba(224,84,112,0.04);">
+                <td class="font-semibold" style="color:var(--coral);">TX Q1 Annual Statement - Amendment</td>
+                <td>Annual Statement</td>
+                <td>Texas</td>
+                <td>Q1 2026</td>
+                <td>24/05/2026</td>
+                <td><span class="badge badge-red">3 days</span></td>
+                <td>Controller</td>
+                <td><span class="badge badge-blue">Under Review</span></td>
+                <td><button class="btn btn-primary btn-sm" onclick="submitFiling('TX Q1 Amendment')">Submit Now</button></td>
+              </tr>
+              <tr>
+                <td class="font-semibold">TX Premium Tax - Q2</td>
+                <td>Premium Tax</td>
+                <td>Texas</td>
+                <td>Q2 2026</td>
+                <td>30/06/2026</td>
+                <td><span class="badge badge-orange">40 days</span></td>
+                <td>J. Smith</td>
+                <td><span class="badge badge-orange">In Progress</span></td>
+                <td><button class="btn btn-outline btn-sm" onclick="prepareFiling('TX Premium Tax Q2')">Prepare</button></td>
+              </tr>
+              <tr>
+                <td class="font-semibold">CA Surplus Lines Report</td>
+                <td>Surplus Lines</td>
+                <td>California</td>
+                <td>Q2 2026</td>
+                <td>30/07/2026</td>
+                <td><span class="badge badge-green">70 days</span></td>
+                <td>Compliance</td>
+                <td><span class="badge badge-gray">Not Started</span></td>
+                <td><button class="btn btn-outline btn-sm" onclick="prepareFiling('CA Surplus Lines')">Start</button></td>
+              </tr>
+              <tr>
+                <td class="font-semibold">FL OIR Premium Tax - Q2</td>
+                <td>Premium Tax</td>
+                <td>Florida</td>
+                <td>Q2 2026</td>
+                <td>31/07/2026</td>
+                <td><span class="badge badge-green">71 days</span></td>
+                <td>J. Smith</td>
+                <td><span class="badge badge-gray">Not Started</span></td>
+                <td><button class="btn btn-outline btn-sm" onclick="prepareFiling('FL Premium Tax')">Start</button></td>
+              </tr>
+              <tr>
+                <td class="font-semibold">NAIC Quarterly Statement Q2</td>
+                <td>NAIC Quarterly</td>
+                <td>NAIC</td>
+                <td>Q2 2026</td>
+                <td>15/08/2026</td>
+                <td><span class="badge badge-green">86 days</span></td>
+                <td>CFO</td>
+                <td><span class="badge badge-gray">Not Started</span></td>
+                <td><button class="btn btn-outline btn-sm" onclick="prepareFiling('NAIC Q2')">Start</button></td>
+              </tr>
+              <tr>
+                <td class="font-semibold">1099-NEC Annual</td>
+                <td>1099</td>
+                <td>IRS</td>
+                <td>FY 2025</td>
+                <td>28/02/2026</td>
+                <td><span class="badge badge-green">Filed</span></td>
+                <td>Finance</td>
+                <td><span class="badge badge-green">Submitted</span></td>
+                <td><button class="btn btn-ghost btn-sm">View</button></td>
+              </tr>
+              <tr>
+                <td class="font-semibold">NAIC Annual Statement FY2025</td>
+                <td>NAIC Annual</td>
+                <td>NAIC</td>
+                <td>FY 2025</td>
+                <td>01/03/2026</td>
+                <td><span class="badge badge-green">Filed</span></td>
+                <td>CFO</td>
+                <td><span class="badge badge-green">Acknowledged</span></td>
+                <td><button class="btn btn-ghost btn-sm">View</button></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- State Filings -->
+      <div class="tab-panel" data-panel="state">
+        <div class="form-card" style="border-radius:0 0 8px 8px;padding:20px;">
+          <div class="card-title mb-16">State Filing Status</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:20px;">
+            <div style="border:1px solid var(--border);border-radius:8px;padding:14px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                <div class="font-semibold">Texas</div>
+                <span class="badge badge-orange">1 Pending</span>
+              </div>
+              <div style="font-size:12px;color:var(--gray-500);margin-bottom:10px;">Licensed · Admitted · Auto &amp; Property</div>
+              <div style="font-size:12px;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Premium Tax Q1</span><span class="text-green">✓ Filed</span></div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Annual Statement Q1</span><span style="color:var(--coral);">⚠ Amendment</span></div>
+                <div style="display:flex;justify-content:space-between;"><span>Premium Tax Q2</span><span style="color:var(--gray-400);">Due Jun 30</span></div>
+              </div>
+            </div>
+            <div style="border:1px solid var(--border);border-radius:8px;padding:14px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                <div class="font-semibold">California</div>
+                <span class="badge badge-gray">1 Due</span>
+              </div>
+              <div style="font-size:12px;color:var(--gray-500);margin-bottom:10px;">Licensed · Surplus Lines · Liability</div>
+              <div style="font-size:12px;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Surplus Lines Q1</span><span class="text-green">✓ Filed</span></div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>CA SL Annual 2025</span><span class="text-green">✓ Filed</span></div>
+                <div style="display:flex;justify-content:space-between;"><span>Surplus Lines Q2</span><span style="color:var(--gray-400);">Due Jul 30</span></div>
+              </div>
+            </div>
+            <div style="border:1px solid var(--border);border-radius:8px;padding:14px;">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+                <div class="font-semibold">Florida</div>
+                <span class="badge badge-green">Current</span>
+              </div>
+              <div style="font-size:12px;color:var(--gray-500);margin-bottom:10px;">Licensed · Admitted · Property</div>
+              <div style="font-size:12px;">
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>Premium Tax Q1</span><span class="text-green">✓ Filed</span></div>
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px;"><span>OIR Annual 2025</span><span class="text-green">✓ Filed</span></div>
+                <div style="display:flex;justify-content:space-between;"><span>Premium Tax Q2</span><span style="color:var(--gray-400);">Due Jul 31</span></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- State Rules Engine -->
+          <div class="card-title mb-12">State Tax Rate Matrix</div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>State</th>
+                <th>License Type</th>
+                <th class="text-right">Premium Tax Rate</th>
+                <th class="text-right">Surplus Lines Rate</th>
+                <th>Filing Frequency</th>
+                <th>Portal</th>
+                <th>Last Updated</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="font-semibold">Texas (TX)</td>
+                <td>Admitted</td>
+                <td class="text-right">2.35%</td>
+                <td class="text-right"> - </td>
+                <td>Quarterly</td>
+                <td><span class="badge badge-green">TxCompResult</span></td>
+                <td>01/01/2026</td>
+              </tr>
+              <tr>
+                <td class="font-semibold">California (CA)</td>
+                <td>Surplus Lines</td>
+                <td class="text-right"> - </td>
+                <td class="text-right">3.00%</td>
+                <td>Quarterly</td>
+                <td><span class="badge badge-navy">SLIP</span></td>
+                <td>01/01/2026</td>
+              </tr>
+              <tr>
+                <td class="font-semibold">Florida (FL)</td>
+                <td>Admitted</td>
+                <td class="text-right">1.75%</td>
+                <td class="text-right"> - </td>
+                <td>Quarterly</td>
+                <td><span class="badge badge-blue">OIR FIRS</span></td>
+                <td>01/01/2026</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- NAIC Filings -->
+      <div class="tab-panel" data-panel="naic">
+        <div class="form-card" style="border-radius:0 0 8px 8px;padding:20px;">
+          <div class="card-title mb-16">NAIC Filing History</div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Filing</th>
+                <th>Period</th>
+                <th>Due Date</th>
+                <th>Submitted</th>
+                <th>Validation</th>
+                <th>NAIC Status</th>
+                <th>Submitted By</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="font-semibold">Annual Statement FY2025</td>
+                <td>FY 2025</td>
+                <td>01/03/2026</td>
+                <td>28/02/2026</td>
+                <td><span class="badge badge-green">Passed</span></td>
+                <td><span class="badge badge-green">Acknowledged</span></td>
+                <td>CFO</td>
+                <td><button class="btn btn-ghost btn-sm">View</button></td>
+              </tr>
+              <tr>
+                <td class="font-semibold">Quarterly Statement Q1 2026</td>
+                <td>Q1 2026</td>
+                <td>15/05/2026</td>
+                <td>12/05/2026</td>
+                <td><span class="badge badge-green">Passed</span></td>
+                <td><span class="badge badge-green">Accepted</span></td>
+                <td>CFO</td>
+                <td><button class="btn btn-ghost btn-sm">View</button></td>
+              </tr>
+              <tr>
+                <td class="font-semibold">Quarterly Statement Q2 2026</td>
+                <td>Q2 2026</td>
+                <td>15/08/2026</td>
+                <td> - </td>
+                <td><span class="badge badge-gray">Not Run</span></td>
+                <td><span class="badge badge-gray">Not Started</span></td>
+                <td> - </td>
+                <td><button class="btn btn-outline btn-sm" onclick="prepareFiling('NAIC Q2 2026')">Prepare</button></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Schedule Status -->
+          <div class="card-title mt-20 mb-12">NAIC Schedule Readiness - Q2 2026</div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+            <div style="padding:12px;border-radius:6px;background:var(--green-bg);color:var(--green);font-size:12.5px;">
+              <div class="font-bold mb-4">✓ Schedule P</div>
+              <div>Loss triangles complete · Actuary signed off</div>
+            </div>
+            <div id="schedule-f-card" style="padding:12px;border-radius:6px;background:var(--orange-bg);color:var(--orange);font-size:12.5px;transition:box-shadow .2s;">
+              <div class="font-bold mb-4">⚠ Schedule F</div>
+              <div>2 reinsurer ratings pending</div>
+            </div>
+            <div style="padding:12px;border-radius:6px;background:var(--green-bg);color:var(--green);font-size:12.5px;">
+              <div class="font-bold mb-4">✓ Schedule T</div>
+              <div>Premium by state current</div>
+            </div>
+            <div style="padding:12px;border-radius:6px;background:var(--bg);color:var(--gray-600);font-size:12.5px;border:1px solid var(--border);">
+              <div class="font-bold mb-4"> - Schedule D</div>
+              <div>Not applicable - no investments</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 1099 Reporting -->
+      <div class="tab-panel" data-panel="tax1099">
+        <div class="form-card" style="border-radius:0 0 8px 8px;padding:20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+            <div class="card-title">1099-NEC / 1099-MISC Reporting - FY2025</div>
+            <div style="display:flex;gap:8px;">
+              <select class="filter-select"><option>FY 2025</option><option>FY 2024</option></select>
+              <button class="btn btn-outline btn-sm" onclick="exportTableCSV('tax1099-table','1099-irs-package.csv')">Export IRS Package</button>
+            </div>
+          </div>
+
+          <!-- Summary Cards -->
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;">
+            <div style="background:var(--bg);border-radius:8px;padding:14px;text-align:center;">
+              <div style="font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;margin-bottom:4px;">1099-NEC Issued</div>
+              <div style="font-size:24px;font-weight:800;color:var(--gray-900);">412</div>
+            </div>
+            <div style="background:var(--bg);border-radius:8px;padding:14px;text-align:center;">
+              <div style="font-size:11px;font-weight:700;color:var(--gray-500);text-transform:uppercase;margin-bottom:4px;">1099-MISC Issued</div>
+              <div style="font-size:24px;font-weight:800;color:var(--gray-900);">38</div>
+            </div>
+            <div style="background:var(--green-bg);border-radius:8px;padding:14px;text-align:center;">
+              <div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;margin-bottom:4px;">Total NEC Amount</div>
+              <div style="font-size:24px;font-weight:800;color:var(--green);">$2.84Cr</div>
+            </div>
+            <div style="background:var(--green-bg);border-radius:8px;padding:14px;text-align:center;">
+              <div style="font-size:11px;font-weight:700;color:var(--green);text-transform:uppercase;margin-bottom:4px;">IRS Filing Status</div>
+              <div style="font-size:16px;font-weight:800;color:var(--green);">✓ Filed 28 Feb</div>
+            </div>
+          </div>
+
+          <table class="data-table" id="tax1099-table">
+            <thead>
+              <tr>
+                <th>Payee</th>
+                <th>TIN</th>
+                <th>Type</th>
+                <th>Category</th>
+                <th class="text-right">Amount ($)</th>
+                <th>Backup Withholding</th>
+                <th>Form Status</th>
+                <th>Delivered</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="font-semibold">Futuristic MGA Inc.</td>
+                <td>XX-XXX4821</td>
+                <td>1099-NEC</td>
+                <td>MGA Commission</td>
+                <td class="text-right">48,24,200</td>
+                <td><span class="badge badge-gray">None</span></td>
+                <td><span class="badge badge-green">Filed</span></td>
+                <td><span class="badge badge-green">E-Delivered</span></td>
+              </tr>
+              <tr>
+                <td class="font-semibold">NTA Brokers LLC</td>
+                <td>XX-XXX2218</td>
+                <td>1099-NEC</td>
+                <td>MGA Commission</td>
+                <td class="text-right">29,42,400</td>
+                <td><span class="badge badge-gray">None</span></td>
+                <td><span class="badge badge-green">Filed</span></td>
+                <td><span class="badge badge-green">E-Delivered</span></td>
+              </tr>
+              <tr>
+                <td class="font-semibold">ACCL Underwriters</td>
+                <td>XX-XXX9947</td>
+                <td>1099-NEC</td>
+                <td>MGA Commission</td>
+                <td class="text-right">22,48,600</td>
+                <td><span class="badge badge-gray">None</span></td>
+                <td><span class="badge badge-green">Filed</span></td>
+                <td><span class="badge badge-green">E-Delivered</span></td>
+              </tr>
+              <tr>
+                <td class="font-semibold">Professional Claims Svc</td>
+                <td>XX-XXX3371</td>
+                <td>1099-MISC</td>
+                <td>Claims Admin Fee</td>
+                <td class="text-right">8,42,000</td>
+                <td><span class="badge badge-gray">None</span></td>
+                <td><span class="badge badge-green">Filed</span></td>
+                <td><span class="badge badge-green">Mail</span></td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Audit Pack -->
+      <div class="tab-panel" data-panel="auditpack">
+        <div class="form-card" style="border-radius:0 0 8px 8px;padding:20px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+            <div class="card-title">Audit Pack Generator</div>
+            <button class="btn btn-primary" onclick="generateAuditPack()">Generate &amp; Lock Audit Pack</button>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+            <!-- Pack Contents -->
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">Pack Contents</div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--green-bg);border-radius:6px;font-size:12.5px;color:var(--green);">
+                  <span>✓ Trial Balance (All Periods)</span><span class="font-bold">Ready</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--green-bg);border-radius:6px;font-size:12.5px;color:var(--green);">
+                  <span>✓ Journal Entry Register</span><span class="font-bold">Ready</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--green-bg);border-radius:6px;font-size:12.5px;color:var(--green);">
+                  <span>✓ Bank Reconciliations</span><span class="font-bold">Ready</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--green-bg);border-radius:6px;font-size:12.5px;color:var(--green);">
+                  <span>✓ Subledger Tie-Out Report</span><span class="font-bold">Ready</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--green-bg);border-radius:6px;font-size:12.5px;color:var(--green);">
+                  <span>✓ Loss Reserve Rollforward</span><span class="font-bold">Ready</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--orange-bg);border-radius:6px;font-size:12.5px;color:var(--orange);">
+                  <span>⚠ Schedule F - Missing 2 Ratings</span><span class="font-bold">Incomplete</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--green-bg);border-radius:6px;font-size:12.5px;color:var(--green);">
+                  <span>✓ Premium Tax Returns</span><span class="font-bold">Ready</span>
+                </div>
+                <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:var(--green-bg);border-radius:6px;font-size:12.5px;color:var(--green);">
+                  <span>✓ Audit Trail Export</span><span class="font-bold">Ready</span>
+                </div>
+              </div>
+            </div>
+            <!-- Pack History -->
+            <div>
+              <div style="font-size:12px;font-weight:700;color:var(--gray-500);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:12px;">Previous Audit Packs</div>
+              <div style="display:flex;flex-direction:column;gap:10px;">
+                <div style="border:1px solid var(--border);border-radius:8px;padding:14px;">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                    <div class="font-semibold" style="font-size:13px;">FY2025 Annual Audit Pack</div>
+                    <span class="badge badge-green">Locked</span>
+                  </div>
+                  <div style="font-size:12px;color:var(--gray-500);margin-bottom:8px;">Generated: 15/01/2026 · 24 documents · 8.4 MB</div>
+                  <div style="display:flex;gap:8px;align-items:center;">
+                    <button class="btn btn-ghost btn-sm" onclick="downloadAuditPack(this,'FY2025 Annual Audit Pack')">Download</button>
+                    <button class="btn btn-ghost btn-sm" onclick="shareAuditPack(this,'FY2025-Annual')">Share Link</button>
+                  </div>
+                </div>
+                <div style="border:1px solid var(--border);border-radius:8px;padding:14px;">
+                  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+                    <div class="font-semibold" style="font-size:13px;">Q1 2026 Interim Audit Pack</div>
+                    <span class="badge badge-green">Locked</span>
+                  </div>
+                  <div style="font-size:12px;color:var(--gray-500);margin-bottom:8px;">Generated: 18/04/2026 · 18 documents · 5.2 MB</div>
+                  <div style="display:flex;gap:8px;align-items:center;">
+                    <button class="btn btn-ghost btn-sm" onclick="downloadAuditPack(this,'Q1 2026 Interim Audit Pack')">Download</button>
+                    <button class="btn btn-ghost btn-sm" onclick="shareAuditPack(this,'Q1-2026-Interim')">Share Link</button>
+                  </div>
+                </div>
+              </div>
+              <div style="margin-top:16px;padding:14px;background:#f0f4ff;border-radius:8px;">
+                <div style="font-size:12px;font-weight:700;color:var(--navy);margin-bottom:6px;">Q2 2026 Pack - Draft</div>
+                <div style="font-size:12px;color:var(--gray-600);margin-bottom:10px;">7 of 8 components ready · 1 incomplete (Schedule F)</div>
+                <div style="background:var(--border);border-radius:4px;height:6px;margin-bottom:10px;overflow:hidden;">
+                  <div style="background:var(--navy);height:100%;width:87.5%;border-radius:4px;"></div>
+                </div>
+                <button class="btn btn-outline btn-sm" onclick="jumpToScheduleF()">Generate When Ready</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <script src="js/reports-utils.js"></script>
+  <script src="js/app.js"></script>
+  <script>
+    initLayout('compliance-filings');
+    (function(){
+      var h = location.hash.replace('#','');
+      var tabs = ['calendar','state','naic','tax1099','auditpack'];
+      if (tabs.indexOf(h) !== -1) switchTab('comp-tabs', h);
+    })();
+
+    function submitFiling(name) {
+      showToast(`Submitting ${name} to state regulator...`, 'info');
+      setTimeout(() => showToast(`${name} filed successfully - acknowledgement pending`, 'success'), 2000);
+    }
+
+    function prepareFiling(name) {
+      showToast(`Opening preparation workflow for ${name}...`, 'info');
+    }
+
+    function generateAuditPack() {
+      showToast('Generating audit pack - compiling all documents...', 'info');
+      setTimeout(() => showToast('Audit pack generated and locked (7/8 items - Schedule F warning noted)', 'warning'), 2000);
+    }
+
+    function toggleComplianceReport(btn) {
+      const panel = document.getElementById('full-report-panel');
+      const open = panel.style.display !== 'none';
+      panel.style.display = open ? 'none' : 'block';
+      btn.textContent = open ? 'Full Report →' : 'Hide Report ←';
+    }
+
+    let filingSeq = 1;
+    function addNewFiling() {
+      switchTab('comp-tabs', 'calendar');
+      const table = document.getElementById('filing-calendar-table');
+      const tbody = table.querySelector('tbody');
+      const name = 'New Filing Draft ' + (filingSeq++);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td class="font-semibold" contenteditable="true" style="outline:1.5px dashed var(--v-teal);border-radius:3px;">${name}</td>` +
+        `<td>Unassigned</td><td>Unassigned</td><td>${today()}</td><td>--/--/----</td>` +
+        `<td><span class="badge badge-gray">Not scheduled</span></td><td>Unassigned</td><td><span class="badge badge-gray">Not Started</span></td>` +
+        `<td><button class="btn btn-outline btn-sm" onclick="prepareFiling('${name}')">Prepare</button></td>`;
+      tbody.insertBefore(tr, tbody.firstChild);
+      tr.children[0].focus();
+      document.getSelection().selectAllChildren(tr.children[0]);
+      showToast('Draft filing added to calendar - edit name and assign a jurisdiction', 'success');
+    }
+
+    function downloadAuditPack(btn, packName) {
+      const manifest = `Audit Pack: ${packName}\nGenerated: ${today()}\nStatus: Locked\n\nThis is a prototype manifest standing in for the full document bundle.`;
+      downloadCSV(packName.replace(/\s+/g, '-') + '-manifest.txt', manifest);
+      const original = btn.textContent;
+      btn.textContent = 'Downloaded ✓';
+      btn.disabled = true;
+      setTimeout(() => { btn.textContent = original; btn.disabled = false; }, 2000);
+    }
+
+    function shareAuditPack(btn, slug) {
+      const link = location.origin + location.pathname.replace(/[^/]*$/, '') + 'audit-packs/' + slug + '-' + Math.random().toString(36).slice(2, 8);
+      let field = btn.nextElementSibling;
+      if (!field || !field.classList.contains('share-link-field')) {
+        field = document.createElement('input');
+        field.type = 'text';
+        field.readOnly = true;
+        field.className = 'share-link-field';
+        field.style.cssText = 'font-size:11px;padding:4px 8px;border:1.5px solid var(--border);border-radius:5px;width:220px;color:var(--gray-600);';
+        btn.insertAdjacentElement('afterend', field);
+      }
+      field.value = link;
+      field.style.display = '';
+      field.focus();
+      field.select();
+      if (navigator.clipboard) navigator.clipboard.writeText(link).catch(() => {});
+      showToast('Share link copied to clipboard', 'success');
+    }
+
+    function jumpToScheduleF() {
+      switchTab('comp-tabs', 'naic');
+      const card = document.getElementById('schedule-f-card');
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.style.boxShadow = '0 0 0 3px var(--orange)';
+        setTimeout(() => { card.style.boxShadow = 'none'; }, 1600);
+      }
+      showToast('Resolve the 2 pending reinsurer ratings in Schedule F to unlock pack generation', 'warning');
+    }
+  </script>
+</body>
+</html>

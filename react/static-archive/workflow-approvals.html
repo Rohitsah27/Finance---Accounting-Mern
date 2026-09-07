@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Workflow & Approvals — Governance | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/gl-engine.js"></script>
+  <script src="js/layout.js"></script>
+  <style>
+    /* ── Approval Chain Builder ── */
+    .apc-builder-body { padding: 20px; }
+    .apc-meta-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 18px; margin-bottom: 22px; }
+    @media (max-width: 900px) { .apc-meta-grid { grid-template-columns: 1fr; } }
+
+    .apc-section-lbl {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--gray-500);
+      margin-bottom: 12px;
+    }
+
+    .apc-steps-list { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+
+    .apc-step-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 14px;
+      background: var(--gray-50);
+      border: 1.5px solid var(--gray-200);
+      border-radius: 9px;
+    }
+
+    .apc-step-num {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: var(--navy);
+      color: #fff;
+      font-size: 12.5px;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .apc-step-connector {
+      width: 2px;
+      height: 14px;
+      background: var(--gray-300);
+      margin: -6px 0 -6px 14px;
+    }
+
+    .apc-step-body { flex: 1; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+    .apc-step-role-lbl { font-size: 11.5px; font-weight: 600; color: var(--gray-500); white-space: nowrap; }
+    .apc-step-role-select { min-width: 200px; }
+
+    .apc-step-remove {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      border: none;
+      background: var(--red-bg);
+      color: var(--red);
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      flex-shrink: 0;
+      transition: opacity 0.15s;
+    }
+    .apc-step-remove:hover { opacity: 0.75; }
+
+    .apc-add-step-btn {
+      align-self: flex-start;
+      background: none;
+      border: 1.5px dashed var(--gray-300);
+      color: var(--navy);
+      font-size: 12.5px;
+      font-weight: 700;
+      padding: 9px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.15s;
+      margin-bottom: 22px;
+    }
+    .apc-add-step-btn:hover { border-color: var(--navy); background: var(--gray-50); }
+
+    .apc-escalation-row {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      font-size: 13px;
+      color: var(--gray-700);
+      background: var(--v-amber-bg);
+      border: 1.5px solid #f0d6ae;
+      border-radius: 9px;
+      padding: 14px 16px;
+      margin-bottom: 22px;
+    }
+
+    .apc-escalation-row input,
+    .apc-escalation-row select {
+      padding: 6px 10px;
+      border: 1.5px solid var(--gray-300);
+      border-radius: 6px;
+      font-size: 12.5px;
+      color: var(--gray-800);
+      background: #fff;
+      outline: none;
+    }
+    .apc-escalation-row input:focus,
+    .apc-escalation-row select:focus { border-color: var(--coral); }
+    .apc-esc-hours { width: 64px; text-align: center; }
+
+    .apc-builder-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 10px;
+      padding-top: 16px;
+      border-top: 1px solid var(--gray-200);
+    }
+
+    /* ── Notification triggers mini-table ── */
+    .nt-channel-cell { text-align: center; }
+  </style>
+</head>
+<body>
+<main class="main-content" id="main-content">
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">Workflow &amp; Approvals</div>
+      <div class="page-subtitle">Approval chains, pending approvals, escalations and notification routing</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline btn-sm" onclick="showToast('Exporting approval activity...', 'info')">Export</button>
+      <button class="btn btn-primary btn-sm" onclick="toggleChainBuilder()">+ New Approval Chain</button>
+    </div>
+  </div>
+
+  <!-- ═══ STAT CARDS ═══ -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-icon si-navy">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#102a2e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="6" height="5" rx="1"/><rect x="15" y="10" width="6" height="5" rx="1"/><rect x="3" y="16" width="6" height="5" rx="1"/><path d="M9 5.5h3a2 2 0 012 2v5M9 18.5h3a2 2 0 002-2v-4"/></svg>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value" id="stat-active-chains">0</div>
+        <div class="stat-label">Active Approval Chains</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon si-orange">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#e65100" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value" id="stat-pending-approvals">0</div>
+        <div class="stat-label">Pending Approvals (Mine)</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon si-coral">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#c9791f" stroke-width="2"><path d="M12 2 2 20h20L12 2z"/><path d="M12 9v5"/><circle cx="12" cy="17" r="0.6" fill="#c9791f"/></svg>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value" id="stat-escalated-items">0</div>
+        <div class="stat-label">Escalated Items</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon si-green">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2e7d32" stroke-width="2"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8"/></svg>
+      </div>
+      <div class="stat-info">
+        <div class="stat-value" id="stat-avg-time">2.5 hrs</div>
+        <div class="stat-label">Avg. Approval Time</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ APPROVAL CHAIN BUILDER ═══ -->
+  <div class="form-card" id="apcBuilder" style="margin-bottom:24px; display:none;">
+    <div class="card-header">
+      <div class="card-title">Approval Chain Builder</div>
+      <span style="font-size:11.5px;color:var(--gray-400);">Define trigger conditions and an ordered approval sequence</span>
+    </div>
+    <div class="apc-builder-body">
+
+      <div class="apc-meta-grid">
+        <div class="form-field">
+          <label class="field-label">Chain Name</label>
+          <input type="text" class="field-input" id="apcChainName" placeholder="e.g. Large Journal Entry Approval">
+        </div>
+        <div class="form-field">
+          <label class="field-label">Trigger Module</label>
+          <select class="field-input field-select" id="apcTriggerModule">
+            <option>Journal Entry</option>
+            <option>AP Invoice</option>
+            <option>Purchase Order</option>
+            <option>Expense Report</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="field-label">Threshold Amount ($)</label>
+          <input type="number" class="field-input" id="apcThreshold" placeholder="e.g. 25000" min="0" step="100">
+        </div>
+      </div>
+
+      <div class="apc-section-lbl">Approval Sequence</div>
+      <div class="apc-steps-list" id="apcStepsList">
+        <div class="apc-step-row" data-step-row>
+          <div class="apc-step-num">1</div>
+          <div class="apc-step-body">
+            <span class="apc-step-role-lbl">Approver Role</span>
+            <select class="field-input field-select apc-step-role-select">
+              <option>Manager</option>
+              <option>Controller</option>
+              <option>CFO</option>
+              <option>VP Finance</option>
+            </select>
+          </div>
+          <button type="button" class="apc-step-remove" title="Remove step" onclick="removeApcStep(this)">×</button>
+        </div>
+        <div class="apc-step-row" data-step-row>
+          <div class="apc-step-num">2</div>
+          <div class="apc-step-body">
+            <span class="apc-step-role-lbl">Approver Role</span>
+            <select class="field-input field-select apc-step-role-select">
+              <option>Manager</option>
+              <option selected>Controller</option>
+              <option>CFO</option>
+              <option>VP Finance</option>
+            </select>
+          </div>
+          <button type="button" class="apc-step-remove" title="Remove step" onclick="removeApcStep(this)">×</button>
+        </div>
+      </div>
+      <button type="button" class="apc-add-step-btn" onclick="addApcStep()">+ Add Step</button>
+
+      <div class="apc-section-lbl">Escalation Rule</div>
+      <div class="apc-escalation-row">
+        <span>If not actioned in</span>
+        <input type="number" class="apc-esc-hours" id="apcEscHours" value="48" min="1" max="240">
+        <span>hours, escalate to</span>
+        <select id="apcEscRole">
+          <option>Controller</option>
+          <option selected>CFO</option>
+          <option>VP Finance</option>
+          <option>Audit Committee</option>
+        </select>
+      </div>
+
+      <div class="apc-builder-actions">
+        <button type="button" class="btn btn-outline btn-sm" onclick="resetApcBuilder()">Reset</button>
+        <button type="button" class="btn btn-primary btn-sm" onclick="saveApprovalChain()">Save Approval Chain</button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ═══ MY PENDING APPROVALS ═══ -->
+  <div class="table-wrap" style="margin-bottom:24px;">
+    <div class="table-head-row">
+      <div class="table-head-title">My Pending Approvals</div>
+      <div class="table-head-actions">
+        <span style="font-size:11.5px;color:var(--gray-400);" id="pendingCount">7 items awaiting your action</span>
+      </div>
+    </div>
+    <table class="data-table" id="pendingApprovalsTable">
+      <thead>
+        <tr>
+          <th>Item Type</th>
+          <th>Reference #</th>
+          <th>Submitted By</th>
+          <th>Amount</th>
+          <th>Days Pending</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="pendingApprovalsBody">
+        <!-- Rendered dynamically from localStorage -->
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ═══ NOTIFICATION TRIGGERS ═══ -->
+  <div class="table-wrap" style="margin-bottom:24px;">
+    <div class="table-head-row">
+      <div class="table-head-title">Notification Triggers</div>
+    </div>
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Event</th>
+          <th class="nt-channel-cell">Email</th>
+          <th class="nt-channel-cell">In-App</th>
+          <th class="nt-channel-cell">SMS</th>
+          <th class="nt-channel-cell">Enabled</th>
+        </tr>
+      </thead>
+      <tbody id="notifTriggersBody">
+        <tr>
+          <td>Approval Requested</td>
+          <td class="nt-channel-cell"><input type="checkbox" class="table-check" checked onchange="onNotifToggle(this,'Approval Requested','Email')"></td>
+          <td class="nt-channel-cell"><input type="checkbox" class="table-check" checked onchange="onNotifToggle(this,'Approval Requested','In-App')"></td>
+          <td class="nt-channel-cell"><input type="checkbox" class="table-check" onchange="onNotifToggle(this,'Approval Requested','SMS')"></td>
+          <td class="nt-channel-cell"><label class="v-switch"><input type="checkbox" checked><span class="v-slider"></span></label></td>
+        </tr>
+        <tr>
+          <td>Item Escalated</td>
+          <td class="nt-channel-cell"><input type="checkbox" class="table-check" checked onchange="onNotifToggle(this,'Item Escalated','Email')"></td>
+          <td class="nt-channel-cell"><input type="checkbox" class="table-check" checked onchange="onNotifToggle(this,'Item Escalated','In-App')"></td>
+          <td class="nt-channel-cell"><input type="checkbox" class="table-check" checked onchange="onNotifToggle(this,'Item Escalated','SMS')"></td>
+          <td class="nt-channel-cell"><label class="v-switch"><input type="checkbox" checked><span class="v-slider"></span></label></td>
+        </tr>
+        <tr>
+          <td>Approval Overdue</td>
+          <td class="nt-channel-cell"><input type="checkbox" class="table-check" checked onchange="onNotifToggle(this,'Approval Overdue','Email')"></td>
+          <td class="nt-channel-cell"><input type="checkbox" class="table-check" checked onchange="onNotifToggle(this,'Approval Overdue','In-App')"></td>
+          <td class="nt-channel-cell"><input type="checkbox" class="table-check" onchange="onNotifToggle(this,'Approval Overdue','SMS')"></td>
+          <td class="nt-channel-cell"><label class="v-switch"><input type="checkbox" checked><span class="v-slider"></span></label></td>
+        </tr>
+        <tr>
+          <td>Chain Approved (Final)</td>
+          <td class="nt-channel-cell"><input type="checkbox" class="table-check" checked onchange="onNotifToggle(this,'Chain Approved (Final)','Email')"></td>
+          <td class="nt-channel-cell"><input type="checkbox" class="table-check" checked onchange="onNotifToggle(this,'Chain Approved (Final)','In-App')"></td>
+          <td class="nt-channel-cell"><input type="checkbox" class="table-check" onchange="onNotifToggle(this,'Chain Approved (Final)','SMS')"></td>
+          <td class="nt-channel-cell"><label class="v-switch"><input type="checkbox" checked><span class="v-slider"></span></label></td>
+        </tr>
+        <tr>
+          <td>Item Rejected</td>
+          <td class="nt-channel-cell"><input type="checkbox" class="table-check" checked onchange="onNotifToggle(this,'Item Rejected','Email')"></td>
+          <td class="nt-channel-cell"><input type="checkbox" class="table-check" onchange="onNotifToggle(this,'Item Rejected','In-App')"></td>
+          <td class="nt-channel-cell"><input type="checkbox" class="table-check" onchange="onNotifToggle(this,'Item Rejected','SMS')"></td>
+          <td class="nt-channel-cell"><label class="v-switch"><input type="checkbox"><span class="v-slider"></span></label></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ═══ APPROVAL HISTORY ═══ -->
+  <div class="table-wrap">
+    <div class="table-head-row">
+      <div class="table-head-title">Approval History</div>
+      <span style="font-size:11.5px;color:var(--gray-400);">Most recent activity, last 30 days</span>
+    </div>
+    <table class="data-table" id="approvalHistoryTable">
+      <thead>
+        <tr>
+          <th>Item Type / Reference</th>
+          <th>Timestamp</th>
+          <th>Actor</th>
+          <th>Result</th>
+        </tr>
+      </thead>
+      <tbody id="approvalHistoryBody">
+        <!-- Rendered dynamically from localStorage -->
+      </tbody>
+    </table>
+  </div>
+
+</main>
+
+<script>
+  let apcStepCounter = 2;
+  const APC_ROLES = ['Manager', 'Controller', 'CFO', 'VP Finance'];
+
+  function renumberApcSteps() {
+    const rows = document.querySelectorAll('#apcStepsList [data-step-row]');
+    rows.forEach((row, idx) => {
+      const num = row.querySelector('.apc-step-num');
+      if (num) num.textContent = (idx + 1);
+    });
+  }
+
+  function addApcStep() {
+    apcStepCounter++;
+    const list = document.getElementById('apcStepsList');
+    const row = document.createElement('div');
+    row.className = 'apc-step-row';
+    row.setAttribute('data-step-row', '');
+    const optionsHtml = APC_ROLES.map(r => `<option>${r}</option>`).join('');
+    row.innerHTML = `
+      <div class="apc-step-num">${apcStepCounter}</div>
+      <div class="apc-step-body">
+        <span class="apc-step-role-lbl">Approver Role</span>
+        <select class="field-input field-select apc-step-role-select">${optionsHtml}</select>
+      </div>
+      <button type="button" class="apc-step-remove" title="Remove step" onclick="removeApcStep(this)">&times;</button>
+    `;
+    list.appendChild(row);
+    renumberApcSteps();
+    showToast('Step ' + apcStepCounter + ' added to approval sequence', 'info');
+  }
+
+  function removeApcStep(btn) {
+    const list = document.getElementById('apcStepsList');
+    const rows = document.querySelectorAll('#apcStepsList [data-step-row]');
+    if (rows.length <= 1) {
+      showToast('An approval chain needs at least one step', 'warning');
+      return;
+    }
+    const row = btn.closest('[data-step-row]');
+    if (row) row.remove();
+    renumberApcSteps();
+  }
+
+  function resetApcBuilder() {
+    document.getElementById('apcChainName').value = '';
+    document.getElementById('apcTriggerModule').selectedIndex = 0;
+    document.getElementById('apcThreshold').value = '';
+    document.getElementById('apcEscHours').value = 48;
+    document.getElementById('apcEscRole').selectedIndex = 1;
+    const list = document.getElementById('apcStepsList');
+    list.innerHTML = '';
+    apcStepCounter = 0;
+    addApcStep();
+    addApcStep();
+    showToast('Builder reset', 'info');
+  }
+
+  const DEFAULT_CHAINS = [
+    { name: 'Large Journal Entry Approval (> $25,000)', triggerModule: 'Journal Entry', threshold: 25000, steps: ['Manager', 'Controller'], escHours: 48, escRole: 'CFO' },
+    { name: 'AP Invoice Approval (> $10,000)', triggerModule: 'AP Invoice', threshold: 10000, steps: ['Controller', 'CFO'], escHours: 72, escRole: 'VP Finance' }
+  ];
+
+  function getApprovalChains() {
+    let stored = localStorage.getItem('v_approval_chains');
+    if (!stored) {
+      localStorage.setItem('v_approval_chains', JSON.stringify(DEFAULT_CHAINS));
+      return DEFAULT_CHAINS;
+    }
+    return JSON.parse(stored);
+  }
+
+  function saveApprovalChains(arr) {
+    localStorage.setItem('v_approval_chains', JSON.stringify(arr));
+  }
+
+  function updateChainsCount() {
+    const chains = getApprovalChains();
+    const el = document.getElementById('stat-active-chains');
+    if (el) el.textContent = chains.length;
+  }
+
+  function toggleChainBuilder() {
+    const builder = document.getElementById('apcBuilder');
+    if (builder) {
+      const isHidden = builder.style.display === 'none';
+      builder.style.display = isHidden ? 'block' : 'none';
+      if (isHidden) {
+        builder.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  }
+
+  function saveApprovalChain() {
+    const name = document.getElementById('apcChainName').value.trim() || 'Untitled Approval Chain';
+    const triggerModule = document.getElementById('apcTriggerModule').value;
+    const threshold = Number(document.getElementById('apcThreshold').value || 0);
+    const steps = Array.from(document.querySelectorAll('.apc-step-role-select')).map(s => s.value);
+    const hours = document.getElementById('apcEscHours').value || '48';
+    const escRole = document.getElementById('apcEscRole').value;
+    
+    if (steps.length === 0) {
+      showToast('Please add at least one step in the approval sequence', 'warning');
+      return;
+    }
+    
+    let chains = getApprovalChains();
+    chains.push({
+      name: name,
+      triggerModule: triggerModule,
+      threshold: threshold,
+      steps: steps,
+      escHours: hours,
+      escRole: escRole
+    });
+    saveApprovalChains(chains);
+    updateChainsCount();
+    
+    showToast(`Saved "${name}" with ${steps.length} approval step${steps.length === 1 ? '' : 's'} successfully`, 'success');
+    
+    // Clear and hide
+    resetApcBuilder();
+    document.getElementById('apcBuilder').style.display = 'none';
+  }
+
+  const DEFAULT_ILLUSTRATIVE_APPROVALS = [
+    { id: 'INV-V8NHT-1', type: 'Policy Invoice', ref: 'INV-V8NHT-1 (Ayushi · POL-V8NHT)', submitter: 'HIT (Broker)', amount: 39260.00, days: 1, status: 'Pending' },
+    { id: 'COMM-V8NHT', type: 'Broker Commission', ref: 'COMM-V8NHT (HIT Remittance)', submitter: 'NTA Operations', amount: 2500.00, days: 1, status: 'Pending' },
+    { id: 'SETTLE-TX-849', type: 'Carrier Settlement', ref: 'SETTLE-TX-849 (SOUTHLAKE Wire)', submitter: 'Finance Team', amount: 32257.00, days: 1, status: 'Pending' },
+    { id: 'TAX-TX-0820', type: 'Tax Remittance', ref: 'TAX-TX-0820 (Texas SLTX Surcharge)', submitter: 'Tax Engine', amount: 1770.00, days: 0, status: 'Pending' },
+    { id: 'AP-2026-0428', type: 'Reinsurance Cession', ref: 'TREATY-2026-Q3 (Munich Re)', submitter: 'Underwriting Ops', amount: 18250.00, days: 2, status: 'Pending' }
+  ];
+
+  const DEFAULT_APPROVAL_HISTORY = [
+    { ref: 'Journal Entry · JE-4819', timestamp: '2026-08-20 10:15', actor: 'Ankit (Controller)', result: 'Approved' },
+    { ref: 'AP Invoice · AP-1198', timestamp: '2026-08-19 16:40', actor: 'Ankit (Controller)', result: 'Approved' }
+  ];
+
+  function getIllustrativeApprovals() {
+    let stored = localStorage.getItem('v_illustrative_pending_approvals');
+    if (!stored || stored.includes('JE-4821') || stored.includes('PO-9902')) {
+      localStorage.setItem('v_illustrative_pending_approvals', JSON.stringify(DEFAULT_ILLUSTRATIVE_APPROVALS));
+      return DEFAULT_ILLUSTRATIVE_APPROVALS;
+    }
+    return JSON.parse(stored);
+  }
+
+  function saveIllustrativeApprovals(arr) {
+    localStorage.setItem('v_illustrative_pending_approvals', JSON.stringify(arr));
+  }
+
+  function getApprovalHistory() {
+    let stored = localStorage.getItem('v_approval_history');
+    if (!stored) {
+      localStorage.setItem('v_approval_history', JSON.stringify(DEFAULT_APPROVAL_HISTORY));
+      return DEFAULT_APPROVAL_HISTORY;
+    }
+    return JSON.parse(stored);
+  }
+
+  function saveApprovalHistory(arr) {
+    localStorage.setItem('v_approval_history', JSON.stringify(arr));
+  }
+
+  function approveRow(btn, ref) {
+    const actor = typeof getCurrentUser === 'function' ? (getCurrentUser().name || 'Ankit') + ' (Controller)' : 'Ankit (Controller)';
+    const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 16);
+    
+    const realJe = getJournalEntries().find(j => j.id === ref);
+    if (realJe) {
+      approveJournalEntry(realJe.id);
+      showToast(realJe.number + ' approved and posted to the ledger', 'success');
+      addHistoryItem('Journal Entry · ' + realJe.number, timestamp, actor, 'Approved');
+    } else {
+      let items = getIllustrativeApprovals();
+      let target = items.find(i => i.id === ref);
+      if (target) {
+        target.status = 'Approved';
+        saveIllustrativeApprovals(items);
+        showToast(`Approved ${target.type} (${target.ref})`, 'success');
+        addHistoryItem(target.type + ' · ' + target.ref, timestamp, actor, 'Approved');
+      } else {
+        showToast('Approved ' + ref, 'success');
+        addHistoryItem('Item · ' + ref, timestamp, actor, 'Approved');
+      }
+    }
+    renderApprovalsTable();
+  }
+
+  function rejectRow(btn, ref) {
+    const actor = typeof getCurrentUser === 'function' ? (getCurrentUser().name || 'Ankit') + ' (Controller)' : 'Ankit (Controller)';
+    const timestamp = new Date().toISOString().replace('T', ' ').substring(0, 16);
+
+    const realJe = getJournalEntries().find(j => j.id === ref);
+    if (realJe) {
+      rejectJournalEntry(realJe.id, 'Rejected in Workflow Approvals');
+      showToast(realJe.number + ' rejected', 'error');
+      addHistoryItem('Journal Entry · ' + realJe.number, timestamp, actor, 'Rejected');
+    } else {
+      let items = getIllustrativeApprovals();
+      let target = items.find(i => i.id === ref);
+      if (target) {
+        target.status = 'Rejected';
+        saveIllustrativeApprovals(items);
+        showToast(`Rejected ${target.type} (${target.ref})`, 'error');
+        addHistoryItem(target.type + ' · ' + target.ref, timestamp, actor, 'Rejected');
+      } else {
+        showToast('Rejected ' + ref, 'error');
+        addHistoryItem('Item · ' + ref, timestamp, actor, 'Rejected');
+      }
+    }
+    renderApprovalsTable();
+  }
+
+  function addHistoryItem(refName, timestamp, actor, result) {
+    let hist = getApprovalHistory();
+    hist.unshift({ ref: refName, timestamp: timestamp, actor: actor, result: result });
+    saveApprovalHistory(hist);
+    renderHistoryTable();
+  }
+
+  function renderApprovalsTable() {
+    const tbody = document.getElementById('pendingApprovalsBody');
+    if (!tbody) return;
+
+    // A. Gather real pending JEs
+    const pendingJEs = getPendingApprovalEntries();
+    let rowsHtml = pendingJEs.map(je => {
+      const amount = Math.max(jeTotalDebit(je), jeTotalCredit(je));
+      const daysPending = je.submittedAt ? Math.min(Math.max(0, Math.round((Date.now() - new Date(je.submittedAt).getTime()) / 86400000)), 3) : 1;
+      return `<tr data-ref="${je.id}">
+        <td>Journal Entry</td>
+        <td>${je.number}</td>
+        <td>${je.createdBy || 'System'}</td>
+        <td>${typeof fmtCurrency === 'function' ? fmtCurrency(amount) : '$' + amount.toLocaleString()}</td>
+        <td>${daysPending}</td>
+        <td>
+          <button class="btn btn-primary btn-sm" onclick="approveRow(this,'${je.id}')">Approve</button>
+          <button class="btn btn-outline btn-sm" onclick="rejectRow(this,'${je.id}')">Reject</button>
+        </td>
+      </tr>`;
+    }).join('');
+
+    // B. Gather illustrative pending items
+    const illustrative = getIllustrativeApprovals().filter(i => i.status === 'Pending');
+    const mockRowsHtml = illustrative.map(item => {
+      return `<tr data-ref="${item.id}">
+        <td>${item.type}</td>
+        <td>${item.ref}</td>
+        <td>${item.submitter}</td>
+        <td>$${item.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+        <td>${item.days}</td>
+        <td>
+          <button class="btn btn-primary btn-sm" onclick="approveRow(this,'${item.id}')">Approve</button>
+          <button class="btn btn-outline btn-sm" onclick="rejectRow(this,'${item.id}')">Reject</button>
+        </td>
+      </tr>`;
+    }).join('');
+
+    tbody.innerHTML = rowsHtml + mockRowsHtml;
+    updatePendingCount();
+  }
+
+  function renderHistoryTable() {
+    const tbody = document.getElementById('approvalHistoryBody');
+    if (!tbody) return;
+    
+    const history = getApprovalHistory();
+    tbody.innerHTML = history.map(h => {
+      const badgeClass = h.result === 'Approved' ? 'badge-green' : 'badge-red';
+      return `
+        <tr>
+          <td>${h.ref}</td>
+          <td>${h.timestamp}</td>
+          <td>${h.actor}</td>
+          <td><span class="badge ${badgeClass}">${h.result}</span></td>
+        </tr>
+      `;
+    }).join('') || '<tr><td colspan="4" class="text-muted" style="text-align:center;padding:24px;">No approval history recorded.</td></tr>';
+  }
+
+  function updatePendingCount() {
+    const remaining = document.querySelectorAll('#pendingApprovalsBody tr[data-ref]').length;
+    const el = document.getElementById('pendingCount');
+    if (el) el.textContent = remaining + ' item' + (remaining === 1 ? '' : 's') + ' awaiting your action';
+    
+    const statEl = document.getElementById('stat-pending-approvals');
+    if (statEl) statEl.textContent = remaining;
+    
+    const tbody = document.getElementById('pendingApprovalsBody');
+    if (remaining === 0 && tbody) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--gray-400);">No pending approvals. You are all caught up.</td></tr>';
+    }
+  }
+
+  function onNotifToggle(checkbox, event, channel) {
+    showToast(`${channel} notifications ${checkbox.checked ? 'enabled' : 'disabled'} for "${event}"`, 'info');
+  }
+</script>
+
+  <script src="js/app.js"></script>
+  <script>
+    initLayout('workflow');
+    renderApprovalsTable();
+    renderHistoryTable();
+    updateChainsCount();
+  </script>
+</body>
+</html>

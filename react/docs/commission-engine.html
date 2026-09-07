@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Commission Engine — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Commissions &amp; FX</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Commission Engine</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-hand-holding-dollar" style="color: var(--purple);"></i> Commission Engine &amp; Producer Statements</h1>
+      <p>
+        The Commission Engine automates complex, multi-tiered producer compensation contracts. It tracks tiered commission schedules, overrides, chargebacks on cancellations, batch payout runs, and PDF producer statements.
+      </p>
+    </div>
+
+    <div class="module-card" id="commission-structure">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-purple">Producer Splits</span>
+            <span class="badge badge-teal">Multi-Tier</span>
+          </div>
+          <h2 class="module-title">Multi-Tier Commission Structure (`commission-engine.html`)</h2>
+        </div>
+        <a href="../commission-engine.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Commission Engine</a>
+      </div>
+
+      <p class="section-p">
+        In Veridex, commission schedules are assigned dynamically by Line of Business and Producer Tier:
+      </p>
+
+      <div class="grid-2">
+        <div class="info-card">
+          <h4>Retail Producer Commission (10.0%)</h4>
+          <p>Paid to the writing retail broker (e.g. `HIT Agency` receives $2,500.00 on a $25,000 policy).</p>
+        </div>
+        <div class="info-card">
+          <h4>MGA Override Commission (5.0%)</h4>
+          <p>Paid to the program administrator (e.g. `NTA` receives $1,250.00 for underwriting management).</p>
+        </div>
+      </div>
+
+      <h3 class="section-h3"><i class="fa-solid fa-calculator"></i> Commission Accounting Entries:</h3>
+      <table class="je-table">
+        <thead>
+          <tr>
+            <th>Event</th>
+            <th>Account Code &amp; Name</th>
+            <th style="text-align:right;">Debit ($)</th>
+            <th style="text-align:right;">Credit ($)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td rowspan="2"><strong>Carrier Books Commission Expense</strong></td>
+            <td>6100 Commission Expense — Broker (10%)</td>
+            <td class="dr-amount">$2,500.00</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td class="indent-cr">2150 Commission Payable — Broker</td>
+            <td></td>
+            <td class="cr-amount">$2,500.00</td>
+          </tr>
+          <tr>
+            <td rowspan="2"><strong>Commission Paid via ACH</strong></td>
+            <td>2150 Commission Payable — Broker</td>
+            <td class="dr-amount">$2,500.00</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td class="indent-cr">1001 Cash / Bank Operating</td>
+            <td></td>
+            <td class="cr-amount">$2,500.00</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="inventory-assets.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">Inventory &amp; Assets</span>
+      </a>
+      <a href="multi-currency-fx.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Module &rarr;</span>
+        <span class="nav-page-title">Multi-Currency &amp; FX</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('commission-engine');
+</script>
+</body>
+</html>

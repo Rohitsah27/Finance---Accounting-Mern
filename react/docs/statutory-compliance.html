@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Statutory & Compliance — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Reinsurance &amp; Statutory</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Statutory &amp; Compliance</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-landmark" style="color: var(--teal);"></i> Statutory Reporting &amp; NAIC Regulatory Blanks</h1>
+      <p>
+        Insurance carriers are required by state insurance commissioners to prepare financial statements under Statutory Accounting Principles (SAP / NAIC). Veridex automatically maps GAAP general ledger entries into official Yellow Book statutory schedules.
+      </p>
+    </div>
+
+    <div class="module-card" id="naic-schedules">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-blue">NAIC Blanks</span>
+            <span class="badge badge-amber">SAP Compliance</span>
+          </div>
+          <h2 class="module-title">Key NAIC Statutory Schedules (`statutory-reports.html`)</h2>
+        </div>
+        <a href="../statutory-reports.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Statutory Hub</a>
+      </div>
+
+      <div class="grid-2">
+        <div class="info-card">
+          <h4>Schedule P (Loss &amp; LAE Triangles)</h4>
+          <p>Multi-year actuarial development triangles for paid losses, case reserves, and IBNR by line of business.</p>
+        </div>
+        <div class="info-card">
+          <h4>Schedule F (Reinsurance Ceded)</h4>
+          <p>Authorized vs. unauthorized reinsurance recoverables, collateral held (Letters of Credit / Trust accounts).</p>
+        </div>
+        <div class="info-card">
+          <h4>Schedule T (Premiums by State)</h4>
+          <p>Direct written premium, direct earned premium, and policy dividends allocated by each U.S. state and territory.</p>
+        </div>
+        <div class="info-card">
+          <h4>Risk-Based Capital (RBC)</h4>
+          <p>Capital adequacy solvency ratio required by regulators to protect policyholders against carrier insolvency.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="reinsurance-accounting.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">Reinsurance Accounting</span>
+      </a>
+      <a href="governance-admin.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Module &rarr;</span>
+        <span class="nav-page-title">Governance &amp; Administration</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('statutory-compliance');
+</script>
+</body>
+</html>

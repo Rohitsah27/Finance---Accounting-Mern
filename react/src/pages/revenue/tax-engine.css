@@ -1,0 +1,93 @@
+/* Tax Engine Styles matching tax-engine.html */
+.tax-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.tax-progress-track {
+  flex: 1;
+  height: 6px;
+  background: var(--color-border, #e2e8f0);
+  border-radius: 3px;
+  overflow: hidden;
+  min-width: 120px;
+}
+
+.tax-progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: #0f6e63;
+}
+
+.tax-progress-fill.over {
+  background: #e05470;
+}
+
+.tax-progress-label {
+  font-size: 11px;
+  color: var(--color-muted, #64748b);
+  white-space: nowrap;
+  min-width: 96px;
+  text-align: right;
+}
+
+.tax-lookup-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: end;
+  max-width: 420px;
+}
+
+.tax-lookup-result {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: var(--radius, 6px);
+  background: #e6f4f1;
+  border: 1px solid rgba(15, 110, 99, 0.25);
+  font-size: 12.5px;
+  color: #1e293b;
+}
+
+.tax-copy {
+  font-size: 12px;
+  color: var(--color-muted, #64748b);
+  line-height: 1.6;
+  margin-bottom: 14px;
+  max-width: 900px;
+}
+
+.pill-tabbar {
+  display: flex;
+  gap: 4px;
+  background: #f1f5f9;
+  border-radius: 8px;
+  padding: 4px;
+  margin-bottom: 20px;
+  width: fit-content;
+  border: 1px solid var(--color-border, #e2e8f0);
+}
+
+.pill-tab {
+  padding: 6px 18px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--color-muted, #64748b);
+  border: none;
+  background: transparent;
+  transition: all 0.15s ease;
+}
+
+.pill-tab:hover {
+  color: #0d1b4b;
+}
+
+.pill-tab.active {
+  background: #fff;
+  color: #0d1b4b;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  border: 1px solid var(--color-border, #e2e8f0);
+}

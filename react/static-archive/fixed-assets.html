@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fixed Assets — Asset Register | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/layout.js"></script>
+</head>
+<body>
+  <main class="main-content" id="main-content">
+
+    <div class="page-header">
+      <div>
+        <div class="page-title">Fixed Assets</div>
+        <div class="page-subtitle">Asset register, depreciation methods (Straight-Line, Declining Balance, MACRS, and more), and disposals</div>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-outline" onclick="showToast('Exporting asset register...','info')">Export</button>
+        <button class="btn btn-primary" onclick="showToast('New asset form opened','info')">+ New Asset</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row">
+      <div class="stat-card">
+        <div class="stat-icon si-navy"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><rect x="3" y="6" width="14" height="9" rx="1" stroke="#102a2e" stroke-width="1.5"/><path d="M6 6V4a4 4 0 0 1 8 0v2" stroke="#102a2e" stroke-width="1.4"/></svg></div>
+        <div class="stat-info"><div class="stat-value">$8,642,000</div><div class="stat-label">Total Asset Cost</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-orange"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 5v6M10 14v1" stroke="#e65100" stroke-width="2" stroke-linecap="round"/><circle cx="10" cy="10" r="7.5" stroke="#e65100" stroke-width="1.4"/></svg></div>
+        <div class="stat-info"><div class="stat-value" id="stat-accum-dep">$3,184,600</div><div class="stat-label">Accumulated Depreciation</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-green"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M3 12l4-5 3 3 6-7" stroke="#2e7d32" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+        <div class="stat-info"><div class="stat-value" id="stat-nbv">$5,457,400</div><div class="stat-label">Net Book Value</div></div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon si-coral"><svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 3v14M3 10h14" stroke="#c9791f" stroke-width="1.8" stroke-linecap="round"/></svg></div>
+        <div class="stat-info"><div class="stat-value">14</div><div class="stat-label">Assets Added This Year</div></div>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filter-bar">
+      <span class="filter-bar-label">Filters:</span>
+      <select class="filter-select" id="f-category" onchange="applyAssetFilters()">
+        <option value="">All Categories</option>
+        <option>Machinery &amp; Equipment</option>
+        <option>Vehicles</option>
+        <option>Buildings</option>
+        <option>Furniture &amp; Fixtures</option>
+        <option>IT Equipment</option>
+      </select>
+      <select class="filter-select" id="f-method" onchange="applyAssetFilters()">
+        <option value="">All Depreciation Methods</option>
+        <option>Straight-Line</option>
+        <option>Declining Balance</option>
+        <option>Double Declining Balance</option>
+        <option>Sum-of-Years-Digits</option>
+        <option>Units of Production</option>
+        <option>MACRS</option>
+      </select>
+      <select class="filter-select" id="f-assetstatus" onchange="applyAssetFilters()">
+        <option value="">All Status</option>
+        <option>In Use</option>
+        <option>Disposed</option>
+        <option>Impaired</option>
+      </select>
+      <div class="filter-spacer"></div>
+      <input type="text" class="filter-input" placeholder="Search asset tag, description..." id="asset-search" oninput="applyAssetFilters()" style="width:220px;">
+    </div>
+
+    <!-- Asset Register -->
+    <div class="table-wrap" style="margin-bottom:24px;">
+      <div class="table-head-row">
+        <div class="table-head-title">Asset Register</div>
+        <div class="table-head-actions">
+          <button class="btn btn-primary btn-sm" onclick="runDepreciation()">Run Depreciation</button>
+        </div>
+      </div>
+      <table class="data-table" id="asset-table">
+        <thead><tr>
+          <th>Asset Tag</th><th>Description</th><th>Category</th><th>Acquired</th>
+          <th class="text-right">Cost</th><th>Method</th><th>Useful Life</th>
+          <th class="text-right">Accum. Dep.</th><th class="text-right">Net Book Value</th><th>Status</th><th>Actions</th>
+        </tr></thead>
+        <tbody>
+          <tr data-category="Machinery &amp; Equipment" data-method="Straight-Line" data-status="In Use">
+            <td class="font-semibold">FA-1001</td><td>CNC Sheet Metal Press</td><td>Machinery &amp; Equipment</td><td>03/15/2021</td>
+            <td class="text-right">$420,000</td><td><span class="badge badge-navy">Straight-Line</span></td><td>10 yrs</td>
+            <td class="text-right">$210,000</td><td class="text-right font-semibold" id="nbv-1001">$210,000</td>
+            <td><span class="badge badge-green">In Use</span></td>
+            <td><button class="btn btn-ghost btn-sm" onclick="openDispose('FA-1001', this)">Dispose</button></td>
+          </tr>
+          <tr data-category="Vehicles" data-method="Declining Balance" data-status="In Use">
+            <td class="font-semibold">FA-1014</td><td>Fleet Delivery Truck - Ford F-650</td><td>Vehicles</td><td>06/01/2023</td>
+            <td class="text-right">$86,000</td><td><span class="badge badge-orange">Declining Balance (20%)</span></td><td>5 yrs</td>
+            <td class="text-right">$30,960</td><td class="text-right font-semibold" id="nbv-1014">$55,040</td>
+            <td><span class="badge badge-green">In Use</span></td>
+            <td><button class="btn btn-ghost btn-sm" onclick="openDispose('FA-1014', this)">Dispose</button></td>
+          </tr>
+          <tr data-category="IT Equipment" data-method="Double Declining Balance" data-status="In Use">
+            <td class="font-semibold">FA-1027</td><td>Server Rack - ERP Data Center</td><td>IT Equipment</td><td>01/10/2024</td>
+            <td class="text-right">$96,500</td><td><span class="badge badge-orange">Double Declining</span></td><td>5 yrs</td>
+            <td class="text-right">$38,600</td><td class="text-right font-semibold" id="nbv-1027">$57,900</td>
+            <td><span class="badge badge-green">In Use</span></td>
+            <td><button class="btn btn-ghost btn-sm" onclick="openDispose('FA-1027', this)">Dispose</button></td>
+          </tr>
+          <tr data-category="Machinery &amp; Equipment" data-method="Sum-of-Years-Digits" data-status="In Use">
+            <td class="font-semibold">FA-1033</td><td>Injection Molding Machine</td><td>Machinery &amp; Equipment</td><td>09/22/2022</td>
+            <td class="text-right">$310,000</td><td><span class="badge badge-orange">Sum-of-Years-Digits</span></td><td>8 yrs</td>
+            <td class="text-right">$120,972</td><td class="text-right font-semibold" id="nbv-1033">$189,028</td>
+            <td><span class="badge badge-green">In Use</span></td>
+            <td><button class="btn btn-ghost btn-sm" onclick="openDispose('FA-1033', this)">Dispose</button></td>
+          </tr>
+          <tr data-category="Machinery &amp; Equipment" data-method="Units of Production" data-status="In Use">
+            <td class="font-semibold">FA-1041</td><td>Assembly Line Robotics Arm</td><td>Machinery &amp; Equipment</td><td>02/14/2023</td>
+            <td class="text-right">$248,000</td><td><span class="badge badge-orange">Units of Production</span></td><td>500,000 units</td>
+            <td class="text-right">$86,800</td><td class="text-right font-semibold" id="nbv-1041">$161,200</td>
+            <td><span class="badge badge-green">In Use</span></td>
+            <td><button class="btn btn-ghost btn-sm" onclick="openDispose('FA-1041', this)">Dispose</button></td>
+          </tr>
+          <tr data-category="IT Equipment" data-method="MACRS" data-status="In Use">
+            <td class="font-semibold">FA-1052</td><td>Workstation &amp; Laptop Refresh - Finance Dept.</td><td>IT Equipment</td><td>04/01/2025</td>
+            <td class="text-right">$64,200</td><td><span class="badge badge-orange">MACRS <span class="v-tree-badge" style="margin-left:4px;">5-Year</span></span></td><td>5 yrs (IRS)</td>
+            <td class="text-right">$12,840</td><td class="text-right font-semibold" id="nbv-1052">$51,360</td>
+            <td><span class="badge badge-green">In Use</span></td>
+            <td><button class="btn btn-ghost btn-sm" onclick="openDispose('FA-1052', this)">Dispose</button></td>
+          </tr>
+          <tr data-category="Buildings" data-method="MACRS" data-status="In Use">
+            <td class="font-semibold">FA-1002</td><td>Plant Warehouse Addition - Bldg C</td><td>Buildings</td><td>07/01/2019</td>
+            <td class="text-right">$1,850,000</td><td><span class="badge badge-orange">MACRS <span class="v-tree-badge" style="margin-left:4px;">7-Year</span></span></td><td>7 yrs (IRS)</td>
+            <td class="text-right">$1,320,714</td><td class="text-right font-semibold" id="nbv-1002">$529,286</td>
+            <td><span class="badge badge-green">In Use</span></td>
+            <td><button class="btn btn-ghost btn-sm" onclick="openDispose('FA-1002', this)">Dispose</button></td>
+          </tr>
+          <tr data-category="Furniture &amp; Fixtures" data-method="Straight-Line" data-status="Disposed">
+            <td class="font-semibold">FA-0918</td><td>Corporate Office Furniture Set</td><td>Furniture &amp; Fixtures</td><td>05/12/2018</td>
+            <td class="text-right">$42,000</td><td><span class="badge badge-navy">Straight-Line</span></td><td>7 yrs</td>
+            <td class="text-right">$42,000</td><td class="text-right font-semibold">$0</td>
+            <td><span class="badge badge-gray">Disposed</span></td>
+            <td><button class="btn btn-ghost btn-sm" disabled>Disposed</button></td>
+          </tr>
+          <tr data-category="Machinery &amp; Equipment" data-method="Declining Balance" data-status="Impaired">
+            <td class="font-semibold">FA-0975</td><td>Legacy Stamping Press (Retired Line)</td><td>Machinery &amp; Equipment</td><td>11/03/2016</td>
+            <td class="text-right">$180,000</td><td><span class="badge badge-orange">Declining Balance (15%)</span></td><td>10 yrs</td>
+            <td class="text-right">$142,600</td><td class="text-right font-semibold" id="nbv-0975">$37,400</td>
+            <td><span class="badge badge-red">Impaired</span></td>
+            <td><button class="btn btn-ghost btn-sm" onclick="openDispose('FA-0975', this)">Dispose</button></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Dispose panel -->
+    <div class="form-card" id="dispose-panel" style="display:none;padding:18px 20px;">
+      <div style="font-size:13.5px;font-weight:700;color:var(--gray-900);margin-bottom:12px;">Dispose Asset - <span id="dispose-tag"></span></div>
+      <div class="form-grid-3">
+        <div class="form-field">
+          <label class="field-label">Disposal Date</label>
+          <input type="date" class="field-input" value="2026-08-20">
+        </div>
+        <div class="form-field">
+          <label class="field-label">Disposal Method</label>
+          <select class="field-input field-select">
+            <option>Sale</option>
+            <option>Scrap</option>
+            <option>Trade-In</option>
+            <option>Write-Off</option>
+          </select>
+        </div>
+        <div class="form-field">
+          <label class="field-label">Disposal Proceeds</label>
+          <input type="text" class="field-input" id="dispose-proceeds" placeholder="$0.00">
+        </div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:10px;">
+        <button class="btn btn-outline" onclick="closeDispose()">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmDispose()">Confirm Disposal</button>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="js/app.js"></script>
+  <script>
+    initLayout('fixed-assets');
+    renderImportResultBanner('fixed-asset');
+
+    function applyAssetFilters() {
+      const category = document.getElementById('f-category').value;
+      const method = document.getElementById('f-method').value;
+      const status = document.getElementById('f-assetstatus').value;
+      const search = document.getElementById('asset-search').value.toLowerCase();
+      document.querySelectorAll('#asset-table tbody tr').forEach(row => {
+        const matchCat = !category || row.getAttribute('data-category') === category;
+        const matchMethod = !method || row.getAttribute('data-method') === method;
+        const matchStatus = !status || row.getAttribute('data-status') === status;
+        const matchSearch = !search || row.textContent.toLowerCase().includes(search);
+        row.style.display = (matchCat && matchMethod && matchStatus && matchSearch) ? '' : 'none';
+      });
+    }
+
+    function runDepreciation() {
+      showToast('Running scheduled depreciation batch for August 2026...', 'info');
+      setTimeout(() => {
+        const target = document.getElementById('nbv-1001');
+        const current = parseFloat(target.textContent.replace(/[$,]/g, ''));
+        const monthlyDep = 3500;
+        const updated = current - monthlyDep;
+        target.textContent = '$' + updated.toLocaleString('en-US');
+        const accum = document.getElementById('stat-accum-dep');
+        const accumVal = parseFloat(accum.textContent.replace(/[$,]/g, '')) + monthlyDep;
+        accum.textContent = '$' + accumVal.toLocaleString('en-US');
+        const nbv = document.getElementById('stat-nbv');
+        const nbvVal = parseFloat(nbv.textContent.replace(/[$,]/g, '')) - monthlyDep;
+        nbv.textContent = '$' + nbvVal.toLocaleString('en-US');
+        showToast('Depreciation posted - FA-1001 NBV reduced by $3,500', 'success');
+      }, 900);
+    }
+
+    let disposeTargetTag = null;
+    function openDispose(tag, btn) {
+      disposeTargetTag = tag;
+      document.getElementById('dispose-tag').textContent = tag;
+      document.getElementById('dispose-panel').style.display = '';
+      document.getElementById('dispose-panel').scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+    function closeDispose() {
+      document.getElementById('dispose-panel').style.display = 'none';
+    }
+    function confirmDispose() {
+      const proceeds = document.getElementById('dispose-proceeds').value || '$0.00';
+      showToast(disposeTargetTag + ' disposed - proceeds ' + proceeds + ' recorded, gain/loss posted to GL', 'success');
+      closeDispose();
+    }
+  </script>
+</body>
+</html>

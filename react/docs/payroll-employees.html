@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Payroll & Employees — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Payroll</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Payroll &amp; Employees</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-user-group" style="color: var(--brand);"></i> Payroll &amp; Employees <span class="file-tag">payroll.html</span></h1>
+      <p>
+        Maintains staff employee profiles, calculates semi-monthly payroll runs, deducts tax withholdings (Federal, FICA, State), and posts automatic balanced double-entry payroll journals to the general ledger.
+      </p>
+    </div>
+
+    <div class="module-card">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-blue">Employee Master</span>
+            <span class="badge badge-green">Tax Accruals</span>
+          </div>
+          <h2 class="module-title">Payroll Features</h2>
+        </div>
+        <a href="../payroll.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Payroll</a>
+      </div>
+
+      <div class="grid-2">
+        <div class="info-card">
+          <h4>Employee Master Directory</h4>
+          <p>Track employee department (Underwriting, Claims, IT, Accounting), base salaries, and W-4 withholding tiers.</p>
+        </div>
+        <div class="info-card">
+          <h4>Employer Tax Accrual (Account 6010)</h4>
+          <p>Calculates 7.65% employer FICA/Medicare match + FUTA/SUTA state unemployment insurance liabilities.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="recon-approvals.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">Recon Approvals</span>
+      </a>
+      <a href="inventory-costing.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Submodule &rarr;</span>
+        <span class="nav-page-title">Inventory &amp; Costing</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('payroll-employees');
+</script>
+</body>
+</html>

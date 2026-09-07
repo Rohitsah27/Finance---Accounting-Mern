@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Home — Platform Dashboard | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css?v=4">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/layout.js"></script>
+</head>
+<body>
+  <main class="main-content" id="main-content">
+
+    <div class="page-header">
+      <div>
+        <h1 class="page-title" id="home-greeting">Welcome</h1>
+        <div class="page-subtitle" id="home-sub"></div>
+      </div>
+      <div class="page-actions">
+        <button class="btn btn-primary" id="home-dashboard-btn" onclick="goToMyDashboard()">Go to my dashboard →</button>
+      </div>
+    </div>
+
+    <div class="stats-row" id="home-stats"></div>
+
+    <div class="v-dashboard-layout">
+
+      <div>
+        <div class="table-wrap" style="margin-bottom:0;">
+          <div class="table-head-row">
+            <div class="table-head-title">Platform Modules</div>
+            <div class="table-head-actions">
+              <a href="admin-config-center.html" class="btn btn-secondary btn-sm">Configure Modules</a>
+            </div>
+          </div>
+          <div class="v-module-grid" id="home-module-grid" style="padding:20px;"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card" style="padding:20px;margin-bottom:20px;">
+          <div style="font-size:14px;font-weight:600;color:var(--color-ink);margin-bottom:12px;">Recommended Setup Steps</div>
+          <div id="home-checklist"></div>
+        </div>
+
+        <div class="card" style="padding:20px;">
+          <div style="font-size:14px;font-weight:600;color:var(--color-ink);margin-bottom:10px;">Entity Configuration</div>
+          <div style="font-size:13px;color:var(--color-ink-secondary);line-height:1.6;">
+            <div><strong id="home-business-name" style="color:var(--color-ink);"></strong></div>
+            <div id="home-business-desc" style="margin-top:2px;color:var(--color-muted);"></div>
+            <div style="margin-top:10px;">Chart of Accounts: <strong id="home-coa-template" style="color:var(--color-ink);"></strong></div>
+          </div>
+          <a href="entity-hierarchy.html" class="btn btn-ghost btn-sm" style="margin-top:14px;width:100%;justify-content:center;">View entity structure →</a>
+        </div>
+
+        <div class="callout-banner callout-info" style="margin-top:20px;">
+          <span class="callout-icon">ⓘ</span>
+          <div class="callout-content">
+            Explore workflows across other insurance business models:
+            <a href="role-select.html" style="font-weight:600;white-space:nowrap;margin-left:4px;">Switch Workspace →</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <script src="js/app.js"></script>
+  <script>
+    initLayout('dashboard');
+
+    const HOME_CHECKLIST_ITEMS = [
+      { id: 'review-coa', label: 'Review your Chart of Accounts', href: 'chart-of-accounts.html' },
+      { id: 'import-data', label: 'Import your opening balances or existing data', href: 'excel-onboarding.html' },
+      { id: 'invite-team', label: 'Invite your accountant or team', href: 'user-management.html' },
+      { id: 'connect-bank', label: 'Connect a bank account', href: 'bank-reconciliation.html' },
+      { id: 'first-invoice', label: 'Create your first invoice', href: 'billing-invoicing.html', requiresModule: 'billing' },
+      { id: 'first-je', label: 'Post your first journal entry', href: 'journal-entry.html' },
+      { id: 'setup-wizard', label: 'Fine-tune setup in the full wizard', href: 'setup-wizard.html' },
+    ];
+
+    function getChecklistState() {
+      try { return JSON.parse(localStorage.getItem('v_home_checklist') || '{}'); } catch (e) { return {}; }
+    }
+    function setChecklistState(state) {
+      localStorage.setItem('v_home_checklist', JSON.stringify(state));
+    }
+    function toggleChecklistItem(id, checked) {
+      const state = getChecklistState();
+      state[id] = checked;
+      setChecklistState(state);
+    }
+
+    function renderHome() {
+      const cfg = getTenantConfig();
+      const entity = getActiveEntity();
+      const bt = getBusinessType(cfg.businessType);
+      const user = getCurrentUser();
+
+      document.getElementById('home-greeting').textContent = 'Welcome back, ' + (user.name || cfg.ownerName || 'there') + '.';
+      document.getElementById('home-sub').textContent = (cfg.companyName || entity.name) + ' — ' + (cfg.businessLabel || bt.label);
+      document.getElementById('home-business-name').textContent = cfg.companyName || entity.name;
+      document.getElementById('home-business-desc').textContent = cfg.businessLabel || bt.label;
+      document.getElementById('home-coa-template').textContent = (COA_TEMPLATES.find(t => t.id === cfg.coaTemplate) || {}).label || 'Not set';
+
+      const enabledModules = MODULE_CATALOG.filter(m => isModuleEnabled(m.id));
+      const stats = document.getElementById('home-stats');
+      stats.innerHTML = `
+        <div class="stat-card"><div class="stat-icon">✓</div><div class="stat-info"><div class="stat-value">${enabledModules.length}</div><div class="stat-label">Modules active</div></div></div>
+        <div class="stat-card"><div class="stat-icon">◈</div><div class="stat-info"><div class="stat-value">${cfg.secondaryEntities.length}</div><div class="stat-label">Entities registered</div></div></div>
+        <div class="stat-card"><div class="stat-icon">%</div><div class="stat-info"><div class="stat-value">${cfg.readinessScore}%</div><div class="stat-label">Setup readiness</div></div></div>
+        <div class="stat-card"><div class="stat-icon">★</div><div class="stat-info"><div class="stat-value">${cfg.configStatus}</div><div class="stat-label">System version ${cfg.configVersion}</div></div></div>`;
+
+      const grid = document.getElementById('home-module-grid');
+      grid.innerHTML = enabledModules.map(m => {
+        const group = NAV_CONFIG.find(g => g.moduleId === m.id);
+        const href = group ? group.children[0].href : '#';
+        return `<a class="v-module-card" href="${href}" style="text-decoration:none;">
+          <div class="v-module-card-top">
+            <div class="v-module-card-icon">${m.no}</div>
+          </div>
+          <div class="v-module-card-title">${m.label}</div>
+          <div class="v-module-card-desc">${m.desc}</div>
+        </a>`;
+      }).join('');
+
+      const state = getChecklistState();
+      const checklist = document.getElementById('home-checklist');
+      checklist.innerHTML = HOME_CHECKLIST_ITEMS
+        .filter(item => !item.requiresModule || isModuleEnabled(item.requiresModule))
+        .map(item => `
+          <label style="display:flex;align-items:center;gap:9px;padding:8px 0;font-size:13px;cursor:pointer;border-bottom:1px solid var(--color-surface);">
+            <input type="checkbox" ${state[item.id] ? 'checked' : ''} onchange="toggleChecklistItem('${item.id}', this.checked)" style="width:16px;height:16px;accent-color:var(--color-brand);">
+            <a href="${item.href}" style="flex:1;color:${state[item.id] ? 'var(--color-muted)' : 'var(--color-ink)'};text-decoration:${state[item.id] ? 'line-through' : 'none'};">${item.label}</a>
+          </label>`).join('');
+
+      const roleInfo = ROLE_CATALOG.find(r => r.id === cfg.ownerRoleId) || ROLE_CATALOG.find(r => r.id === 'owner');
+      document.getElementById('home-dashboard-btn').textContent = 'Go to ' + (roleInfo ? roleInfo.label : 'business') + ' dashboard →';
+    }
+
+    function goToMyDashboard() {
+      const cfg = getTenantConfig();
+      const roleInfo = ROLE_CATALOG.find(r => r.id === cfg.ownerRoleId) || ROLE_CATALOG.find(r => r.id === 'owner');
+      window.location.href = roleInfo ? roleInfo.dashboard : 'dashboard-owner.html';
+    }
+
+    renderHome();
+  </script>
+</body>
+</html>

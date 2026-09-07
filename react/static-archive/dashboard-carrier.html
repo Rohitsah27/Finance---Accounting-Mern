@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="en" style="background-color: #1A1D23;">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Carrier Workspace — Dashboard | VeriDex</title>
+  <link rel="stylesheet" href="css/styles.css">
+  <script src="js/components.js"></script>
+  <script src="js/config-engine.js"></script>
+  <script src="js/layout.js"></script>
+  <style>
+    .kpi-metrics-row{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px;}
+    @media(max-width:1100px){.kpi-metrics-row{grid-template-columns:repeat(2,1fr);}}
+    .kpi-mc{background:#fff;border:1.5px solid var(--gray-200);border-radius:10px;padding:12px 12px 10px;display:flex;flex-direction:column;gap:2px;position:relative;overflow:hidden;}
+    .kpi-mc::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;}
+    .kpi-mc.c-gwp::before{background:#0d1b4b;}
+    .kpi-mc.c-nwp::before{background:#1565c0;}
+    .kpi-mc.c-earned::before{background:#00838f;}
+    .kpi-mc.c-upr::before{background:#6a1b9a;}
+    .kpi-mc.c-loss::before{background:#e65100;}
+    .kpi-mc.c-expense::before{background:#e05470;}
+    .kpi-mc.c-combined::before{background:#2e7d32;}
+    .kpi-mc.c-rbc::before{background:#37474f;}
+    .kpi-mc-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);}
+    .kpi-mc-value{font-size:20px;font-weight:800;color:var(--navy);line-height:1.1;margin:3px 0 1px;}
+    .kpi-mc-delta{font-size:11px;font-weight:600;}
+    .kpi-mc-delta.up{color:#2e7d32;}
+    .kpi-mc-delta.warn{color:#e65100;}
+    .kpi-mc-delta.down{color:var(--red);}
+    .kpi-mc-sublabel{font-size:9.5px;color:var(--gray-400);}
+    .kpi-mc-status{display:inline-block;font-size:9px;font-weight:700;border-radius:4px;padding:1px 6px;margin-top:5px;text-transform:uppercase;letter-spacing:.3px;}
+    .s-ontrack{background:#e8f5e9;color:#2e7d32;} .s-watch{background:#fff3e0;color:#e65100;} .s-breach{background:#fde8e8;color:#b71c1c;} .s-strong{background:#ede7f6;color:#4a148c;}
+
+    .gbn-toggle{display:flex;gap:2px;background:var(--gray-100);border-radius:6px;padding:2px;}
+    .gbn-btn{padding:4px 13px;font-size:12px;font-weight:600;border:none;background:transparent;border-radius:5px;cursor:pointer;color:var(--gray-500);}
+    .gbn-btn.active{background:#fff;color:var(--navy);box-shadow:0 1px 4px rgba(0,0,0,.12);}
+    .fin-bar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#fff;border:1.5px solid var(--gray-200);border-radius:8px;padding:9px 14px;margin-bottom:18px;}
+    .fin-bar-left{font-size:11.5px;font-weight:700;color:var(--gray-600);text-transform:uppercase;letter-spacing:.4px;}
+    .fin-bar-meta{font-size:11px;color:var(--gray-400);margin-left:auto;}
+
+    .charts-2col{display:grid;grid-template-columns:1.4fr 1fr;gap:14px;margin-bottom:18px;}
+    @media(max-width:900px){.charts-2col{grid-template-columns:1fr;}}
+    .chart-card{background:#fff;border:1.5px solid var(--gray-200);border-radius:10px;padding:14px;}
+    .chart-card-hdr{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;}
+    .chart-title{font-size:12.5px;font-weight:700;color:var(--navy);}
+    .chart-sub{font-size:10.5px;color:var(--gray-400);margin-top:2px;}
+    .chart-legend{display:flex;gap:12px;flex-wrap:wrap;margin-top:6px;}
+    .legend-item{display:flex;align-items:center;gap:4px;font-size:10.5px;color:var(--gray-600);}
+    .legend-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0;}
+    .chart-footer{font-size:10px;color:var(--gray-400);margin-top:4px;}
+
+    .panels-3col{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:4px;}
+    @media(max-width:1000px){.panels-3col{grid-template-columns:1fr 1fr;}}
+    @media(max-width:640px){.panels-3col{grid-template-columns:1fr;}}
+    .panel-card{background:#fff;border:1.5px solid var(--gray-200);border-radius:10px;padding:14px;}
+    .panel-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--gray-500);margin-bottom:8px;}
+    .panel-row{display:flex;align-items:center;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--gray-100);font-size:12px;}
+    .panel-row:last-child{border-bottom:none;}
+    .panel-total{font-weight:700;color:var(--navy);font-size:12.5px;}
+    .ps{font-size:10.5px;font-weight:600;padding:2px 6px;border-radius:4px;}
+    .ps-due{background:#fff3e0;color:#e65100;} .ps-ok{background:#e8f5e9;color:#2e7d32;} .ps-overdue{background:#fde8e8;color:#b71c1c;}
+
+    .treaty-bar-bg{background:var(--gray-100);border-radius:4px;height:6px;margin:4px 0 2px;}
+    .treaty-bar-fill{height:6px;border-radius:4px;}
+  </style>
+</head>
+<body>
+<main class="main-content" id="main-content">
+
+  <div class="page-header">
+    <div>
+      <div class="page-title">Carrier Dashboard</div>
+      <div class="page-subtitle" id="dash-subtitle">Loading entity context…</div>
+    </div>
+    <div class="page-actions">
+      <button class="btn btn-outline btn-sm" onclick="showToast('Statutory pack exported (NAIC quarterly)','success')">Export Filing Pack</button>
+      <button class="btn btn-primary btn-sm" onclick="refreshDash()">Refresh</button>
+    </div>
+  </div>
+
+  <div class="filter-bar" style="margin-bottom:0;border-radius:10px 10px 0 0;">
+    <span class="filter-bar-label">Period</span>
+    <select class="filter-select" id="sel-period" onchange="setFilter('period',this.value)">
+      <option value="ytd">YTD 2026</option>
+      <option value="q1">Q1 2026</option>
+      <option value="fy2025">FY 2025</option>
+    </select>
+    <span class="filter-bar-label">State</span>
+    <select class="filter-select" id="sel-state" onchange="setFilter('state',this.value)">
+      <option value="all">All States</option>
+      <option value="TX">Texas (TX)</option>
+      <option value="CA">California (CA)</option>
+      <option value="FL">Florida (FL)</option>
+      <option value="NY">New York (NY)</option>
+    </select>
+    <span class="filter-bar-label">Line of Business</span>
+    <select class="filter-select" id="sel-lob" onchange="setFilter('lob',this.value)">
+      <option value="all">All LOBs</option>
+      <option value="Motor">Motor</option>
+      <option value="Property">Property</option>
+      <option value="Marine">Marine</option>
+      <option value="Casualty">Casualty</option>
+    </select>
+    <div id="fbar-applied" style="font-size:11px;color:var(--gray-400);margin-left:auto;"></div>
+    <button class="btn btn-outline btn-sm" onclick="resetFilters()">Clear Filters</button>
+  </div>
+
+  <div style="border:1.5px solid var(--gray-200);border-top:none;border-radius:0 0 10px 10px;padding:16px;margin-bottom:18px;">
+    <div class="fin-bar">
+      <div class="fin-bar-left">Premium Basis</div>
+      <div class="gbn-toggle">
+        <button class="gbn-btn active" onclick="setBasis('gross',this)">Gross</button>
+        <button class="gbn-btn" onclick="setBasis('ceded',this)">Ceded</button>
+        <button class="gbn-btn" onclick="setBasis('net',this)">Net</button>
+      </div>
+      <div class="fin-bar-meta" id="fin-bar-meta">All figures in USD</div>
+    </div>
+
+    <div class="kpi-metrics-row" id="kpi-row"></div>
+
+    <div class="charts-2col">
+      <div class="chart-card">
+        <div class="chart-card-hdr">
+          <div><div class="chart-title">Premium Trend</div><div class="chart-sub" id="prem-sub">Gross Written · Jan–Jun 2026</div></div>
+          <button class="chart-type-btn btn btn-outline btn-sm" id="prem-toggle-btn" onclick="togglePremChart()">Line View</button>
+        </div>
+        <div id="prem-chart-wrap"></div>
+        <div class="chart-legend"><div class="legend-item"><div class="legend-dot" style="background:#0d1b4b;"></div>Written Premium</div></div>
+        <div class="chart-footer">$ USD, millions</div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-card-hdr">
+          <div><div class="chart-title">Ratio Trend</div><div class="chart-sub">Loss · Expense · Combined</div></div>
+        </div>
+        <div id="ratio-chart-wrap"></div>
+        <div class="chart-legend">
+          <div class="legend-item"><div class="legend-dot" style="background:#e05470;"></div>Loss</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#e65100;"></div>Expense</div>
+          <div class="legend-item"><div class="legend-dot" style="background:#0d1b4b;"></div>Combined</div>
+        </div>
+        <div class="chart-footer">Target: Combined ≤95% · dashed line = 100%</div>
+      </div>
+    </div>
+
+    <div class="panels-3col">
+      <div class="panel-card">
+        <div class="panel-title">Reinsurance Cession Summary</div>
+        <div class="panel-row"><span>Quota Share Treaty</span><span class="panel-total">42.0% ceded</span></div>
+        <div class="panel-row"><span>Excess of Loss (XL)</span><span class="panel-total">18.5% ceded</span></div>
+        <div class="panel-row"><span>Facultative</span><span class="panel-total">6.0% ceded</span></div>
+        <div class="panel-row"><span>Total Ceded YTD</span><span class="panel-total" id="ced-total"> - </span></div>
+        <div class="panel-row"><span>Ceding Commission Recv.</span><span class="panel-total" id="ced-comm"> - </span></div>
+        <div class="panel-row"><span>Treaty Renewal</span><span><span class="ps ps-due">31 Jul 2026</span></span></div>
+      </div>
+      <div class="panel-card">
+        <div class="panel-title">Claims Reserve Movement</div>
+        <div class="panel-row"><span>Case Reserves (Open)</span><span class="panel-total" id="res-case"> - </span></div>
+        <div class="panel-row"><span>IBNR Reserve</span><span class="panel-total" id="res-ibnr"> - </span></div>
+        <div class="panel-row"><span>Total Reserve</span><span class="panel-total" id="res-total"> - </span></div>
+        <div class="panel-row"><span>Paid Losses YTD</span><span class="panel-total" id="res-paid"> - </span></div>
+        <div class="panel-row"><span>Large Losses (&gt;$1M)</span><span><span class="ps ps-due">4 open</span></span></div>
+        <div class="panel-row"><span>Avg Settlement Days</span><span class="panel-total">21d</span></div>
+      </div>
+      <div class="panel-card">
+        <div class="panel-title">NAIC Filing Health</div>
+        <div class="panel-row"><span>TX TDI Quarterly</span><span><span class="ps ps-due">Due in 9 days</span></span></div>
+        <div class="panel-row"><span>CA DOI Annual Stmt</span><span><span class="ps ps-ok">Filed</span></span></div>
+        <div class="panel-row"><span>FL OIR Surplus Cert.</span><span><span class="ps ps-ok">Compliant</span></span></div>
+        <div class="panel-row"><span>NY RBC Report</span><span><span class="ps ps-overdue">2 days overdue</span></span></div>
+        <div class="panel-row"><span>Premium Tax - Multi-State</span><span><span class="ps ps-due">Due 12 Sep</span></span></div>
+        <div class="panel-row"><span>Reinsurance Certification</span><span><span class="ps ps-ok">Current</span></span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="chart-card" style="margin-bottom:4px;">
+    <div class="chart-card-hdr">
+      <div><div class="chart-title">Cession by Treaty Type</div><div class="chart-sub">Share of ceded premium - filtered view</div></div>
+      <button class="btn btn-outline btn-sm" onclick="showToast('Cession detail exported','success')">Export</button>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table" id="treaty-table">
+        <thead><tr><th>Treaty Type</th><th>Reinsurer</th><th>Cession %</th><th>Ceded Premium</th><th>Utilization</th><th>Status</th></tr></thead>
+        <tbody id="treaty-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="chart-card" style="margin-top:18px; margin-bottom:20px;">
+    <div class="chart-card-hdr">
+      <div>
+        <div class="chart-title">MGA Settlements &amp; Cash Receipts</div>
+        <div class="chart-sub">Track premium settlement receipts received from My Business (MGA)</div>
+      </div>
+      <button class="btn btn-primary btn-sm" onclick="renderMGASettlements()">Refresh Settlements</button>
+    </div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Settlement Ref</th>
+            <th>Policy Ref</th>
+            <th>Trading Partner</th>
+            <th class="text-right">Net Settlement Amt</th>
+            <th>Due Date</th>
+            <th>Ledger Status</th>
+            <th>Bank Recon</th>
+          </tr>
+        </thead>
+        <tbody id="mga-settlements-tbody">
+          <!-- Dynamic rows -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<script src="js/app.js"></script>
+<script>
+/* ═══════════════════ SEED DATA ═══════════════════ */
+const IS_DEMO = true;
+// [state, lob, base_gwp_per_month_M, loss_rate, expense_rate]
+const SEED = IS_DEMO ? [
+  ['TX','Motor',    1.85, 0.612, 0.278],
+  ['TX','Property', 1.20, 0.598, 0.271],
+  ['TX','Marine',   0.32, 0.560, 0.262],
+  ['TX','Casualty', 0.58, 0.640, 0.285],
+  ['CA','Motor',    1.42, 0.635, 0.291],
+  ['CA','Property', 0.98, 0.618, 0.279],
+  ['CA','Marine',   0.24, 0.575, 0.268],
+  ['CA','Casualty', 0.44, 0.652, 0.294],
+  ['FL','Motor',    0.96, 0.658, 0.298],
+  ['FL','Property', 0.72, 0.671, 0.302],
+  ['FL','Marine',   0.18, 0.590, 0.275],
+  ['FL','Casualty', 0.28, 0.665, 0.296],
+  ['NY','Motor',    0.52, 0.622, 0.284],
+  ['NY','Property', 0.34, 0.605, 0.276],
+  ['NY','Marine',   0.10, 0.568, 0.264],
+  ['NY','Casualty', 0.20, 0.638, 0.288]
+] : [];
+const MF = [0.91, 1.04, 0.87, 1.15, 0.96, 1.07]; // Jan-Jun monthly factors
+const ML = ['Jan','Feb','Mar','Apr','May','Jun'];
+const Q1F = [0.91,1.04,0.87];
+const Q1L = ['Jan','Feb','Mar'];
+const FYF = [0.86,0.94,1.01,0.97,0.90,1.05,0.88,0.99,1.06,0.92,1.10,0.97];
+const FYL = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const EARN_RATE = 0.88;
+const CEDE = { quota:0.42, xl:0.185, fac:0.06 };
+const CEDE_TOTAL = CEDE.quota + CEDE.xl + CEDE.fac; // 0.665
+const CEDING_COMM_RATE = 0.28; // on ceded premium
+
+function buildRecs() {
+  const out = { ytd: [], q1: [], fy2025: [] };
+  SEED.forEach(([state, lob, base, lr, er]) => {
+    MF.forEach((mf, mi) => { out.ytd.push({ state, lob, slot: mi, gwp: +(base*mf).toFixed(3), lr, er }); });
+    Q1F.forEach((mf, mi) => { out.q1.push({ state, lob, slot: mi, gwp: +(base*mf).toFixed(3), lr, er }); });
+    FYF.forEach((mf, mi) => { out.fy2025.push({ state, lob, slot: mi, gwp: +(base*mf*0.93).toFixed(3), lr, er }); });
+  });
+  return out;
+}
+const RECS = buildRecs();
+
+const F = { period:'ytd', state:'all', lob:'all', basis:'gross', premMode:'bar' };
+
+function getRecs() {
+  return RECS[F.period].filter(r => (F.state==='all'||r.state===F.state) && (F.lob==='all'||r.lob===F.lob));
+}
+function basisFactor() { return F.basis==='ceded' ? CEDE_TOTAL : F.basis==='net' ? (1-CEDE_TOTAL) : 1.0; }
+
+function agg(recs) {
+  const b = basisFactor();
+  let gwp=0, lrW=0, erW=0;
+  recs.forEach(r => { gwp += r.gwp; lrW += r.gwp*r.lr; erW += r.gwp*r.er; });
+  const lr = gwp>0 ? lrW/gwp : 0, er = gwp>0 ? erW/gwp : 0;
+  const nwp = gwp*b, earned = nwp*EARN_RATE, upr = nwp-earned;
+  const cr = (lr+er)*100;
+  return { gwp: gwp, nwp, earned, upr, lr: lr*100, er: er*100, cr };
+}
+
+function aggBySlot(recs) {
+  const labels = F.period==='ytd'?ML : F.period==='q1'?Q1L : FYL;
+  const b = basisFactor();
+  return labels.map((_,i) => {
+    const sr = recs.filter(r=>r.slot===i);
+    let gwp=0, lrW=0, erW=0;
+    sr.forEach(r=>{gwp+=r.gwp; lrW+=r.gwp*r.lr; erW+=r.gwp*r.er;});
+    const lr=gwp>0?lrW/gwp*100:0, er=gwp>0?erW/gwp*100:0;
+    return { v: gwp*b, lr, er, cr: lr+er };
+  });
+}
+
+function fUSD(v) { // v in $M
+  if (v >= 1) return '$' + v.toFixed(2) + 'M';
+  return '$' + Math.round(v*1000) + 'K';
+}
+function fPct(v){ return v.toFixed(1)+'%'; }
+
+const PERIOD_META = {
+  ytd:{label:'YTD Jun 2026', chartLabels:ML, chip:'YTD 2026'},
+  q1:{label:'Q1 2026', chartLabels:Q1L, chip:'Q1 2026'},
+  fy2025:{label:'FY 2025', chartLabels:FYL, chip:'FY 2025'}
+};
+
+const KPI_DEFS = [
+  {key:'gwp', label:'Gross Written Premium', cls:'c-gwp', fmt:fUSD, delta:0.062, meta:()=>'GWP before ceding'},
+  {key:'nwp', label:'Net Written Premium', cls:'c-nwp', fmt:fUSD, delta:0.041, meta:()=>'After ceding at current basis'},
+  {key:'earned', label:'Earned Premium', cls:'c-earned', fmt:fUSD, delta:0.055, meta:()=>'Earning rate 88.0%'},
+  {key:'upr', label:'Unearned Premium Reserve', cls:'c-upr', fmt:fUSD, delta:0.038, meta:()=>'Reserve adequacy: Strong', st:'s-strong', stTxt:'Strong'},
+  {key:'lr', label:'Loss Ratio', cls:'c-loss', fmt:fPct, isRatio:true, delta:1.2, meta:()=>'Target ≤65.0%', stFn:v=>v>65?'s-watch':'s-ontrack', stTxtFn:v=>v>65?'Watch':'On Track'},
+  {key:'er', label:'Expense Ratio', cls:'c-expense', fmt:fPct, isRatio:true, delta:-0.4, meta:()=>'Target ≤30.0%', stFn:v=>v>30?'s-watch':'s-ontrack', stTxtFn:v=>v>30?'Watch':'On Track'},
+  {key:'cr', label:'Combined Ratio', cls:'c-combined', fmt:fPct, isRatio:true, delta:0.8, meta:()=>'Target ≤95.0%', stFn:v=>v>100?'s-breach':v>95?'s-watch':'s-ontrack', stTxtFn:v=>v>100?'Breach':v>95?'Watch':'On Track'},
+  {key:'rbc', label:'Statutory Surplus / RBC', cls:'c-rbc', fmt:v=>fUSD(v)+' · 342% RBC', isRatio:false, delta:0.021, meta:()=>'Authorized Control Level: 100%', st:'s-ontrack', stTxt:'Well Capitalized', staticVal:18.4}
+];
+
+function renderKPIs() {
+  const recs = getRecs(), k = agg(recs), pm = PERIOD_META[F.period];
+  document.getElementById('fin-bar-meta').textContent = 'All figures in USD · ' + pm.label + ' vs Prior Period';
+  document.getElementById('kpi-row').innerHTML = KPI_DEFS.map(def => {
+    const cur = def.staticVal!==undefined ? def.staticVal : k[def.key];
+    const prevV = def.isRatio ? cur - def.delta : cur/(1+def.delta);
+    const diff = def.isRatio ? cur-prevV : (cur-prevV)/Math.abs(prevV)*100;
+    const cls = def.isRatio ? (diff<=0?'up':'warn') : (diff>=0?'up':'down');
+    const arrow = cls==='up'?'↑':cls==='warn'?'→':'↓';
+    const dtxt = def.isRatio ? (diff>=0?'+':'')+diff.toFixed(1)+' pts' : (diff>=0?'+':'')+diff.toFixed(1)+'%';
+    const stCls = def.stFn ? def.stFn(cur) : (def.st||'');
+    const stTxt = def.stTxtFn ? def.stTxtFn(cur) : (def.stTxt||'');
+    return `<div class="kpi-mc ${def.cls}">
+      <div class="kpi-mc-label">${def.label}</div>
+      <div class="kpi-mc-value">${def.fmt(cur)}</div>
+      <div class="kpi-mc-delta ${cls}">${arrow} ${dtxt}</div>
+      <div class="kpi-mc-sublabel">vs prior period</div>
+      ${stCls?`<div><span class="kpi-mc-status ${stCls}">${stTxt}</span></div>`:''}
+    </div>`;
+  }).join('');
+
+  document.getElementById('ced-total').textContent = fPct(CEDE_TOTAL*100) + ' · ' + fUSD(k.gwp*CEDE_TOTAL);
+  document.getElementById('ced-comm').textContent = fUSD(k.gwp*CEDE_TOTAL*CEDING_COMM_RATE);
+  document.getElementById('res-case').textContent = fUSD(k.earned*k.lr/100*0.55);
+  document.getElementById('res-ibnr').textContent = fUSD(k.earned*k.lr/100*0.45);
+  document.getElementById('res-total').textContent = fUSD(k.earned*k.lr/100);
+  document.getElementById('res-paid').textContent = fUSD(k.earned*k.lr/100*0.92);
+}
+
+function togglePremChart() {
+  F.premMode = F.premMode==='bar' ? 'line' : 'bar';
+  document.getElementById('prem-toggle-btn').textContent = F.premMode==='bar'?'Line View':'Bar View';
+  renderPremiumChart();
+}
+
+function renderPremiumChart() {
+  const slots = aggBySlot(getRecs());
+  const labels = PERIOD_META[F.period].chartLabels;
+  const data = slots.map(s=>+s.v.toFixed(2));
+  const basisLabel = {gross:'Gross',ceded:'Ceded',net:'Net'}[F.basis];
+  document.getElementById('prem-sub').textContent = basisLabel+' Written · '+PERIOD_META[F.period].label;
+  document.getElementById('prem-chart-wrap').innerHTML =
+    F.premMode==='bar' ? svgBar(data,labels,{color:'#0d1b4b',accent:'#1565c0',h:150}) : svgLine([{data,color:'#0d1b4b',fill:'rgba(13,27,75,.08)'}],labels,{h:150});
+}
+
+function renderRatioChart() {
+  const slots = aggBySlot(getRecs());
+  const labels = PERIOD_META[F.period].chartLabels;
+  document.getElementById('ratio-chart-wrap').innerHTML = svgLine([
+    {data:slots.map(s=>+s.lr.toFixed(1)),color:'#e05470',fill:'rgba(224,84,112,.05)'},
+    {data:slots.map(s=>+s.er.toFixed(1)),color:'#e65100',fill:'rgba(230,81,0,.05)'},
+    {data:slots.map(s=>+s.cr.toFixed(1)),color:'#0d1b4b',fill:'rgba(13,27,75,.05)'}
+  ],labels,{h:150,yMin:15,yMax:110,refLine:100});
+}
+
+const TREATIES = [
+  {type:'Quota Share', re:'Starlight Re', pct:42.0, util:78, status:'ok'},
+  {type:'Excess of Loss (Property Cat)', re:'Global Cat Re', pct:18.5, util:64, status:'ok'},
+  {type:'Excess of Loss (Casualty)', re:'Meridian Re', pct:0, util:41, status:'ok', fixedShare:true},
+  {type:'Facultative', re:'Various (Placement Desk)', pct:6.0, util:22, status:'watch'}
+];
+function renderTreatyTable() {
+  const k = agg(getRecs());
+  document.getElementById('treaty-tbody').innerHTML = TREATIES.map(t=>{
+    const ceded = t.fixedShare ? k.gwp*0.09 : k.gwp*(t.pct/100);
+    const barColor = t.util>85?'#e65100':t.util>60?'#1565c0':'#2e7d32';
+    const badge = t.status==='ok' ? '<span class="badge badge-green">Current</span>' : '<span class="badge badge-orange">Watch</span>';
+    return `<tr>
+      <td>${t.type}</td>
+      <td>${t.re}</td>
+      <td>${t.fixedShare?'Layer-based':fPct(t.pct)}</td>
+      <td>${fUSD(ceded)}</td>
+      <td><div class="treaty-bar-bg"><div class="treaty-bar-fill" style="width:${t.util}%;background:${barColor};"></div></div><span style="font-size:10.5px;color:var(--gray-400);">${t.util}% utilized</span></td>
+      <td>${badge}</td>
+    </tr>`;
+  }).join('');
+}
+
+function setFilter(key,val) { F[key]=val; updateAppliedLabel(); renderAll(); }
+function setBasis(basis,btn) {
+  F.basis=basis;
+  document.querySelectorAll('.gbn-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAll();
+}
+function resetFilters() {
+  F.period='ytd'; F.state='all'; F.lob='all'; F.basis='gross';
+  document.getElementById('sel-period').value='ytd';
+  document.getElementById('sel-state').value='all';
+  document.getElementById('sel-lob').value='all';
+  document.querySelectorAll('.gbn-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelector('.gbn-btn').classList.add('active');
+  updateAppliedLabel();
+  renderAll();
+  showToast('Filters cleared','info');
+}
+function updateAppliedLabel() {
+  const chips = [];
+  if (F.state!=='all') chips.push(F.state);
+  if (F.lob!=='all') chips.push(F.lob);
+  const el = document.getElementById('fbar-applied');
+  el.textContent = chips.length ? 'Active filters: '+chips.join(', ') : 'Showing all data';
+}
+function renderAll() { 
+  renderKPIs(); 
+  renderPremiumChart(); 
+  renderRatioChart(); 
+  renderTreatyTable(); 
+  renderMGASettlements(); 
+}
+
+function renderMGASettlements() {
+  let stored = JSON.parse(localStorage.getItem('pas_invoices') || '[]');
+  let settlements = stored.filter(inv => inv.customer && (inv.customer.includes('MGA') || inv.customer.includes('My Business')));
+  
+  if (settlements.length === 0) {
+    settlements = [
+      { id: 'REC-MGA-SEED-1', policyNum: 'POL-2026-0428', customer: 'My Business (MGA)', amount: 71621.00, dueDate: '06/14/2026', status: 'Sent' },
+      { id: 'REC-MGA-SEED-2', policyNum: 'POL-2026-1934', customer: 'My Business (MGA)', amount: 41004.00, dueDate: '06/13/2026', status: 'Sent' },
+      { id: 'REC-MGA-SEED-3', policyNum: 'POL-2026-9041', customer: 'My Business (MGA)', amount: 8194.00, dueDate: '05/28/2026', status: 'Paid' },
+    ];
+  }
+  
+  const tbody = document.getElementById('mga-settlements-tbody');
+  if (!tbody) return;
+  
+  tbody.innerHTML = settlements.map(s => {
+    const amt = Number(s.amount || 0);
+    const isPaid = s.status === 'Paid';
+    
+    let reconciledStatus = '<span class="chip chip-gray">Unreconciled</span>';
+    if (isPaid) {
+      reconciledStatus = '<span class="chip chip-green">Reconciled ✓</span>';
+    }
+    
+    return `
+      <tr>
+        <td class="font-semibold">${s.id}</td>
+        <td>${s.policyNum}</td>
+        <td>${s.customer}</td>
+        <td class="text-right font-semibold">$${amt.toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+        <td>${s.dueDate}</td>
+        <td><span class="chip ${isPaid ? 'chip-green' : 'chip-orange'}">${s.status}</span></td>
+        <td>${reconciledStatus}</td>
+      </tr>
+    `;
+  }).join('');
+}
+
+function refreshDash() {
+  const t = new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+  document.getElementById('dash-subtitle').textContent = entitySubtitle() + ' · Updated ' + t;
+  renderMGASettlements();
+  showToast('Dashboard refreshed','success');
+}
+function entitySubtitle() {
+  const entity = getActiveEntity();
+  return (entity ? entity.name : 'Carrier') + ' · GAAP + NAIC Statutory Books';
+}
+
+/* ═══════════════════ SVG CHARTS (hand-rolled, matches reference pattern) ═══════════════════ */
+function svgBar(data,labels,opts={}){
+  const h=opts.h||150,w=520,px=28,gap=6;
+  const mx=Math.max(...data)*1.18||1;
+  const n=data.length, bw=(w-px*2-gap*(n-1))/n;
+  const toY=v=>px+(h-px*2)*(1-v/mx);
+  let out='';
+  data.forEach((v,i)=>{
+    const x=px+i*(bw+gap), y=toY(v), bh=h-px-y;
+    const last=i===n-1;
+    out+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${Math.max(bh,1).toFixed(1)}" rx="3" fill="${last?opts.accent||opts.color:opts.color}" opacity="${last?1:0.72}"/>`;
+    out+=`<text x="${(x+bw/2).toFixed(1)}" y="${(h-7).toFixed(1)}" text-anchor="middle" font-size="9.5" fill="#9aa">${labels[i]}</text>`;
+    if(v>0)out+=`<text x="${(x+bw/2).toFixed(1)}" y="${(y-3).toFixed(1)}" text-anchor="middle" font-size="9" fill="${last?opts.accent||opts.color:'#666'}" font-weight="600">${v.toFixed(1)}</text>`;
+  });
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" style="display:block;">${out}</svg>`;
+}
+function svgLine(datasets,labels,opts={}){
+  const h=opts.h||150,w=520,px=34,py=18;
+  const allV=datasets.flatMap(d=>d.data);
+  const mn=opts.yMin!==undefined?opts.yMin:Math.floor(Math.min(...allV)*0.92);
+  const mx=opts.yMax!==undefined?opts.yMax:Math.ceil(Math.max(...allV)*1.08)||100;
+  const n=labels.length, xS=(w-px*2)/(n>1?n-1:1);
+  const toX=i=>px+i*xS, toY=v=>py+(h-py*2)*(1-(v-mn)/(mx-mn));
+  let out='';
+  if(opts.refLine){
+    const ry=toY(opts.refLine).toFixed(1);
+    out+=`<line x1="${px}" y1="${ry}" x2="${w-px}" y2="${ry}" stroke="#ddd" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="${(w-px+2).toFixed(1)}" y="${(+ry+3).toFixed(1)}" font-size="8.5" fill="#ccc">${opts.refLine}%</text>`;
+  }
+  datasets.forEach(ds=>{
+    const pts=ds.data.map((v,i)=>`${toX(i).toFixed(1)},${toY(v).toFixed(1)}`).join(' ');
+    const aP=`M${toX(0).toFixed(1)},${toY(ds.data[0]).toFixed(1)} `+
+      ds.data.slice(1).map((v,i)=>`L${toX(i+1).toFixed(1)},${toY(v).toFixed(1)}`).join(' ')+
+      ` L${toX(n-1).toFixed(1)},${toY(mn).toFixed(1)} L${toX(0).toFixed(1)},${toY(mn).toFixed(1)} Z`;
+    out+=`<path d="${aP}" fill="${ds.fill||'transparent'}"/>`;
+    out+=`<polyline points="${pts}" fill="none" stroke="${ds.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
+    ds.data.forEach((v,i)=>{ out+=`<circle cx="${toX(i).toFixed(1)}" cy="${toY(v).toFixed(1)}" r="2.8" fill="${ds.color}"/>`; });
+  });
+  labels.forEach((l,i)=>{ out+=`<text x="${toX(i).toFixed(1)}" y="${(h-5).toFixed(1)}" text-anchor="middle" font-size="9.5" fill="#9aa">${l}</text>`; });
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" style="display:block;">${out}</svg>`;
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('dash-subtitle').textContent = entitySubtitle();
+  updateAppliedLabel();
+  renderAll();
+});
+</script>
+<script>
+  initLayout('dashboard');
+</script>
+</body>
+</html>

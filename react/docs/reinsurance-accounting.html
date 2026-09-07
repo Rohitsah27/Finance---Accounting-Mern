@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reinsurance Accounting — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>Reinsurance &amp; Statutory</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Reinsurance</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-shield-virus" style="color: var(--green);"></i> Reinsurance Accounting &amp; Treaties</h1>
+      <p>
+        Reinsurance allows primary insurance carriers to transfer (cede) portions of their underwriting risk and claims exposure to global reinsurers. Veridex automates treaty cessions, ceding commission revenues, and reinsurance claims recoverables.
+      </p>
+    </div>
+
+    <div class="module-card" id="treaty-types">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-green">Treaty Management</span>
+            <span class="badge badge-purple">Risk Transfer</span>
+          </div>
+          <h2 class="module-title">Supported Reinsurance Structures (`reinsurance-accounting.html`)</h2>
+        </div>
+        <a href="../reinsurance-accounting.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Reinsurance Hub</a>
+      </div>
+
+      <div class="grid-2">
+        <div class="info-card">
+          <h4>1. Proportional (Quota Share)</h4>
+          <p>Fixed percentage split (e.g. 20% Quota Share with Munich Re). 20% of premium is ceded to reinsurer, and 20% of every claim is recovered.</p>
+        </div>
+        <div class="info-card">
+          <h4>2. Excess of Loss (XOL)</h4>
+          <p>Carrier retains losses up to a retention attachment point (e.g. $500k retention). Reinsurer pays 100% of losses exceeding $500k up to $5M.</p>
+        </div>
+      </div>
+
+      <h3 class="section-h3"><i class="fa-solid fa-calculator"></i> Reinsurance Cession Journal Entries:</h3>
+      <table class="je-table">
+        <thead>
+          <tr>
+            <th>Event</th>
+            <th>Account Code &amp; Name</th>
+            <th style="text-align:right;">Debit ($)</th>
+            <th style="text-align:right;">Credit ($)</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td rowspan="3"><strong>Monthly Treaty Cession (20%)</strong></td>
+            <td>5500 Reinsurance Ceded Premium</td>
+            <td class="dr-amount">$18,250.00</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td class="indent-cr">2200 Premium Payable — Reinsurer</td>
+            <td></td>
+            <td class="cr-amount">$15,512.50</td>
+          </tr>
+          <tr>
+            <td class="indent-cr">4600 Ceding Commission Revenue (15%)</td>
+            <td></td>
+            <td class="cr-amount">$2,737.50</td>
+          </tr>
+          <tr>
+            <td rowspan="2"><strong>Reinsurance Claim Recoverable</strong></td>
+            <td>1300 Reinsurance Recoverable on Paid Losses</td>
+            <td class="dr-amount">$50,000.00</td>
+            <td></td>
+          </tr>
+          <tr>
+            <td class="indent-cr">5000 Claims Incurred Losses (Expense Offset)</td>
+            <td></td>
+            <td class="cr-amount">$50,000.00</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="mga-operations.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">MGA Operations</span>
+      </a>
+      <a href="statutory-compliance.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Module &rarr;</span>
+        <span class="nav-page-title">Statutory &amp; Compliance</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('reinsurance-accounting');
+</script>
+</body>
+</html>

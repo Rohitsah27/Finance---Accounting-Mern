@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Financial Statements — Veridex Docs</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link rel="stylesheet" href="docs.css">
+</head>
+<body>
+
+<div class="docs-layout">
+  <header class="docs-topbar" id="docs-topbar"></header>
+  <aside class="docs-sidebar" id="docs-sidebar"></aside>
+
+  <main class="docs-main">
+    <div class="breadcrumbs">
+      <a href="index.html">Documentation</a>
+      <span>/</span>
+      <span>General Ledger</span>
+      <span>/</span>
+      <span style="color: var(--text-primary); font-weight: 600;">Financial Statements</span>
+    </div>
+
+    <div class="doc-hero">
+      <h1><i class="fa-solid fa-file-invoice-dollar" style="color: var(--teal);"></i> Financial Statements <span class="file-tag">financial-statements.html</span></h1>
+      <p>
+        Veridex automatically generates the four primary financial statements calculated in real time directly from the underlying General Ledger journals without requiring manual spreadsheet formulas.
+      </p>
+    </div>
+
+    <div class="module-card">
+      <div class="module-header">
+        <div>
+          <div class="module-badge-group">
+            <span class="badge badge-teal">GAAP Reporting</span>
+            <span class="badge badge-blue">Auto-Calculated</span>
+          </div>
+          <h2 class="module-title">The 4 Core Financial Statements</h2>
+        </div>
+        <a href="../financial-statements.html" class="btn-launch"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open Live Statements</a>
+      </div>
+
+      <div class="grid-2">
+        <div class="info-card">
+          <h4>1. Trial Balance</h4>
+          <p>Lists the ending debit or credit balance for every account in the COA. Proves that total debits equal total credits across the entity.</p>
+        </div>
+        <div class="info-card">
+          <h4>2. Balance Sheet (Statement of Financial Position)</h4>
+          <p>Demonstrates <code>Assets = Liabilities + Equity</code>. Displays cash in bank, premium receivables, unearned premium reserves, and retained capital.</p>
+        </div>
+        <div class="info-card">
+          <h4>3. Income Statement (Profit &amp; Loss / P&amp;L)</h4>
+          <p>Gross Written Premium minus Net Earned Premium, Claims Incurred Losses, Producer Commission Expense, and Administrative Overheads.</p>
+        </div>
+        <div class="info-card">
+          <h4>4. Statement of Cash Flows</h4>
+          <p>Categorizes cash movements into Operating (premium receipts &amp; claims paid), Investing, and Financing activities.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="page-nav-footer">
+      <a href="journal-entry.html" class="nav-page-btn">
+        <span class="nav-page-label">&larr; Previous</span>
+        <span class="nav-page-title">Journal Entry</span>
+      </a>
+      <a href="period-close.html" class="nav-page-btn" style="text-align: right;">
+        <span class="nav-page-label">Next Submodule &rarr;</span>
+        <span class="nav-page-title">Period Close &amp; Locking</span>
+      </a>
+    </div>
+  </main>
+</div>
+
+<script src="docs.js"></script>
+<script>
+  initDocsLayout('financial-statements');
+</script>
+</body>
+</html>
