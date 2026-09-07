@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import api from '../../services/api';
 import './commission-engine.css';
 
 // Role-specific framing: the same commission ledger means something
@@ -40,21 +41,9 @@ export function CommissionEnginePage() {
   const roleConfig = ROLE_CONFIG[bType] || ROLE_CONFIG.default;
 
   const [activeTab, setActiveTab] = useState('schedules');
-  const [plans, setPlans] = useState(() => {
-    try {
-      const saved = localStorage.getItem('v_commission_plans');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
-    return [];
-  });
-
-  const [transactions, setTransactions] = useState(() => {
-    try {
-      const saved = localStorage.getItem('v_commission_transactions');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
-    return [];
-  });
+  const [plans, setPlans] = useState([]);
+  const [transactions, setTransactions] = useState([]);
+  const [dataLoading, setDataLoading] = useState(true);
 
   const [searchPlan, setSearchPlan] = useState('');
   const [searchTxn, setSearchTxn] = useState('');
@@ -88,12 +77,30 @@ export function CommissionEnginePage() {
     setTimeout(() => setToast(null), 3000);
   };
 
+  // Load commission plans & transactions from the live MongoDB backend on
+  // mount — this page used to seed itself from localStorage only; now the
+  // database is the source of truth and localStorage is not used at all.
   useEffect(() => {
-    try {
-      localStorage.setItem('v_commission_plans', JSON.stringify(plans));
-      localStorage.setItem('v_commission_transactions', JSON.stringify(transactions));
-    } catch (e) {}
-  }, [plans, transactions]);
+    let cancelled = false;
+    (async () => {
+      try {
+        const [plansRes, txnsRes] = await Promise.all([
+          api.getCommissionPlans(),
+          api.getCommissionTransactions()
+        ]);
+        if (!cancelled) {
+          setPlans(Array.isArray(plansRes) ? plansRes : []);
+          setTransactions(Array.isArray(txnsRes) ? txnsRes : []);
+        }
+      } catch (e) {
+        // Backend unreachable — leave the lists empty rather than
+        // fabricating data; the empty states already communicate this.
+      } finally {
+        if (!cancelled) setDataLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
 
   // Dynamic calculations
   const totalPayable = useMemo(() => {
@@ -165,7 +172,7 @@ export function CommissionEnginePage() {
     setExpandedMgaNodes(prev => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const handleSubmitNewTxn = () => {
+  const handleSubmitNewTxn = async () => {
     if (!newTxnProducer.trim() || !newTxnPolicy.trim() || !newTxnPremium || !newTxnRate) {
       showToast('Producer, policy number, premium and rate are required.', 'warning');
       return;
@@ -195,11 +202,16 @@ export function CommissionEnginePage() {
       period: today.toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
       date: today.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
     };
-    setTransactions([newTxn, ...transactions]);
-    setIsNewTxnOpen(false);
-    setNewTxnProducer(''); setNewTxnPolicy(''); setNewTxnInsured(''); setNewTxnLob('');
-    setNewTxnMga(''); setNewTxnCarrier(''); setNewTxnPremium(''); setNewTxnRate(''); setNewTxnClawback('0');
-    showToast(`Commission transaction for ${newTxn.producerName} added.`, 'success');
+    try {
+      const saved = await api.createCommissionTransaction(newTxn);
+      setTransactions([saved, ...transactions]);
+      setIsNewTxnOpen(false);
+      setNewTxnProducer(''); setNewTxnPolicy(''); setNewTxnInsured(''); setNewTxnLob('');
+      setNewTxnMga(''); setNewTxnCarrier(''); setNewTxnPremium(''); setNewTxnRate(''); setNewTxnClawback('0');
+      showToast(`Commission transaction for ${newTxn.producerName} added.`, 'success');
+    } catch (e) {
+      showToast('Could not save the commission transaction to the database. Please try again.', 'error');
+    }
   };
 
   // Filtered views
@@ -234,7 +246,7 @@ export function CommissionEnginePage() {
     setTierRules(updated);
   };
 
-  const handleSubmitNewPlan = () => {
+  const handleSubmitNewPlan = async () => {
     if (!newPlanName.trim()) {
       showToast('Please enter a Commission Plan Name', 'warning');
       return;
@@ -250,10 +262,15 @@ export function CommissionEnginePage() {
       status: 'Active'
     };
 
-    setPlans([newPlan, ...plans]);
-    setIsNewPlanOpen(false);
-    setNewPlanName('');
-    showToast(`Commission plan "${newPlan.name}" created successfully!`, 'success');
+    try {
+      const saved = await api.createCommissionPlan(newPlan);
+      setPlans([saved, ...plans]);
+      setIsNewPlanOpen(false);
+      setNewPlanName('');
+      showToast(`Commission plan "${newPlan.name}" created successfully!`, 'success');
+    } catch (e) {
+      showToast('Could not save the commission plan to the database. Please try again.', 'error');
+    }
   };
 
   const modalTxns = useMemo(() => {
@@ -494,7 +511,7 @@ export function CommissionEnginePage() {
                 {filteredPlans.length === 0 ? (
                   <tr>
                     <td colSpan={6} style={{ textAlign: 'center', padding: '28px 16px', color: 'var(--color-muted, #64748b)', fontSize: '12.5px' }}>
-                      No commission plans yet. Use "+ New Plan" to create one.
+                      {dataLoading ? 'Loading commission plans...' : 'No commission plans yet. Use "+ New Plan" to create one.'}
                     </td>
                   </tr>
                 ) : (
@@ -704,7 +721,7 @@ export function CommissionEnginePage() {
                 {filteredTxns.length === 0 ? (
                   <tr>
                     <td colSpan={10} style={{ textAlign: 'center', padding: '28px 16px', color: 'var(--color-muted, #64748b)', fontSize: '12.5px' }}>
-                      No commission transactions recorded yet. Use "+ New Transaction" to add one.
+                      {dataLoading ? 'Loading commission transactions...' : 'No commission transactions recorded yet. Use "+ New Transaction" to add one.'}
                     </td>
                   </tr>
                 ) : filteredTxns.map(t => (

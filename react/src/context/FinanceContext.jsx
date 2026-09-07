@@ -23,13 +23,18 @@ const INITIAL_PERIODS = [
 ];
 
 
-// Initial Bank Feed Transactions
+// Initial Bank Feed Transactions — each is tagged with the real entity and
+// cash account (see `cashBalances`) it actually posted against, derived
+// from the same cash movements the PAS Event Injector stages perform (see
+// `executeStageAction` below), so Bank Reconciliation can show each role
+// (broker/MGA/carrier) only the transactions that hit their own bank
+// account instead of one shared, un-scoped list.
 const INITIAL_BANK_TRANSACTIONS = [
-  { id: 'TXN-9021', date: '2026-08-28', description: 'Ayushi Fleet Logistics ACH Premium Deposit', amount: 39260.00, type: 'Credit', status: 'Matched', contraAccount: '1100' },
-  { id: 'TXN-9022', date: '2026-08-30', description: 'Wire Transfer Out to NTA Delegated Underwriters', amount: -36760.00, type: 'Debit', status: 'Matched', contraAccount: '2200' },
-  { id: 'TXN-9023', date: '2026-09-01', description: 'Texas Dept of Insurance Stamping Fee Q3', amount: -350.00, type: 'Debit', status: 'Unallocated Suspense', contraAccount: null },
-  { id: 'TXN-9024', date: '2026-09-02', description: 'Southlake Insurance Co Net Remittance ACH', amount: 29757.00, type: 'Credit', status: 'Matched', contraAccount: '1150' },
-  { id: 'TXN-9025', date: '2026-09-03', description: 'AWS Cloud Hosting Monthly Infrastructure', amount: -1240.00, type: 'Debit', status: 'Matched', contraAccount: '2001' }
+  { id: 'TXN-9021', date: '2026-08-28', description: 'Ayushi Fleet Logistics ACH Premium Deposit', amount: 39260.00, type: 'Credit', status: 'Matched', contraAccount: '1100', entity: 'ENT-AGY-01', account: 'brokerTrust' },
+  { id: 'TXN-9022', date: '2026-08-30', description: 'Wire Transfer Out to NTA Delegated Underwriters', amount: -36760.00, type: 'Debit', status: 'Matched', contraAccount: '2200', entity: 'ENT-AGY-01', account: 'brokerTrust' },
+  { id: 'TXN-9023', date: '2026-09-01', description: 'Texas Dept of Insurance Stamping Fee Q3', amount: -350.00, type: 'Debit', status: 'Unallocated Suspense', contraAccount: null, entity: 'ENT-MGA-01', account: 'mgaOperating' },
+  { id: 'TXN-9024', date: '2026-09-02', description: 'Southlake Insurance Co Net Remittance ACH', amount: 29757.00, type: 'Credit', status: 'Matched', contraAccount: '1150', entity: 'ENT-CAR-01', account: 'carrierOperating' },
+  { id: 'TXN-9025', date: '2026-09-03', description: 'AWS Cloud Hosting Monthly Infrastructure', amount: -1240.00, type: 'Debit', status: 'Matched', contraAccount: '2001', entity: 'ENT-MGA-01', account: 'mgaOperating' }
 ];
 
 export function FinanceProvider({ children }) {

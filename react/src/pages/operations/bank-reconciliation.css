@@ -120,6 +120,16 @@
   gap: 4px;
 }
 
+/* The shared .form-field class carries a global 16px margin-bottom meant
+   for vertically-stacked forms (see src/index.css). Inside this row-based
+   .form-strip that leftover margin pushed every field 16px short of the
+   row's true bottom edge, so the "Get Transactions" button (which has no
+   such margin) ended up sitting lower than the fields beside it — the
+   misalignment reported on this page. Zero it out only in this scope. */
+.form-strip .form-field {
+  margin-bottom: 0;
+}
+
 .form-label {
   font-size: 10.5px;
   font-weight: 700;
