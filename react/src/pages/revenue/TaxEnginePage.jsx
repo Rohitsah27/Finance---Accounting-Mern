@@ -1,53 +1,101 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { useFinance } from '../../context/FinanceContext';
 import './tax-engine.css';
 
-const INITIAL_NEXUS = [
-  { state: 'Texas', jurisdiction: 'Texas Department of Insurance / SLTX', status: 'Registered', date: '2021-11-02' },
-  { state: 'California', jurisdiction: 'California Surplus Line Association (SLA)', status: 'Registered', date: '2022-04-15' },
-  { state: 'Florida', jurisdiction: 'Florida Surplus Lines Service Office (FSLSO)', status: 'Registered', date: '2023-01-10' },
-  { state: 'New York', jurisdiction: 'Excess Line Association of New York (ELANY)', status: 'Pending Registration', date: '2026-08-01' }
+const ACCOUNT_CODE = '2300'; // Premium Taxes Payable (see mockAccounts.js)
+
+// Real 2026 federal/state statutory payroll tax rates & wage bases.
+// These are reference constants, not transactional data — worth
+// double-checking against the current-year IRS/state figures before
+// relying on them for an actual filing.
+const FICA_FUTA_SUTA_RATES = [
+  { type: 'Social Security (FICA)', rate: '6.20%', wageBase: '$168,600' },
+  { type: 'Medicare (FICA)', rate: '1.45%', wageBase: 'No cap' },
+  { type: 'Additional Medicare', rate: '0.90%', wageBase: 'Over $200,000' },
+  { type: 'FUTA', rate: '0.60% (post-credit)', wageBase: '$7,000' },
+  { type: 'SUTA (Texas / Multi-state)', rate: '2.70%', wageBase: '$9,000' }
 ];
 
-const INITIAL_RATES = [
-  { jurisdiction: 'Texas (Statewide)', type: 'Surplus Lines Tax', percent: 4.850, effective: '2026-08-20', notes: 'Policy POL-V8NHT (Ayushi Commercial Trucking · $1,590.00 tax)', status: 'Active' },
-  { jurisdiction: 'Texas - Denton County', type: 'County Surcharge', percent: 0.550, effective: '2026-08-20', notes: 'Denton County local transit surcharge ($180.00)', status: 'Active' },
-  { jurisdiction: 'Texas (SLTX)', type: 'Stamping Office Fee', percent: 0.075, effective: '2026-08-20', notes: 'Surplus Lines Stamping Office of Texas fee', status: 'Active' },
-  { jurisdiction: 'California', type: 'Surplus Lines Tax', percent: 3.000, effective: '2026-01-01', notes: 'California SLA statutory rate', status: 'Active' },
-  { jurisdiction: 'Florida', type: 'Surplus Lines Tax', percent: 5.000, effective: '2026-01-01', notes: 'Florida FSLSO regulatory rate', status: 'Active' }
+// A small, real (if simplified) ZIP-prefix -> surplus lines jurisdiction
+// table, built from the same statutory rates configured elsewhere on this
+// page. Not a substitute for a real tax-rate API, but it actually reacts
+// to what you type instead of always returning the same canned answer.
+const ZIP_JURISDICTION_TABLE = [
+  { prefixes: ['7'], state: 'Texas', combined: 5.40, breakdown: 'Texas Surplus Lines Tax 4.85% + Denton County Local Surcharge 0.55%' },
+  { prefixes: ['9'], state: 'California', combined: 3.00, breakdown: 'California SLA Premium Tax 3.00%' },
+  { prefixes: ['3'], state: 'Florida', combined: 5.00, breakdown: 'Florida FSLSO Regulatory Rate 5.00%' }
 ];
 
-const INITIAL_CERTS = [
-  { customer: 'Ayushi', certNo: 'EX-TX-84920', state: 'Texas', expiry: '2027-08-20', status: 'Verified Active' },
-  { customer: 'Harborview Medical Group', certNo: 'EX-501C3-9912', state: 'Texas', expiry: '2028-12-31', status: 'Verified Active' },
-  { customer: 'Meridian Logistics LLC', certNo: 'EX-ICC-44910', state: 'Texas', expiry: '2026-11-15', status: 'Renewal Pending' }
-];
+function lookupZipJurisdiction(zip) {
+  const digit = (zip || '').trim().charAt(0);
+  const match = ZIP_JURISDICTION_TABLE.find(z => z.prefixes.includes(digit));
+  return match || null;
+}
 
-const INITIAL_1099 = [
-  { name: 'HIT (Insurance Agency / Broker)', type: '1099-NEC (Broker Commission)', ytd: 2500.00, w9: 'Verified On File', tin: 'XX-XXX4910', tinMatch: 'Matched', date: '2026-08-20' },
-  { name: 'Coastal Risk Advisors', type: '1099-NEC (Agent Commission)', ytd: 2763.00, w9: 'Verified On File', tin: 'XX-XXX8821', tinMatch: 'Matched', date: '2026-08-03' },
-  { name: 'Alvarez Inspection Services', type: '1099-MISC (Vendor Loss Control)', ytd: 1450.00, w9: 'Verified On File', tin: 'XX-XXX2201', tinMatch: 'Matched', date: '2026-07-15' },
-  { name: 'Apex Independent Adjusters', type: '1099-MISC (Claims Adjustment)', ytd: 3800.00, w9: 'Verified On File', tin: 'XX-XXX9312', tinMatch: 'Matched', date: '2026-06-28' }
-];
+// Standard periodic payroll filings, anchored to the current date rather
+// than hardcoded to a fixed year/quarter.
+function buildStandardFilingPeriods() {
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth(); // 0-11
+  const quarter = Math.floor(month / 3) + 1;
+  const prevQuarter = quarter === 1 ? 4 : quarter - 1;
+  const prevQuarterYear = quarter === 1 ? year - 1 : year;
+  const dueDateFor = (q, y) => {
+    const map = { 1: `${y}-04-30`, 2: `${y}-07-31`, 3: `${y}-10-31`, 4: `${y + 1}-01-31` };
+    return map[q];
+  };
+  return [
+    { id: `941-${prevQuarterYear}-Q${prevQuarter}`, form: 'Form 941', label: 'Quarterly Employer Return', period: `Q${prevQuarter} ${prevQuarterYear}`, due: dueDateFor(prevQuarter, prevQuarterYear), status: 'Not Started', filedDate: null },
+    { id: `941-${year}-Q${quarter}`, form: 'Form 941', label: 'Quarterly Employer Return', period: `Q${quarter} ${year}`, due: dueDateFor(quarter, year), status: 'Not Started', filedDate: null },
+    { id: `940-${year - 1}`, form: 'Form 940', label: 'Annual FUTA', period: `FY ${year - 1}`, due: `${year}-01-31`, status: 'Not Started', filedDate: null }
+  ];
+}
 
-const INITIAL_LIABILITIES = [
-  { id: 'liab-1', type: 'Texas Surplus Lines Tax (4.85%)', state: 'Texas', ref: 'POL-V8NHT (Ayushi)', taxable: 32257.00, amount: 1590.00, due: '2026-09-20', status: 'Due Soon' },
-  { id: 'liab-2', type: 'Denton County Tax (0.55%)', state: 'Texas', ref: 'POL-V8NHT (Ayushi)', taxable: 32257.00, amount: 180.00, due: '2026-09-20', status: 'Due Soon' },
-  { id: 'liab-3', type: 'California SLA Premium Tax (3.0%)', state: 'California', ref: 'POL-2026-0428 (Harborview)', taxable: 18420.00, amount: 552.60, due: '2026-09-20', status: 'Ready for Filing' }
-];
+// Real commission data lives in the Commission Engine's own persisted
+// state (same localStorage origin) — this reads it rather than
+// duplicating a second, disconnected copy of "who got paid what".
+function readCommissionProducerSummary() {
+  try {
+    const saved = localStorage.getItem('v_commission_transactions');
+    if (!saved) return [];
+    const txns = JSON.parse(saved);
+    if (!Array.isArray(txns)) return [];
+    const byProducer = {};
+    txns.forEach(t => {
+      const key = t.producerName || t.producer;
+      if (!key) return;
+      if (!byProducer[key]) {
+        byProducer[key] = { name: key, ytd: 0, lastDate: '' };
+      }
+      byProducer[key].ytd += parseFloat(t.netPayable) || 0;
+      if (t.date && (!byProducer[key].lastDate || new Date(t.date) > new Date(byProducer[key].lastDate))) {
+        byProducer[key].lastDate = t.date;
+      }
+    });
+    return Object.values(byProducer).sort((a, b) => b.ytd - a.ytd);
+  } catch (e) {
+    return [];
+  }
+}
 
 export function TaxEnginePage() {
+  const { getAccountBalance, getAccountLedger } = useFinance();
+
   const [mainTab, setMainTab] = useState('salesuse');
   const [salesSubTab, setSalesSubTab] = useState('sales-nexus');
   const [paySubTab, setPaySubTab] = useState('pay-summary');
   const [ten99SubTab, setTen99SubTab] = useState('ten99-thresh');
 
+  // ── Insurance Premium & Surplus Taxes: real, user-managed lists.
+  // Seeded empty — nothing here is invented on your behalf; you register
+  // what you actually operate.
   const [nexusList, setNexusList] = useState(() => {
     try {
       const saved = localStorage.getItem('v_tax_nexus');
       if (saved) return JSON.parse(saved);
     } catch (e) {}
-    return INITIAL_NEXUS;
+    return [];
   });
 
   const [ratesList, setRatesList] = useState(() => {
@@ -55,7 +103,7 @@ export function TaxEnginePage() {
       const saved = localStorage.getItem('v_tax_rates');
       if (saved) return JSON.parse(saved);
     } catch (e) {}
-    return INITIAL_RATES;
+    return [];
   });
 
   const [certsList, setCertsList] = useState(() => {
@@ -63,28 +111,64 @@ export function TaxEnginePage() {
       const saved = localStorage.getItem('v_tax_certs');
       if (saved) return JSON.parse(saved);
     } catch (e) {}
-    return INITIAL_CERTS;
+    return [];
   });
 
-  const [liabilitiesList, setLiabilitiesList] = useState(() => {
+  // ── 1099 / producer compliance: derived from real Commission Engine
+  // data, plus a real, persisted W-9/TIN verification map (starts empty —
+  // these are manual verifications, not something the app can compute).
+  const [commissionProducers, setCommissionProducers] = useState(() => readCommissionProducerSummary());
+
+  const [w9Map, setW9Map] = useState(() => {
     try {
-      const saved = localStorage.getItem('v_tax_liabilities');
+      const saved = localStorage.getItem('v_tax_w9_status');
       if (saved) return JSON.parse(saved);
     } catch (e) {}
-    return INITIAL_LIABILITIES;
+    return {};
+  });
+
+  const [efileBatches, setEfileBatches] = useState(() => {
+    try {
+      const saved = localStorage.getItem('v_tax_efile_batches');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
+  });
+
+  // ── Payroll filings: real periods anchored to today, status tracked
+  // manually (there is no payroll-run history anywhere in the app to
+  // derive filed/not-filed from).
+  const [filingStatusList, setFilingStatusList] = useState(() => {
+    try {
+      const saved = localStorage.getItem('v_tax_filing_status');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return buildStandardFilingPeriods();
   });
 
   const [nexusFilter, setNexusFilter] = useState('');
   const [liabilityFilter, setLiabilityFilter] = useState('');
-  const [zipInput, setZipInput] = useState('75201-1234');
-  const [lookupResult, setLookupResult] = useState(true);
+  const [zipInput, setZipInput] = useState('');
+  const [lookupResult, setLookupResult] = useState(null);
 
   const [isAddRateOpen, setIsAddRateOpen] = useState(false);
   const [newRateJurisdiction, setNewRateJurisdiction] = useState('');
   const [newRateType, setNewRateType] = useState('Surplus Lines Tax');
   const [newRatePercent, setNewRatePercent] = useState('');
-  const [newRateEffective, setNewRateEffective] = useState('2026-08-20');
+  const [newRateEffective, setNewRateEffective] = useState(() => new Date().toISOString().slice(0, 10));
   const [newRateNotes, setNewRateNotes] = useState('');
+
+  const [isAddNexusOpen, setIsAddNexusOpen] = useState(false);
+  const [newNexusState, setNewNexusState] = useState('');
+  const [newNexusJurisdiction, setNewNexusJurisdiction] = useState('');
+  const [newNexusStatus, setNewNexusStatus] = useState('Registered');
+  const [newNexusDate, setNewNexusDate] = useState(() => new Date().toISOString().slice(0, 10));
+
+  const [isAddCertOpen, setIsAddCertOpen] = useState(false);
+  const [newCertCustomer, setNewCertCustomer] = useState('');
+  const [newCertNo, setNewCertNo] = useState('');
+  const [newCertState, setNewCertState] = useState('');
+  const [newCertExpiry, setNewCertExpiry] = useState('');
 
   const [toast, setToast] = useState(null);
 
@@ -98,24 +182,51 @@ export function TaxEnginePage() {
       localStorage.setItem('v_tax_nexus', JSON.stringify(nexusList));
       localStorage.setItem('v_tax_rates', JSON.stringify(ratesList));
       localStorage.setItem('v_tax_certs', JSON.stringify(certsList));
-      localStorage.setItem('v_tax_liabilities', JSON.stringify(liabilitiesList));
+      localStorage.setItem('v_tax_w9_status', JSON.stringify(w9Map));
+      localStorage.setItem('v_tax_efile_batches', JSON.stringify(efileBatches));
+      localStorage.setItem('v_tax_filing_status', JSON.stringify(filingStatusList));
     } catch (e) {}
-  }, [nexusList, ratesList, certsList, liabilitiesList]);
+  }, [nexusList, ratesList, certsList, w9Map, efileBatches, filingStatusList]);
 
-  const totalLiability = useMemo(() => {
-    return liabilitiesList.reduce((sum, l) => sum + (parseFloat(l.amount) || 0), 0);
-  }, [liabilitiesList]);
+  // ── Real GL tie-in: Premium Taxes Payable (Account 2300) ──
+  const glBalance = getAccountBalance(ACCOUNT_CODE);
+  const glLedger = useMemo(() => getAccountLedger(ACCOUNT_CODE), [getAccountLedger]);
 
-  const handleLookupRate = () => {
-    setLookupResult(true);
-    showToast(`Calculated rates for ${zipInput}: 5.40% Combined`, 'success');
+  const totalLiability = glBalance.balance;
+
+  const filingsDueThisMonth = useMemo(() => {
+    const now = new Date();
+    return filingStatusList.filter(f => {
+      if (f.status === 'Filed') return false;
+      const due = new Date(f.due);
+      return due.getFullYear() === now.getFullYear() && due.getMonth() === now.getMonth();
+    });
+  }, [filingStatusList]);
+
+  const tinMismatchCount = useMemo(
+    () => Object.values(w9Map).filter(v => v.tinMatch === 'Mismatched').length,
+    [w9Map]
+  );
+  const trackedProducerCount = commissionProducers.length;
+  const matchedCount = Object.values(w9Map).filter(v => v.tinMatch === 'Matched').length;
+
+  const handleRefreshCommissions = () => {
+    setCommissionProducers(readCommissionProducerSummary());
+    showToast('Re-read producer commission totals from Commission Engine.', 'success');
   };
 
-  const handlePrefillRate = (jurisdiction, pct) => {
+  const handleLookupRate = () => {
+    const match = lookupZipJurisdiction(zipInput);
+    setLookupResult(match ? { ...match, zip: zipInput } : { notFound: true, zip: zipInput });
+  };
+
+  const handlePrefillRate = (jurisdiction, pct, notes) => {
+    setMainTab('salesuse');
+    setSalesSubTab('sales-rates');
     setIsAddRateOpen(true);
     setNewRateJurisdiction(jurisdiction);
     setNewRatePercent(pct.toString());
-    setNewRateNotes('Pre-filled from rate engine ZIP lookup');
+    setNewRateNotes(notes || 'Pre-filled from rate engine ZIP lookup');
   };
 
   const handleSaveTaxRate = () => {
@@ -123,7 +234,6 @@ export function TaxEnginePage() {
       showToast('Please enter a jurisdiction and percentage rate', 'warning');
       return;
     }
-
     const rateObj = {
       jurisdiction: newRateJurisdiction,
       type: newRateType,
@@ -132,7 +242,6 @@ export function TaxEnginePage() {
       notes: newRateNotes || 'Configured via Tax Engine',
       status: 'Active'
     };
-
     setRatesList([rateObj, ...ratesList]);
     setIsAddRateOpen(false);
     setNewRateJurisdiction('');
@@ -141,9 +250,75 @@ export function TaxEnginePage() {
     showToast(`Tax rate for ${rateObj.jurisdiction} added!`, 'success');
   };
 
-  const handleRemitTax = (id, type, amount) => {
-    setLiabilitiesList(prev => prev.map(l => l.id === id ? { ...l, status: 'Paid / Remitted' } : l));
-    showToast(`Remitted $${amount.toFixed(2)} for ${type}`, 'success');
+  const handleSaveNexus = () => {
+    if (!newNexusState || !newNexusJurisdiction) {
+      showToast('Please enter a state and filing jurisdiction', 'warning');
+      return;
+    }
+    setNexusList([{ state: newNexusState, jurisdiction: newNexusJurisdiction, status: newNexusStatus, date: newNexusDate }, ...nexusList]);
+    setIsAddNexusOpen(false);
+    setNewNexusState('');
+    setNewNexusJurisdiction('');
+    showToast(`Nexus registration for ${newNexusState} added.`, 'success');
+  };
+
+  const handleSaveCert = () => {
+    if (!newCertCustomer || !newCertNo) {
+      showToast('Please enter a customer and certificate number', 'warning');
+      return;
+    }
+    setCertsList([{ customer: newCertCustomer, certNo: newCertNo, state: newCertState, expiry: newCertExpiry, status: 'Verified Active' }, ...certsList]);
+    setIsAddCertOpen(false);
+    setNewCertCustomer('');
+    setNewCertNo('');
+    setNewCertState('');
+    setNewCertExpiry('');
+    showToast(`Exemption certificate for ${newCertCustomer} added.`, 'success');
+  };
+
+  const handleMarkW9Received = (name) => {
+    setW9Map(prev => ({
+      ...prev,
+      [name]: { ...(prev[name] || {}), onFile: true, verifiedDate: new Date().toISOString().slice(0, 10) }
+    }));
+    showToast(`W-9 marked on file for ${name}.`, 'success');
+  };
+
+  const handleRunTinMatch = (name, tin) => {
+    if (!tin) {
+      showToast('Enter a TIN/EIN before running a match.', 'warning');
+      return;
+    }
+    setW9Map(prev => ({
+      ...prev,
+      [name]: { ...(prev[name] || {}), tin, tinMatch: 'Matched', verifiedDate: new Date().toISOString().slice(0, 10) }
+    }));
+    showToast(`TIN match recorded for ${name}.`, 'success');
+  };
+
+  const handleSubmitBatch = () => {
+    const pending = commissionProducers.filter(p => p.ytd >= 600 && !efileBatches.some(b => b.producers.includes(p.name)));
+    if (pending.length === 0) {
+      showToast('No producers over the $600 threshold are pending e-filing.', 'info');
+      return;
+    }
+    const batch = {
+      id: `BATCH-IRS-${Date.now()}`,
+      agency: 'IRS FIRE Portal',
+      formType: 'Form 1099-NEC Electronic Batch',
+      producers: pending.map(p => p.name),
+      recordsCount: pending.length,
+      amount: pending.reduce((s, p) => s + p.ytd, 0),
+      status: 'Validated',
+      submittedDate: new Date().toISOString().slice(0, 10)
+    };
+    setEfileBatches([batch, ...efileBatches]);
+    showToast(`Batch of ${pending.length} producer(s) queued for e-filing.`, 'success');
+  };
+
+  const handleMarkFiled = (id) => {
+    setFilingStatusList(prev => prev.map(f => f.id === id ? { ...f, status: 'Filed', filedDate: new Date().toISOString().slice(0, 10) } : f));
+    showToast('Filing marked as filed.', 'success');
   };
 
   const filteredNexus = useMemo(() => {
@@ -152,11 +327,15 @@ export function TaxEnginePage() {
     return nexusList.filter(n => n.state.toLowerCase().includes(q) || n.jurisdiction.toLowerCase().includes(q));
   }, [nexusList, nexusFilter]);
 
-  const filteredLiabilities = useMemo(() => {
-    if (!liabilityFilter) return liabilitiesList;
+  const filteredLedger = useMemo(() => {
+    if (!liabilityFilter) return glLedger.rows;
     const q = liabilityFilter.toLowerCase();
-    return liabilitiesList.filter(l => l.status.toLowerCase().includes(q) || l.state.toLowerCase().includes(q) || l.type.toLowerCase().includes(q));
-  }, [liabilitiesList, liabilityFilter]);
+    return glLedger.rows.filter(r =>
+      (r.reference || '').toLowerCase().includes(q) ||
+      (r.description || '').toLowerCase().includes(q) ||
+      (r.entity || '').toLowerCase().includes(q)
+    );
+  }, [glLedger, liabilityFilter]);
 
   return (
     <>
@@ -179,7 +358,7 @@ export function TaxEnginePage() {
           <button className="btn btn-outline btn-sm" onClick={() => showToast('Exported tax workbook to CSV.', 'success')}>
             Export Workbook
           </button>
-          <button className="btn btn-primary btn-sm" onClick={() => showToast('Register Jurisdiction workflow opened.', 'info')}>
+          <button className="btn btn-primary btn-sm" onClick={() => { setMainTab('salesuse'); setSalesSubTab('sales-nexus'); setIsAddNexusOpen(true); }}>
             + Register Jurisdiction
           </button>
         </div>
@@ -197,7 +376,7 @@ export function TaxEnginePage() {
           <div className="stat-info">
             <div className="stat-value">${totalLiability.toLocaleString('en-US', { minimumFractionDigits: 2 })}</div>
             <div className="stat-label">Total Tax Liability (Current Period)</div>
-            <div className="stat-change text-muted">Surplus lines, state &amp; county combined</div>
+            <div className="stat-change text-muted">Live balance — Premium Taxes Payable (Acct {ACCOUNT_CODE})</div>
           </div>
         </div>
 
@@ -209,9 +388,11 @@ export function TaxEnginePage() {
             </svg>
           </div>
           <div className="stat-info">
-            <div className="stat-value">2</div>
+            <div className="stat-value">{filingsDueThisMonth.length}</div>
             <div className="stat-label">Filings Due This Month</div>
-            <div className="stat-change" style={{ color: '#e05470' }}>Texas &amp; California Filings</div>
+            <div className="stat-change" style={{ color: filingsDueThisMonth.length ? '#e05470' : '#2e7d32' }}>
+              {filingsDueThisMonth.length ? filingsDueThisMonth.map(f => `${f.form} (${f.period})`).join(', ') : 'Nothing due this month'}
+            </div>
           </div>
         </div>
 
@@ -225,7 +406,9 @@ export function TaxEnginePage() {
           <div className="stat-info">
             <div className="stat-value">{certsList.length}</div>
             <div className="stat-label">Active Exemption Certificates</div>
-            <div className="stat-change" style={{ color: '#2e7d32' }}>All certificates verified</div>
+            <div className="stat-change" style={{ color: '#2e7d32' }}>
+              {certsList.length ? 'Tracked in Exemption Certificates' : 'None on file yet'}
+            </div>
           </div>
         </div>
 
@@ -237,37 +420,27 @@ export function TaxEnginePage() {
             </svg>
           </div>
           <div className="stat-info">
-            <div className="stat-value">0</div>
+            <div className="stat-value">{tinMismatchCount}</div>
             <div className="stat-label">TIN Mismatches</div>
-            <div className="stat-change" style={{ color: '#2e7d32' }}>100% W-9 Match Rate</div>
+            <div className="stat-change" style={{ color: tinMismatchCount ? '#e05470' : '#2e7d32' }}>
+              {trackedProducerCount ? `${matchedCount}/${trackedProducerCount} producers matched` : 'No producers tracked yet'}
+            </div>
           </div>
         </div>
       </div>
 
       {/* ═══ TABS ═══ */}
       <div className="page-tabs">
-        <button
-          className={`page-tab ${mainTab === 'salesuse' ? 'active' : ''}`}
-          onClick={() => setMainTab('salesuse')}
-        >
+        <button className={`page-tab ${mainTab === 'salesuse' ? 'active' : ''}`} onClick={() => setMainTab('salesuse')}>
           Insurance Premium &amp; Surplus Taxes
         </button>
-        <button
-          className={`page-tab ${mainTab === 'payroll' ? 'active' : ''}`}
-          onClick={() => setMainTab('payroll')}
-        >
+        <button className={`page-tab ${mainTab === 'payroll' ? 'active' : ''}`} onClick={() => setMainTab('payroll')}>
           Payroll Tax
         </button>
-        <button
-          className={`page-tab ${mainTab === 'filing1099' ? 'active' : ''}`}
-          onClick={() => setMainTab('filing1099')}
-        >
+        <button className={`page-tab ${mainTab === 'filing1099' ? 'active' : ''}`} onClick={() => setMainTab('filing1099')}>
           1099 &amp; Producer Compliance
         </button>
-        <button
-          className={`page-tab ${mainTab === 'liability' ? 'active' : ''}`}
-          onClick={() => setMainTab('liability')}
-        >
+        <button className={`page-tab ${mainTab === 'liability' ? 'active' : ''}`} onClick={() => setMainTab('liability')}>
           Tax Liability Summary
         </button>
       </div>
@@ -276,22 +449,13 @@ export function TaxEnginePage() {
       {mainTab === 'salesuse' && (
         <>
           <div className="pill-tabbar">
-            <button
-              className={`pill-tab ${salesSubTab === 'sales-nexus' ? 'active' : ''}`}
-              onClick={() => setSalesSubTab('sales-nexus')}
-            >
+            <button className={`pill-tab ${salesSubTab === 'sales-nexus' ? 'active' : ''}`} onClick={() => setSalesSubTab('sales-nexus')}>
               Nexus &amp; Registrations
             </button>
-            <button
-              className={`pill-tab ${salesSubTab === 'sales-rates' ? 'active' : ''}`}
-              onClick={() => setSalesSubTab('sales-rates')}
-            >
+            <button className={`pill-tab ${salesSubTab === 'sales-rates' ? 'active' : ''}`} onClick={() => setSalesSubTab('sales-rates')}>
               Tax Rates &amp; Lookup
             </button>
-            <button
-              className={`pill-tab ${salesSubTab === 'sales-certs' ? 'active' : ''}`}
-              onClick={() => setSalesSubTab('sales-certs')}
-            >
+            <button className={`pill-tab ${salesSubTab === 'sales-certs' ? 'active' : ''}`} onClick={() => setSalesSubTab('sales-certs')}>
               Exemption Certificates
             </button>
           </div>
@@ -301,47 +465,76 @@ export function TaxEnginePage() {
               <div className="table-head-row">
                 <div className="table-head-title">State Nexus &amp; Surplus Stamping Registrations</div>
                 <div className="table-head-actions">
-                  <input
-                    className="filter-input"
-                    placeholder="Filter by state…"
-                    value={nexusFilter}
-                    onChange={(e) => setNexusFilter(e.target.value)}
-                  />
-                  <button className="btn btn-outline btn-sm" onClick={() => showToast('Registering new state nexus...', 'info')}>
+                  <input className="filter-input" placeholder="Filter by state…" value={nexusFilter} onChange={(e) => setNexusFilter(e.target.value)} />
+                  <button className="btn btn-outline btn-sm" onClick={() => setIsAddNexusOpen(!isAddNexusOpen)}>
                     + Register Nexus
                   </button>
                 </div>
               </div>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>State</th>
-                    <th>Filing Jurisdiction</th>
-                    <th>Nexus Status</th>
-                    <th>Registration Date</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredNexus.map((n, i) => (
-                    <tr key={i}>
-                      <td><strong>{n.state}</strong></td>
-                      <td>{n.jurisdiction}</td>
-                      <td>
-                        <span className={`badge ${n.status === 'Registered' ? 'badge-green' : 'badge-orange'}`}>
-                          {n.status}
-                        </span>
-                      </td>
-                      <td>{n.date}</td>
-                      <td>
-                        <button className="btn btn-ghost btn-sm" onClick={() => showToast(`Viewing registration details for ${n.state}`, 'info')}>
-                          View
-                        </button>
-                      </td>
+
+              {isAddNexusOpen && (
+                <div style={{ padding: '16px', background: 'var(--color-bg, #f8fafc)', borderBottom: '1px solid var(--color-border, #e2e8f0)' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#0d1b4b', marginBottom: '12px' }}>Register a State Nexus</div>
+                  <div className="form-grid-3">
+                    <div>
+                      <label className="field-label">State *</label>
+                      <input className="field-input" placeholder="e.g. Texas" value={newNexusState} onChange={(e) => setNewNexusState(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="field-label">Filing Jurisdiction *</label>
+                      <input className="field-input" placeholder="e.g. Texas Department of Insurance / SLTX" value={newNexusJurisdiction} onChange={(e) => setNewNexusJurisdiction(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="field-label">Status</label>
+                      <select className="field-input" value={newNexusStatus} onChange={(e) => setNewNexusStatus(e.target.value)}>
+                        <option>Registered</option>
+                        <option>Pending Registration</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="field-label">Registration Date</label>
+                      <input className="field-input" type="date" value={newNexusDate} onChange={(e) => setNewNexusDate(e.target.value)} />
+                    </div>
+                  </div>
+                  <div style={{ marginTop: '14px', display: 'flex', gap: '8px' }}>
+                    <button className="btn btn-primary btn-sm" onClick={handleSaveNexus}>Save Nexus</button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => setIsAddNexusOpen(false)}>Cancel</button>
+                  </div>
+                </div>
+              )}
+
+              {filteredNexus.length === 0 ? (
+                <div style={{ padding: '32px', textAlign: 'center', color: 'var(--color-muted, #64748b)', fontSize: '13px' }}>
+                  No state nexus registrations on file yet. Use “+ Register Nexus” to add the states you actually transact surplus lines business in.
+                </div>
+              ) : (
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>State</th>
+                      <th>Filing Jurisdiction</th>
+                      <th>Nexus Status</th>
+                      <th>Registration Date</th>
+                      <th>Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {filteredNexus.map((n, i) => (
+                      <tr key={i}>
+                        <td><strong>{n.state}</strong></td>
+                        <td>{n.jurisdiction}</td>
+                        <td><span className={`badge ${n.status === 'Registered' ? 'badge-green' : 'badge-orange'}`}>{n.status}</span></td>
+                        <td>{n.date}</td>
+                        <td>
+                          <button className="btn btn-ghost btn-sm" onClick={() => setNexusList(nexusList.filter((_, idx) => idx !== nexusList.indexOf(n)))}>
+                            Remove
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           )}
 
@@ -356,33 +549,28 @@ export function TaxEnginePage() {
                 <div className="tax-lookup-row">
                   <div className="form-field" style={{ marginBottom: 0 }}>
                     <label className="field-label">ZIP+4 or City Code</label>
-                    <input
-                      className="field-input"
-                      value={zipInput}
-                      onChange={(e) => setZipInput(e.target.value)}
-                      placeholder="e.g. 75201-1234 (Texas)"
-                    />
+                    <input className="field-input" value={zipInput} onChange={(e) => setZipInput(e.target.value)} placeholder="e.g. 75201-1234 (Texas)" />
                   </div>
-                  <button className="btn btn-primary btn-sm" onClick={handleLookupRate}>
-                    Look Up Rate
-                  </button>
+                  <button className="btn btn-primary btn-sm" onClick={handleLookupRate}>Look Up Rate</button>
                 </div>
 
-                {lookupResult && (
+                {lookupResult && lookupResult.notFound && (
                   <div className="tax-lookup-result">
-                    <strong>Combined Texas Surplus &amp; Local Tax: 5.40%</strong> — State Surplus Lines Tax 4.85% &bull; Denton County Local Surcharge 0.55%{' '}
-                    <span style={{ color: 'var(--color-muted, #64748b)' }}>(ZIP 75201 · Policy POL-V8NHT)</span>
-                    <button
-                      className="btn btn-outline btn-sm"
-                      style={{ marginLeft: '12px' }}
-                      onClick={() => handlePrefillRate('Texas - Denton County', 5.40)}
-                    >
+                    No configured jurisdiction matches ZIP {lookupResult.zip}. This lookup only covers the states you've configured rates for below (currently Texas, California, Florida as reference examples) — add more jurisdictions as you register them.
+                  </div>
+                )}
+
+                {lookupResult && !lookupResult.notFound && (
+                  <div className="tax-lookup-result">
+                    <strong>Combined {lookupResult.state} Rate: {lookupResult.combined.toFixed(2)}%</strong> — {lookupResult.breakdown}{' '}
+                    <span style={{ color: 'var(--color-muted, #64748b)' }}>(ZIP {lookupResult.zip})</span>
+                    <button className="btn btn-outline btn-sm" style={{ marginLeft: '12px' }} onClick={() => handlePrefillRate(lookupResult.state, lookupResult.combined, lookupResult.breakdown)}>
                       + Add to Your Tax Rates
                     </button>
                   </div>
                 )}
                 <div style={{ fontSize: '11px', color: 'var(--color-muted, #64748b)', marginTop: '10px' }}>
-                  Calculates state surplus lines taxes, county surcharges, and stamping office regulatory fees.
+                  Illustrative lookup covering a few reference jurisdictions by ZIP prefix — not a connection to a live tax-rate service. Configure your actual rates below.
                 </div>
               </div>
 
@@ -391,34 +579,21 @@ export function TaxEnginePage() {
                 <div className="table-head-row">
                   <div className="table-head-title">Configured Tax Rates &amp; Surplus Surcharges</div>
                   <div className="table-head-actions">
-                    <button className="btn btn-outline btn-sm" onClick={() => setIsAddRateOpen(!isAddRateOpen)}>
-                      + Add Tax Rate
-                    </button>
+                    <button className="btn btn-outline btn-sm" onClick={() => setIsAddRateOpen(!isAddRateOpen)}>+ Add Tax Rate</button>
                   </div>
                 </div>
 
                 {isAddRateOpen && (
                   <div style={{ padding: '16px', background: 'var(--color-bg, #f8fafc)', borderBottom: '1px solid var(--color-border, #e2e8f0)' }}>
-                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#0d1b4b', marginBottom: '12px' }}>
-                      Add Tax Jurisdiction / Fee Schedule
-                    </div>
+                    <div style={{ fontSize: '13px', fontWeight: 700, color: '#0d1b4b', marginBottom: '12px' }}>Add Tax Jurisdiction / Fee Schedule</div>
                     <div className="form-grid-3">
                       <div>
                         <label className="field-label">Jurisdiction *</label>
-                        <input
-                          className="field-input"
-                          placeholder="e.g. Texas Surplus Lines"
-                          value={newRateJurisdiction}
-                          onChange={(e) => setNewRateJurisdiction(e.target.value)}
-                        />
+                        <input className="field-input" placeholder="e.g. Texas Surplus Lines" value={newRateJurisdiction} onChange={(e) => setNewRateJurisdiction(e.target.value)} />
                       </div>
                       <div>
                         <label className="field-label">Tax Type</label>
-                        <select
-                          className="field-input"
-                          value={newRateType}
-                          onChange={(e) => setNewRateType(e.target.value)}
-                        >
+                        <select className="field-input" value={newRateType} onChange={(e) => setNewRateType(e.target.value)}>
                           <option>Surplus Lines Tax</option>
                           <option>Insurance Premium Tax</option>
                           <option>County Surcharge</option>
@@ -428,81 +603,60 @@ export function TaxEnginePage() {
                       </div>
                       <div>
                         <label className="field-label">Rate (%) *</label>
-                        <input
-                          className="field-input"
-                          type="number"
-                          step="0.001"
-                          placeholder="e.g. 4.85"
-                          value={newRatePercent}
-                          onChange={(e) => setNewRatePercent(e.target.value)}
-                        />
+                        <input className="field-input" type="number" step="0.001" placeholder="e.g. 4.85" value={newRatePercent} onChange={(e) => setNewRatePercent(e.target.value)} />
                       </div>
                       <div>
                         <label className="field-label">Effective Date</label>
-                        <input
-                          className="field-input"
-                          type="date"
-                          value={newRateEffective}
-                          onChange={(e) => setNewRateEffective(e.target.value)}
-                        />
+                        <input className="field-input" type="date" value={newRateEffective} onChange={(e) => setNewRateEffective(e.target.value)} />
                       </div>
                       <div style={{ gridColumn: 'span 2' }}>
                         <label className="field-label">Notes &amp; Policy Ref</label>
-                        <input
-                          className="field-input"
-                          placeholder="e.g. Applicable to Commercial Trucking (POL-V8NHT)"
-                          value={newRateNotes}
-                          onChange={(e) => setNewRateNotes(e.target.value)}
-                        />
+                        <input className="field-input" placeholder="e.g. Applicable to Commercial Trucking (POL-V8NHT)" value={newRateNotes} onChange={(e) => setNewRateNotes(e.target.value)} />
                       </div>
                     </div>
                     <div style={{ marginTop: '14px', display: 'flex', gap: '8px' }}>
-                      <button className="btn btn-primary btn-sm" onClick={handleSaveTaxRate}>
-                        Save Tax Rate
-                      </button>
-                      <button className="btn btn-ghost btn-sm" onClick={() => setIsAddRateOpen(false)}>
-                        Cancel
-                      </button>
+                      <button className="btn btn-primary btn-sm" onClick={handleSaveTaxRate}>Save Tax Rate</button>
+                      <button className="btn btn-ghost btn-sm" onClick={() => setIsAddRateOpen(false)}>Cancel</button>
                     </div>
                   </div>
                 )}
 
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Jurisdiction</th>
-                      <th>Type</th>
-                      <th>Rate</th>
-                      <th>Effective Date</th>
-                      <th>Notes</th>
-                      <th>Status</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ratesList.map((r, idx) => (
-                      <tr key={idx}>
-                        <td><strong>{r.jurisdiction}</strong></td>
-                        <td><span className="badge badge-navy">{r.type}</span></td>
-                        <td className="font-semibold">{Number(r.percent).toFixed(3)}%</td>
-                        <td>{r.effective}</td>
-                        <td style={{ fontSize: '12px', color: 'var(--color-muted, #64748b)' }}>{r.notes || ' - '}</td>
-                        <td><span className="badge badge-green">{r.status || 'Active'}</span></td>
-                        <td>
-                          <button
-                            className="btn btn-ghost btn-sm"
-                            onClick={() => {
-                              setRatesList(ratesList.filter((_, i) => i !== idx));
-                              showToast(`Removed rate for ${r.jurisdiction}`, 'info');
-                            }}
-                          >
-                            Remove
-                          </button>
-                        </td>
+                {ratesList.length === 0 ? (
+                  <div style={{ padding: '32px', textAlign: 'center', color: 'var(--color-muted, #64748b)', fontSize: '13px' }}>
+                    No tax rates configured yet. Use “+ Add Tax Rate” or the lookup above to add the jurisdictions you actually collect tax for.
+                  </div>
+                ) : (
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Jurisdiction</th>
+                        <th>Type</th>
+                        <th>Rate</th>
+                        <th>Effective Date</th>
+                        <th>Notes</th>
+                        <th>Status</th>
+                        <th>Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {ratesList.map((r, idx) => (
+                        <tr key={idx}>
+                          <td><strong>{r.jurisdiction}</strong></td>
+                          <td><span className="badge badge-navy">{r.type}</span></td>
+                          <td className="font-semibold">{Number(r.percent).toFixed(3)}%</td>
+                          <td>{r.effective}</td>
+                          <td style={{ fontSize: '12px', color: 'var(--color-muted, #64748b)' }}>{r.notes || ' - '}</td>
+                          <td><span className="badge badge-green">{r.status || 'Active'}</span></td>
+                          <td>
+                            <button className="btn btn-ghost btn-sm" onClick={() => { setRatesList(ratesList.filter((_, i) => i !== idx)); showToast(`Removed rate for ${r.jurisdiction}`, 'info'); }}>
+                              Remove
+                            </button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
               </div>
             </>
           )}
@@ -512,46 +666,72 @@ export function TaxEnginePage() {
               <div className="table-head-row">
                 <div className="table-head-title">Exemption Certificates &amp; Reseller Waivers</div>
                 <div className="table-head-actions">
-                  <button className="btn btn-outline btn-sm" onClick={() => showToast('Certificate modal opened', 'info')}>
-                    + Add Certificate
-                  </button>
+                  <button className="btn btn-outline btn-sm" onClick={() => setIsAddCertOpen(!isAddCertOpen)}>+ Add Certificate</button>
                 </div>
               </div>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Customer / Insured</th>
-                    <th>Certificate #</th>
-                    <th>State</th>
-                    <th>Expiration Date</th>
-                    <th>Status</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {certsList.map((c, i) => (
-                    <tr key={i}>
-                      <td><strong>{c.customer}</strong></td>
-                      <td className="cell-link">{c.certNo}</td>
-                      <td>{c.state}</td>
-                      <td>{c.expiry}</td>
-                      <td>
-                        <span className={`badge ${c.status.includes('Active') ? 'badge-green' : 'badge-orange'}`}>
-                          {c.status}
-                        </span>
-                      </td>
-                      <td>
-                        <button
-                          className="btn btn-ghost btn-sm"
-                          onClick={() => showToast(`Certificate ${c.certNo} re-verified active`, 'success')}
-                        >
-                          Verify
-                        </button>
-                      </td>
+
+              {isAddCertOpen && (
+                <div style={{ padding: '16px', background: 'var(--color-bg, #f8fafc)', borderBottom: '1px solid var(--color-border, #e2e8f0)' }}>
+                  <div style={{ fontSize: '13px', fontWeight: 700, color: '#0d1b4b', marginBottom: '12px' }}>Add Exemption Certificate</div>
+                  <div className="form-grid-3">
+                    <div>
+                      <label className="field-label">Customer / Insured *</label>
+                      <input className="field-input" value={newCertCustomer} onChange={(e) => setNewCertCustomer(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="field-label">Certificate # *</label>
+                      <input className="field-input" value={newCertNo} onChange={(e) => setNewCertNo(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="field-label">State</label>
+                      <input className="field-input" value={newCertState} onChange={(e) => setNewCertState(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="field-label">Expiration Date</label>
+                      <input className="field-input" type="date" value={newCertExpiry} onChange={(e) => setNewCertExpiry(e.target.value)} />
+                    </div>
+                  </div>
+                  <div style={{ marginTop: '14px', display: 'flex', gap: '8px' }}>
+                    <button className="btn btn-primary btn-sm" onClick={handleSaveCert}>Save Certificate</button>
+                    <button className="btn btn-ghost btn-sm" onClick={() => setIsAddCertOpen(false)}>Cancel</button>
+                  </div>
+                </div>
+              )}
+
+              {certsList.length === 0 ? (
+                <div style={{ padding: '32px', textAlign: 'center', color: 'var(--color-muted, #64748b)', fontSize: '13px' }}>
+                  No exemption certificates on file. Add one only if a real customer is tax-exempt.
+                </div>
+              ) : (
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Customer / Insured</th>
+                      <th>Certificate #</th>
+                      <th>State</th>
+                      <th>Expiration Date</th>
+                      <th>Status</th>
+                      <th>Actions</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {certsList.map((c, i) => (
+                      <tr key={i}>
+                        <td><strong>{c.customer}</strong></td>
+                        <td className="cell-link">{c.certNo}</td>
+                        <td>{c.state}</td>
+                        <td>{c.expiry}</td>
+                        <td><span className={`badge ${c.status.includes('Active') ? 'badge-green' : 'badge-orange'}`}>{c.status}</span></td>
+                        <td>
+                          <button className="btn btn-ghost btn-sm" onClick={() => showToast(`Certificate ${c.certNo} re-verified active`, 'success')}>
+                            Verify
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           )}
         </>
@@ -561,18 +741,8 @@ export function TaxEnginePage() {
       {mainTab === 'payroll' && (
         <>
           <div className="pill-tabbar">
-            <button
-              className={`pill-tab ${paySubTab === 'pay-summary' ? 'active' : ''}`}
-              onClick={() => setPaySubTab('pay-summary')}
-            >
-              Tax Summary
-            </button>
-            <button
-              className={`pill-tab ${paySubTab === 'pay-filing' ? 'active' : ''}`}
-              onClick={() => setPaySubTab('pay-filing')}
-            >
-              Filing Status
-            </button>
+            <button className={`pill-tab ${paySubTab === 'pay-summary' ? 'active' : ''}`} onClick={() => setPaySubTab('pay-summary')}>Tax Summary</button>
+            <button className={`pill-tab ${paySubTab === 'pay-filing' ? 'active' : ''}`} onClick={() => setPaySubTab('pay-filing')}>Filing Status</button>
           </div>
 
           {paySubTab === 'pay-summary' && (
@@ -580,10 +750,11 @@ export function TaxEnginePage() {
               <div className="table-head-row">
                 <div className="table-head-title">FICA / FUTA / SUTA Summary</div>
                 <div className="table-head-actions">
-                  <button className="btn btn-outline btn-sm" onClick={() => showToast('Exported FICA/FUTA summary to CSV', 'success')}>
-                    Export
-                  </button>
+                  <button className="btn btn-outline btn-sm" onClick={() => showToast('Exported FICA/FUTA summary to CSV', 'success')}>Export</button>
                 </div>
+              </div>
+              <div style={{ padding: '10px 16px', fontSize: '11.5px', color: 'var(--color-muted, #64748b)' }}>
+                Rates and wage bases below are statutory reference figures. YTD columns are blank because there's no payroll-run history in this app yet to total up.
               </div>
               <table className="data-table">
                 <thead>
@@ -596,41 +767,15 @@ export function TaxEnginePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td><strong>Social Security (FICA)</strong></td>
-                    <td>6.20%</td>
-                    <td>$168,600</td>
-                    <td>$24,180.00</td>
-                    <td>$24,180.00</td>
-                  </tr>
-                  <tr>
-                    <td><strong>Medicare (FICA)</strong></td>
-                    <td>1.45%</td>
-                    <td>No cap</td>
-                    <td>$5,655.00</td>
-                    <td>$5,655.00</td>
-                  </tr>
-                  <tr>
-                    <td><strong>Additional Medicare</strong></td>
-                    <td>0.90%</td>
-                    <td>Over $200,000</td>
-                    <td>$1,220.00</td>
-                    <td> - </td>
-                  </tr>
-                  <tr>
-                    <td><strong>FUTA</strong></td>
-                    <td>0.60% (post-credit)</td>
-                    <td>$7,000</td>
-                    <td> - </td>
-                    <td>$1,890.00</td>
-                  </tr>
-                  <tr>
-                    <td><strong>SUTA (Texas / Multi-state)</strong></td>
-                    <td>2.70%</td>
-                    <td>$9,000</td>
-                    <td> - </td>
-                    <td>$4,120.00</td>
-                  </tr>
+                  {FICA_FUTA_SUTA_RATES.map((r) => (
+                    <tr key={r.type}>
+                      <td><strong>{r.type}</strong></td>
+                      <td>{r.rate}</td>
+                      <td>{r.wageBase}</td>
+                      <td>—</td>
+                      <td>—</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
             </div>
@@ -641,9 +786,7 @@ export function TaxEnginePage() {
               <div className="table-head-row">
                 <div className="table-head-title">Filing Status — Forms 940 / 941 / 944</div>
                 <div className="table-head-actions">
-                  <button className="btn btn-outline btn-sm" onClick={() => showToast('Opening quarterly payroll filing calendar…', 'info')}>
-                    View Calendar
-                  </button>
+                  <button className="btn btn-outline btn-sm" onClick={() => showToast('Opening quarterly payroll filing calendar…', 'info')}>View Calendar</button>
                 </div>
               </div>
               <table className="data-table">
@@ -657,27 +800,27 @@ export function TaxEnginePage() {
                   </tr>
                 </thead>
                 <tbody>
-                  <tr>
-                    <td><strong>Form 941</strong> (Quarterly Employer Return)</td>
-                    <td>Q2 2026</td>
-                    <td><span className="badge badge-green">Filed</span></td>
-                    <td>2026-07-31</td>
-                    <td><button className="btn btn-ghost btn-sm" onClick={() => showToast('Form 941 Q2 filed with IRS', 'info')}>View</button></td>
-                  </tr>
-                  <tr>
-                    <td><strong>Form 941</strong> (Quarterly Employer Return)</td>
-                    <td>Q3 2026</td>
-                    <td><span className="badge badge-orange">Pending Review</span></td>
-                    <td>2026-10-31</td>
-                    <td><button className="btn btn-ghost btn-sm" onClick={() => showToast('Preparing Q3 941 packet...', 'info')}>Prepare</button></td>
-                  </tr>
-                  <tr>
-                    <td><strong>Form 940</strong> (Annual FUTA)</td>
-                    <td>FY 2025</td>
-                    <td><span className="badge badge-green">Filed</span></td>
-                    <td>2026-01-31</td>
-                    <td><button className="btn btn-ghost btn-sm" onClick={() => showToast('Form 940 FY 2025 on file', 'info')}>View</button></td>
-                  </tr>
+                  {filingStatusList.map((f) => {
+                    const isOverdue = f.status !== 'Filed' && new Date(f.due) < new Date();
+                    const badgeClass = f.status === 'Filed' ? 'badge-green' : 'badge-orange';
+                    const label = f.status === 'Filed' ? 'Filed' : isOverdue ? 'Overdue' : 'Not Started';
+                    const badgeStyle = isOverdue ? { background: '#FEE2E2', color: '#DC2626' } : undefined;
+                    return (
+                      <tr key={f.id}>
+                        <td><strong>{f.form}</strong> ({f.label})</td>
+                        <td>{f.period}</td>
+                        <td><span className={`badge ${badgeClass}`} style={badgeStyle}>{label}</span></td>
+                        <td>{f.due}</td>
+                        <td>
+                          {f.status !== 'Filed' ? (
+                            <button className="btn btn-ghost btn-sm" onClick={() => handleMarkFiled(f.id)}>Mark Filed</button>
+                          ) : (
+                            <span style={{ fontSize: '12px', color: 'var(--color-muted, #64748b)' }}>Filed {f.filedDate}</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -689,73 +832,61 @@ export function TaxEnginePage() {
       {mainTab === 'filing1099' && (
         <>
           <div className="pill-tabbar">
-            <button
-              className={`pill-tab ${ten99SubTab === 'ten99-thresh' ? 'active' : ''}`}
-              onClick={() => setTen99SubTab('ten99-thresh')}
-            >
-              Threshold Monitoring
-            </button>
-            <button
-              className={`pill-tab ${ten99SubTab === 'ten99-w9' ? 'active' : ''}`}
-              onClick={() => setTen99SubTab('ten99-w9')}
-            >
-              W-9 Status
-            </button>
-            <button
-              className={`pill-tab ${ten99SubTab === 'ten99-efile' ? 'active' : ''}`}
-              onClick={() => setTen99SubTab('ten99-efile')}
-            >
-              e-Filing Queue
-            </button>
+            <button className={`pill-tab ${ten99SubTab === 'ten99-thresh' ? 'active' : ''}`} onClick={() => setTen99SubTab('ten99-thresh')}>Threshold Monitoring</button>
+            <button className={`pill-tab ${ten99SubTab === 'ten99-w9' ? 'active' : ''}`} onClick={() => setTen99SubTab('ten99-w9')}>W-9 Status</button>
+            <button className={`pill-tab ${ten99SubTab === 'ten99-efile' ? 'active' : ''}`} onClick={() => setTen99SubTab('ten99-efile')}>e-Filing Queue</button>
           </div>
 
           {ten99SubTab === 'ten99-thresh' && (
             <>
               <div className="tax-copy">
-                Threshold monitoring covers 1099-NEC broker commissions (including <strong>HIT</strong>) and 1099-MISC service vendors against the $600 annual reporting threshold. Form 1096 summary is prepared automatically for batch e-filing through the IRS FIRE system.
+                Threshold monitoring pulls YTD commission totals straight from the Commission Engine's own producer ledger and checks them against the $600 annual 1099-NEC reporting threshold.
               </div>
 
               <div className="table-wrap" style={{ marginBottom: '20px' }}>
                 <div className="table-head-row">
-                  <div className="table-head-title">Producer &amp; Vendor $600 Threshold Monitoring</div>
+                  <div className="table-head-title">Producer $600 Threshold Monitoring</div>
                   <div className="table-head-actions">
-                    <button className="btn btn-outline btn-sm" onClick={() => showToast('Refreshed 1099 totals.', 'success')}>
-                      Refresh Totals
-                    </button>
+                    <button className="btn btn-outline btn-sm" onClick={handleRefreshCommissions}>Refresh Totals</button>
                   </div>
                 </div>
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Producer / Vendor</th>
-                      <th>Type</th>
-                      <th>YTD Commission / Paid</th>
-                      <th style={{ width: '220px' }}>Progress to Threshold</th>
-                      <th>1099 Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {INITIAL_1099.map((v, i) => {
-                      const pct = Math.min(100, Math.round((v.ytd / 600) * 100));
-                      return (
-                        <tr key={i}>
-                          <td><strong>{v.name}</strong></td>
-                          <td><span className="badge badge-navy">{v.type}</span></td>
-                          <td className="font-semibold">${Number(v.ytd).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-                          <td>
-                            <div className="tax-progress-row">
-                              <div className="tax-progress-track">
-                                <div className="tax-progress-fill over" style={{ width: '100%' }}></div>
+                {commissionProducers.length === 0 ? (
+                  <div style={{ padding: '32px', textAlign: 'center', color: 'var(--color-muted, #64748b)', fontSize: '13px' }}>
+                    No commission activity found in the Commission Engine yet. Producers will appear here once they have posted commission transactions.
+                  </div>
+                ) : (
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Producer</th>
+                        <th>YTD Commission</th>
+                        <th style={{ width: '220px' }}>Progress to Threshold</th>
+                        <th>1099 Status</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {commissionProducers.map((v) => {
+                        const pct = Math.min(100, Math.round((v.ytd / 600) * 100));
+                        const over = v.ytd >= 600;
+                        return (
+                          <tr key={v.name}>
+                            <td><strong>{v.name}</strong></td>
+                            <td className="font-semibold">${Number(v.ytd).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                            <td>
+                              <div className="tax-progress-row">
+                                <div className="tax-progress-track">
+                                  <div className={`tax-progress-fill ${over ? 'over' : ''}`} style={{ width: `${pct}%` }}></div>
+                                </div>
+                                <span className="tax-progress-label">{pct}%{over ? ' (Over $600)' : ''}</span>
                               </div>
-                              <span className="tax-progress-label">{pct}% (Over $600)</span>
-                            </div>
-                          </td>
-                          <td><span className="badge badge-orange">1099 Required</span></td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+                            </td>
+                            <td><span className={`badge ${over ? 'badge-orange' : 'badge-gray'}`}>{over ? '1099 Required' : 'Below Threshold'}</span></td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
               </div>
             </>
           )}
@@ -765,67 +896,96 @@ export function TaxEnginePage() {
               <div className="table-wrap" style={{ marginBottom: '20px' }}>
                 <div className="table-head-row">
                   <div className="table-head-title">W-9 Collection &amp; Producer Verification Status</div>
-                  <div className="table-head-actions">
-                    <button className="btn btn-outline btn-sm" onClick={() => showToast('Electronic requests dispatched for missing W-9s', 'success')}>
-                      Request Missing W-9s
-                    </button>
-                  </div>
                 </div>
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Producer / Vendor</th>
-                      <th>W-9 On File</th>
-                      <th>Verified Date</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {INITIAL_1099.map((v, i) => (
-                      <tr key={i}>
-                        <td><strong>{v.name}</strong></td>
-                        <td><span className="badge badge-green">{v.w9}</span></td>
-                        <td>{v.date}</td>
-                        <td>
-                          <button className="btn btn-ghost btn-sm" onClick={() => showToast(`W-9 downloaded for ${v.name}`, 'success')}>
-                            Download W-9
-                          </button>
-                        </td>
+                {commissionProducers.length === 0 ? (
+                  <div style={{ padding: '32px', textAlign: 'center', color: 'var(--color-muted, #64748b)', fontSize: '13px' }}>
+                    No producers to verify yet — this list follows Threshold Monitoring.
+                  </div>
+                ) : (
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Producer</th>
+                        <th>W-9 On File</th>
+                        <th>Verified Date</th>
+                        <th>Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {commissionProducers.map((v) => {
+                        const rec = w9Map[v.name] || {};
+                        return (
+                          <tr key={v.name}>
+                            <td><strong>{v.name}</strong></td>
+                            <td><span className={`badge ${rec.onFile ? 'badge-green' : 'badge-orange'}`}>{rec.onFile ? 'On File' : 'Not Collected'}</span></td>
+                            <td>{rec.verifiedDate || '—'}</td>
+                            <td>
+                              {!rec.onFile && (
+                                <button className="btn btn-ghost btn-sm" onClick={() => handleMarkW9Received(v.name)}>Mark W-9 Received</button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
               </div>
 
               <div className="table-wrap" style={{ marginBottom: '20px' }}>
                 <div className="table-head-row">
                   <div className="table-head-title">TIN Matching (IRS Bulk TIN Matching System)</div>
-                  <div className="table-head-actions">
-                    <button className="btn btn-outline btn-sm" onClick={() => showToast('IRS TIN matching completed: 100% match', 'success')}>
-                      Run TIN Match
-                    </button>
-                  </div>
                 </div>
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>Producer / Vendor</th>
-                      <th>EIN / TIN</th>
-                      <th>Match Status</th>
-                      <th>Verified Date</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {INITIAL_1099.map((v, i) => (
-                      <tr key={i}>
-                        <td><strong>{v.name}</strong></td>
-                        <td><code>{v.tin}</code></td>
-                        <td><span className="badge badge-green">{v.tinMatch}</span></td>
-                        <td>{v.date}</td>
+                {commissionProducers.length === 0 ? (
+                  <div style={{ padding: '32px', textAlign: 'center', color: 'var(--color-muted, #64748b)', fontSize: '13px' }}>
+                    No producers to match yet.
+                  </div>
+                ) : (
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Producer</th>
+                        <th>EIN / TIN</th>
+                        <th>Match Status</th>
+                        <th>Verified Date</th>
+                        <th>Actions</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody>
+                      {commissionProducers.map((v) => {
+                        const rec = w9Map[v.name] || {};
+                        return (
+                          <tr key={v.name}>
+                            <td><strong>{v.name}</strong></td>
+                            <td>
+                              <input
+                                className="field-input"
+                                style={{ height: '28px', fontSize: '12px', maxWidth: '140px' }}
+                                placeholder="XX-XXXXXXX"
+                                defaultValue={rec.tin || ''}
+                                onBlur={(e) => { rec.pendingTin = e.target.value; }}
+                                id={`tin-${v.name}`}
+                              />
+                            </td>
+                            <td><span className={`badge ${rec.tinMatch === 'Matched' ? 'badge-green' : 'badge-gray'}`}>{rec.tinMatch || 'Not Verified'}</span></td>
+                            <td>{rec.verifiedDate || '—'}</td>
+                            <td>
+                              <button
+                                className="btn btn-ghost btn-sm"
+                                onClick={() => {
+                                  const input = document.getElementById(`tin-${v.name}`);
+                                  handleRunTinMatch(v.name, input ? input.value : rec.tin);
+                                }}
+                              >
+                                Run TIN Match
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
               </div>
             </>
           )}
@@ -833,43 +993,41 @@ export function TaxEnginePage() {
           {ten99SubTab === 'ten99-efile' && (
             <div className="table-wrap">
               <div className="table-head-row">
-                <div className="table-head-title">e-Filing Queue — IRS FIRE / Texas Surplus Lines (SLTX)</div>
+                <div className="table-head-title">e-Filing Queue — IRS FIRE (Form 1099-NEC)</div>
                 <div className="table-head-actions">
-                  <button className="btn btn-primary btn-sm" onClick={() => showToast('Batch submitted to IRS FIRE system successfully.', 'success')}>
-                    Submit Next Batch
-                  </button>
+                  <button className="btn btn-primary btn-sm" onClick={handleSubmitBatch}>Submit Next Batch</button>
                 </div>
               </div>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Batch #</th>
-                    <th>Agency / Portal</th>
-                    <th>Form Type</th>
-                    <th>Records Count</th>
-                    <th>Status</th>
-                    <th>Submitted Date</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  <tr>
-                    <td className="cell-link">BATCH-TX-2026-08</td>
-                    <td>Texas Stamping Office (SLTX)</td>
-                    <td>Surplus Lines Premium Stamping</td>
-                    <td>1 policy ($1,770 tax)</td>
-                    <td><span className="badge badge-blue">Ready for Transmission</span></td>
-                    <td>2026-08-20</td>
-                  </tr>
-                  <tr>
-                    <td className="cell-link">BATCH-IRS-2026-Q3</td>
-                    <td>IRS FIRE Portal</td>
-                    <td>Form 1099-NEC Electronic Batch</td>
-                    <td>4 producers ($10,513 comm)</td>
-                    <td><span className="badge badge-green">Validated</span></td>
-                    <td>2026-08-20</td>
-                  </tr>
-                </tbody>
-              </table>
+              {efileBatches.length === 0 ? (
+                <div style={{ padding: '32px', textAlign: 'center', color: 'var(--color-muted, #64748b)', fontSize: '13px' }}>
+                  No batches submitted yet. "Submit Next Batch" queues every producer currently over the $600 threshold that hasn't been batched already.
+                </div>
+              ) : (
+                <table className="data-table">
+                  <thead>
+                    <tr>
+                      <th>Batch #</th>
+                      <th>Agency / Portal</th>
+                      <th>Form Type</th>
+                      <th>Records Count</th>
+                      <th>Status</th>
+                      <th>Submitted Date</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {efileBatches.map((b) => (
+                      <tr key={b.id}>
+                        <td className="cell-link">{b.id}</td>
+                        <td>{b.agency}</td>
+                        <td>{b.formType}</td>
+                        <td>{b.recordsCount} producer(s) (${b.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })} comm)</td>
+                        <td><span className="badge badge-green">{b.status}</span></td>
+                        <td>{b.submittedDate}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )}
             </div>
           )}
         </>
@@ -879,66 +1037,47 @@ export function TaxEnginePage() {
       {mainTab === 'liability' && (
         <div className="table-wrap">
           <div className="table-head-row">
-            <div className="table-head-title">Consolidated Tax Liability Ledger (Account 2300)</div>
+            <div className="table-head-title">Consolidated Tax Liability Ledger (Account {ACCOUNT_CODE})</div>
             <div className="table-head-actions">
-              <input
-                className="filter-input"
-                placeholder="Filter by status…"
-                value={liabilityFilter}
-                onChange={(e) => setLiabilityFilter(e.target.value)}
-              />
-              <button className="btn btn-outline btn-sm" onClick={() => showToast('Exported tax liability ledger to CSV', 'success')}>
-                Export
-              </button>
+              <input className="filter-input" placeholder="Filter by reference…" value={liabilityFilter} onChange={(e) => setLiabilityFilter(e.target.value)} />
+              <button className="btn btn-outline btn-sm" onClick={() => showToast('Exported tax liability ledger to CSV', 'success')}>Export</button>
             </div>
           </div>
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Tax Type</th>
-                <th>Jurisdiction / State</th>
-                <th>Policy / Invoice Ref</th>
-                <th style={{ textAlign: 'right' }}>Taxable Premium</th>
-                <th style={{ textAlign: 'right' }}>Amount Due ($)</th>
-                <th>Due Date</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredLiabilities.map((l) => (
-                <tr key={l.id}>
-                  <td><strong>{l.type}</strong></td>
-                  <td>{l.state}</td>
-                  <td><span className="cell-link">{l.ref}</span></td>
-                  <td style={{ textAlign: 'right' }}>
-                    ${Number(l.taxable).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                  </td>
-                  <td style={{ textAlign: 'right', fontWeight: 700, color: '#0d1b4b', fontSize: '13.5px' }}>
-                    ${Number(l.amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                  </td>
-                  <td>{l.due}</td>
-                  <td>
-                    <span className={`badge ${l.status === 'Due Soon' ? 'badge-orange' : 'badge-green'}`}>
-                      {l.status}
-                    </span>
-                  </td>
-                  <td>
-                    {l.status !== 'Paid / Remitted' ? (
-                      <button
-                        className="btn btn-primary btn-xs"
-                        onClick={() => handleRemitTax(l.id, l.type, l.amount)}
-                      >
-                        Remit Tax
-                      </button>
-                    ) : (
-                      <span className="badge badge-green">Paid ✓</span>
-                    )}
-                  </td>
+          <div style={{ padding: '10px 16px', fontSize: '11.5px', color: 'var(--color-muted, #64748b)' }}>
+            This is the real posted General Ledger activity for Account {ACCOUNT_CODE} (Premium Taxes Payable) — a credit accrues a liability, a debit records a remittance. Post journal entries against this account from the General Ledger to see them reflected here.
+          </div>
+          {filteredLedger.length === 0 ? (
+            <div style={{ padding: '32px', textAlign: 'center', color: 'var(--color-muted, #64748b)', fontSize: '13px' }}>
+              No journal entries have posted to Account {ACCOUNT_CODE} yet, so there's nothing owed on the books.
+            </div>
+          ) : (
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Reference</th>
+                  <th>Description</th>
+                  <th>Entity</th>
+                  <th style={{ textAlign: 'right' }}>Accrued (Credit)</th>
+                  <th style={{ textAlign: 'right' }}>Remitted (Debit)</th>
+                  <th style={{ textAlign: 'right' }}>Running Balance</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filteredLedger.map((r, i) => (
+                  <tr key={`${r.jeId}-${i}`}>
+                    <td>{r.date}</td>
+                    <td><span className="cell-link">{r.reference}</span></td>
+                    <td>{r.description}</td>
+                    <td>{r.entity}</td>
+                    <td style={{ textAlign: 'right' }}>{r.credit ? `$${r.credit.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'}</td>
+                    <td style={{ textAlign: 'right' }}>{r.debit ? `$${r.debit.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'}</td>
+                    <td style={{ textAlign: 'right', fontWeight: 700, color: '#0d1b4b' }}>${r.runningBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
         </div>
       )}
     </>

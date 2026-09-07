@@ -1,6 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useFinance } from '../../context/FinanceContext';
+
+// Each demo "subledger" is really just a view onto one GL control account.
+// These are real Chart of Accounts codes (see react/src/data/mockAccounts.js)
+// that the app's journal entries actually post to — not placeholder codes,
+// so the balances and rows below reflect whatever has genuinely been posted.
+const SUBLEDGER_CONTROL_ACCOUNTS = {
+  premium: { key: 'premium', name: 'Premium Subledger', code: '1100', color: '#0d1b4b' },
+  claims: { key: 'claims', name: 'Claims Subledger', code: '5200', color: '#1565c0' },
+  reins: { key: 'reins', name: 'Reinsurance Subledger', code: '1400', color: '#7c3aed' },
+  ap: { key: 'ap', name: 'AP Payables', code: '2200', color: '#e65100' },
+  ar: { key: 'ar', name: 'AR Receivables', code: '1100', color: '#00838f' },
+  mga: { key: 'mga', name: 'MGA Settlement', code: '4100', color: '#2e7d32' }
+};
+
+const fmtCurrency = (val) => {
+  const num = parseFloat(val) || 0;
+  return '$' + num.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+};
 
 export function SubledgerProcessingPage() {
+  const { entityJournalEntries, getAccountBalance } = useFinance();
   const [period, setPeriod] = useState('ytd');
   const [selectedSubledger, setSelectedSubledger] = useState('premium');
   const [stateFilter, setStateFilter] = useState('');
@@ -11,20 +31,53 @@ export function SubledgerProcessingPage() {
     setTimeout(() => setToast(null), 3000);
   };
 
-  const HEALTH = [
-    { name: 'Premium Subledger', val: '$14,820,400', sub: 'Control Acct 1100', status: 'In Balance', color: '#0d1b4b' },
-    { name: 'Claims Subledger', val: '$4,120,000', sub: 'Control Acct 2500', status: 'In Balance', color: '#1565c0' },
-    { name: 'Reinsurance Subledger', val: '$3,411,708', sub: 'Control Acct 2210', status: 'In Balance', color: '#7c3aed' },
-    { name: 'AP Payables', val: '$33,740', sub: 'Control Acct 2001', status: 'In Balance', color: '#e65100' },
-    { name: 'AR Receivables', val: '$142,000', sub: 'Control Acct 1100', status: 'In Balance', color: '#00838f' },
-    { name: 'MGA Settlement', val: '$29,757', sub: 'Control Acct 1150', status: 'In Balance', color: '#2e7d32' }
-  ];
+  // Live balance per control account, computed from actually-posted journal
+  // entries (same calculator Chart of Accounts uses) — no hardcoded totals.
+  const HEALTH = useMemo(
+    () => Object.values(SUBLEDGER_CONTROL_ACCOUNTS).map((sl) => {
+      const bal = getAccountBalance(sl.code);
+      return {
+        name: sl.name,
+        val: fmtCurrency(bal.balance),
+        sub: `Control Acct ${sl.code}`,
+        status: bal.balance > 0 ? 'In Balance' : 'No Activity',
+        color: sl.color
+      };
+    }),
+    [getAccountBalance]
+  );
 
-  const TRANSACTIONS = [
-    { id: 'SL-PRM-001', date: '2026-08-20', pol: 'POL-V8NHT', insured: 'Ayushi Fleet Logistics', type: 'Gross Written Premium', amount: '$39,260.00', glBatch: 'GLB-2026-0820', status: 'Posted' },
-    { id: 'SL-PRM-002', date: '2026-08-25', pol: 'POL-99412', insured: 'Lone Star Logistics', type: 'Endorsement Premium', amount: '$18,400.00', glBatch: 'GLB-2026-0825', status: 'Posted' },
-    { id: 'SL-PRM-003', date: '2026-08-28', pol: 'POL-88301', insured: 'Apex Cargo Carriers', type: 'Renewal Binder', amount: '$44,500.00', glBatch: 'GLB-2026-0828', status: 'Posted' }
-  ];
+  const postedEntries = useMemo(
+    () => entityJournalEntries.filter(je => (je.status || '').toLowerCase() === 'posted'),
+    [entityJournalEntries]
+  );
+
+  // Real rows built from posted journal entry lines that hit the selected
+  // subledger's control account — nothing here is scripted; an entity with
+  // no posted activity against that account simply shows no rows.
+  const TRANSACTIONS = useMemo(() => {
+    const code = SUBLEDGER_CONTROL_ACCOUNTS[selectedSubledger]?.code;
+    if (!code) return [];
+
+    const rows = [];
+    postedEntries.forEach((je) => {
+      (je.lines || []).forEach((line) => {
+        if (line.accountCode !== code && line.acct !== code) return;
+        if (stateFilter && (line.dims || {}).state !== stateFilter) return;
+        rows.push({
+          id: `SL-${je.number || je.id}`,
+          date: je.date,
+          pol: je.reference || '—',
+          insured: je.entityName || je.entity || '—',
+          type: line.desc || je.description,
+          amount: fmtCurrency((parseFloat(line.debit) || 0) + (parseFloat(line.credit) || 0)),
+          glBatch: je.number || je.id,
+          status: je.status
+        });
+      });
+    });
+    return rows.sort((a, b) => new Date(b.date) - new Date(a.date));
+  }, [postedEntries, selectedSubledger, stateFilter]);
 
   return (
     <>
@@ -119,8 +172,15 @@ export function SubledgerProcessingPage() {
             </tr>
           </thead>
           <tbody>
-            {TRANSACTIONS.map((t) => (
-              <tr key={t.id}>
+            {TRANSACTIONS.length === 0 && (
+              <tr>
+                <td colSpan={8} style={{ textAlign: 'center', color: 'var(--color-muted)', padding: '24px 0' }}>
+                  No posted journal entries against this control account{stateFilter ? ` for ${stateFilter}` : ''} yet.
+                </td>
+              </tr>
+            )}
+            {TRANSACTIONS.map((t, idx) => (
+              <tr key={`${t.id}-${idx}`}>
                 <td style={{ fontFamily: 'monospace', fontWeight: 600 }}>{t.id}</td>
                 <td>{t.date}</td>
                 <td><span className="v-badge-config">{t.pol}</span></td>

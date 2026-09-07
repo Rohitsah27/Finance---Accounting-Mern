@@ -740,6 +740,7 @@ export function BillingInvoicingPage() {
       </div>
 
       {/* Recurring Invoice Schedules & Payment Plans */}
+      {false && (
       <div className="table-wrap">
         <div className="table-head-row">
           <div className="table-head-title">Recurring Invoice Schedules &amp; Payment Plans</div>
@@ -876,6 +877,7 @@ export function BillingInvoicingPage() {
           </tbody>
         </table>
       </div>
+      )}
 
       {/* Invoice Document PDF View Modal */}
       {viewingInvoice && (

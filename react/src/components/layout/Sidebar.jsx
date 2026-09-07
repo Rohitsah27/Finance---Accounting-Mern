@@ -17,19 +17,20 @@ export function Sidebar({ isCollapsed, onToggleCollapse }) {
   // Visible groups based on business type
   const visibleGroups = NAV_CONFIG.filter(group => isGroupVisibleForType(group.id, bType));
 
-  // Keep track of which nav groups are expanded
+  // Keep track of which nav groups are expanded. Only the group that
+  // actually contains the page you're on starts open — groups used to be
+  // hardcoded open ('dashboard' and 'gl' always true) regardless of where
+  // you were, which is why "Platform & Dashboards" kept showing expanded
+  // and clicking it to collapse never stuck across a reload/navigation.
   const [expandedGroups, setExpandedGroups] = useState(() => {
-    return {
-      'dashboard': true,
-      'gl': true,
-      'accounts-receivable': false,
-      'accounts-payable': false,
-      'billing': false,
-      'bank': false,
-      'pas-policy': false,
-      'mga-operations': false,
-      'statutory-reports': false
-    };
+    const initial = {};
+    NAV_CONFIG.forEach(group => {
+      initial[group.id] = group.children.some(c => {
+        const [cPath] = c.href.split('#');
+        return window.location.pathname === cPath;
+      });
+    });
+    return initial;
   });
 
   // Auto-expand group containing current route

@@ -4,10 +4,7 @@ export const NAV_CONFIG = [
     label: 'Platform & Dashboards',
     moduleId: null,
     children: [
-      { id: 'home', label: 'Home Dashboard', href: '/' },
-      { id: 'my-dashboard', label: 'My Role Workspace', href: '/workspaces' },
-      { id: 'explore-industries', label: 'Industry Workspaces', href: '/workspaces' },
-      { id: 'entity-hierarchy', label: 'Entity Hierarchy', href: '/entity-hierarchy' }
+      { id: 'home', label: 'Home Dashboard', href: '/' }
     ]
   },
   {
@@ -17,7 +14,6 @@ export const NAV_CONFIG = [
     children: [
       { id: 'chart-of-accounts', label: 'Chart of Accounts', href: '/chart-of-accounts' },
       { id: 'journal-entry', label: 'Journal Entry', href: '/journal-entry' },
-      { id: 'manual-entry', label: 'Manual Entry Pad', href: '/manual-entry' },
       { id: 'financial-statements', label: 'Financial Statements', href: '/financial-statements' },
       { id: 'period-locking', label: 'Period Close', href: '/period-close' },
       { id: 'gl-simulation', label: 'Insurance Flow Simulator', href: '/insurance-flow-simulator' }
@@ -30,7 +26,6 @@ export const NAV_CONFIG = [
     children: [
       { id: 'accounts-receivable', label: 'AR Register', href: '/accounts-receivable' },
       { id: 'ar-aging', label: 'AR Aging', href: '/accounts-receivable#ar-aging' },
-      { id: 'ar-collections', label: 'Collections', href: '/accounts-receivable#ar-collections' },
       { id: 'ar-statements', label: 'Statements', href: '/accounts-receivable#ar-statements' }
     ]
   },
@@ -115,16 +110,7 @@ export const NAV_CONFIG = [
     label: 'Tax Engine',
     moduleId: 'tax',
     children: [
-      { id: 'tax', label: 'Tax Engine', href: '/tax-engine' },
-      { id: 'premium-tax', label: 'Premium Tax Calculator', href: '/premium-tax-calculator' }
-    ]
-  },
-  {
-    id: 'budgeting',
-    label: 'Budgeting & Forecasting',
-    moduleId: 'budgeting',
-    children: [
-      { id: 'budgeting', label: 'Budgets & Forecasts', href: '/budgeting-forecasting' }
+      { id: 'tax', label: 'Tax Engine', href: '/tax-engine' }
     ]
   },
   {
@@ -136,27 +122,11 @@ export const NAV_CONFIG = [
     ]
   },
   {
-    id: 'workflow',
-    label: 'Workflow & Approvals',
-    moduleId: 'workflow',
-    children: [
-      { id: 'approval-chains', label: 'Approval Chains', href: '/workflow-approvals' }
-    ]
-  },
-  {
     id: 'pas-policy',
     label: 'Policy Admin (PAS)',
     moduleId: 'insurance',
     children: [
       { id: 'pas-policy', label: 'Policy Admin & Lifecycle', href: '/pas-policy' }
-    ]
-  },
-  {
-    id: 'premium-claims',
-    label: 'Premium & Claims',
-    moduleId: 'insurance',
-    children: [
-      { id: 'premium-claims', label: 'Premium & Claims Subledger', href: '/premium-claims' }
     ]
   },
   {
@@ -240,15 +210,6 @@ export const NAV_CONFIG = [
     moduleId: 'identity',
     children: [
       { id: 'identity', label: 'User Management', href: '/user-management' }
-    ]
-  },
-  {
-    id: 'docs',
-    label: 'Documentation & Help',
-    moduleId: null,
-    children: [
-      { id: 'dictionary', label: 'Insurance Dictionary', href: '/dictionary' },
-      { id: 'third-party', label: 'Third-Party Partner Hub', href: '/third-party' }
     ]
   }
 ];
