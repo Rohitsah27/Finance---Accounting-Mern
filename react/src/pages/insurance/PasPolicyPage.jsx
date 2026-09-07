@@ -152,6 +152,15 @@ export function PasPolicyPage() {
   const [activeTab, setActiveTab] = useState('injector');
   const [events, setEvents] = useState(INITIAL_EVENTS);
   const [policies, setPolicies] = useState(INITIAL_POLICIES);
+
+  // Event types actually injected THIS session via the form below — unlike
+  // `events` (which also carries INITIAL_EVENTS' static "Stage 1 already
+  // happened" seed row so the demo doesn't start on an empty log), this
+  // starts empty every time the page mounts. Using it instead of `events`
+  // for the already-injected lockout means the seed row alone never
+  // permanently disables Stage 1 — including right after a database reset,
+  // which remounts this page with a clean slate.
+  const [sessionInjectedTypes, setSessionInjectedTypes] = useState(() => new Set());
   const [selectedEventModal, setSelectedEventModal] = useState(null);
   const [toast, setToast] = useState(null);
 
@@ -672,6 +681,7 @@ export function PasPolicyPage() {
     }
 
     setEvents(prev => [postedRecord, ...prev]);
+    setSessionInjectedTypes(prev => new Set(prev).add(evt.event_type));
     const jeList = jeGroups.map(g => `${g.jeNumber} (${g.entity.name})`).join(' + ');
     const arNote = arInvoiceRecords.length > 0 ? ` AR invoice${arInvoiceRecords.length > 1 ? 's' : ''} ${arInvoiceRecords.map(r => `${r.id} (${r.entityName})`).join(' + ')} raised — visible on each book's Accounts Receivable.` : '';
     const arPaidNote = paidArInvoiceRecords.length > 0 ? ` AR invoice${paidArInvoiceRecords.length > 1 ? 's' : ''} ${paidArInvoiceRecords.map(r => r.id).join(', ')} marked Paid.` : '';
@@ -681,17 +691,12 @@ export function PasPolicyPage() {
     return true;
   };
 
-  // Event types that already have a successfully POSTED event on the log —
-  // re-injecting the same stage would double-post its journal entries and
-  // AP/AR records, so once a preset has gone through, it's retired from the
-  // picker rather than left selectable for an accidental repeat click.
-  // FAILED events don't count here — Retry Failed intentionally reloads
-  // those for resubmission.
-  const injectedEventTypes = useMemo(
-    () => new Set(events.filter((e) => e.status === 'POSTED').map((e) => e.event_type)),
-    [events]
-  );
-  const isPresetInjected = (key) => injectedEventTypes.has((PRESET_DEFAULTS[key] || {}).evtType);
+  // Re-injecting the same stage in this session would double-post its
+  // journal entries and AP/AR records, so once a preset has actually gone
+  // through here, it's retired from the picker rather than left selectable
+  // for an accidental repeat click. Backed by sessionInjectedTypes, not raw
+  // `events` — see that state's comment for why.
+  const isPresetInjected = (key) => sessionInjectedTypes.has((PRESET_DEFAULTS[key] || {}).evtType);
   const currentPresetInjected = isPresetInjected(preset);
 
   const handleSubmitCustomEvent = (e) => {

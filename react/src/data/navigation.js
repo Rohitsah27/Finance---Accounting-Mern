@@ -146,14 +146,6 @@ export const NAV_CONFIG = [
     ]
   },
   {
-    id: 'mga-operations',
-    label: 'MGA Operations',
-    moduleId: 'insurance',
-    children: [
-      { id: 'mga-operations', label: 'MGA Operations', href: '/mga-operations' }
-    ]
-  },
-  {
     id: 'audit-trail',
     label: 'Audit & Controls',
     moduleId: null,
