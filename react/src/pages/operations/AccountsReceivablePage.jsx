@@ -3,7 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { useFinance } from '../../context/FinanceContext';
 import './accounts-receivable.css';
 
-const AR_TABS = ['ar-register', 'ar-aging', 'ar-collections', 'ar-statements'];
+const AR_TABS = ['ar-register', 'ar-aging', 'ar-statements'];
 const hashToTab = (hash) => {
   const id = hash.replace('#', '');
   return AR_TABS.includes(id) ? id : 'ar-register';
@@ -15,8 +15,8 @@ export function AccountsReceivablePage() {
   const navigate = useNavigate();
 
   // Navigation & View State — derived from the URL hash so sidebar sub-links
-  // like /accounts-receivable#ar-collections switch this tab automatically.
-  const activeTab = hashToTab(location.hash); // 'ar-register' | 'ar-aging' | 'ar-collections' | 'ar-statements'
+  // like /accounts-receivable#ar-aging switch this tab automatically.
+  const activeTab = hashToTab(location.hash); // 'ar-register' | 'ar-aging' | 'ar-statements'
 
   const selectTab = (tab) => {
     navigate(tab === 'ar-register' ? '/accounts-receivable' : `/accounts-receivable#${tab}`, { replace: true });
@@ -25,7 +25,7 @@ export function AccountsReceivablePage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [toastMessage, setToastMessage] = useState(null);
 
-  // Invoices & Collections Data State
+  // Invoices Data State
   const [invoices, setInvoices] = useState(() => {
     try {
       const saved = localStorage.getItem('v_ar_invoices_data');
@@ -61,12 +61,9 @@ export function AccountsReceivablePage() {
     return [...dynamicRows, ...invoices];
   }, [invoices, entityArInvoices]);
 
-  const [collectionLogs, setCollectionLogs] = useState([]);
-
   // Modals
   const [paymentModal, setPaymentModal] = useState({ open: false, invId: '', customer: '', balance: 0, amount: '' });
   const [newInvoiceModal, setNewInvoiceModal] = useState({ open: false, partner: 'RSA Partners', amount: '15000', policy: '', due: '2026-06-20' });
-  const [collectionModal, setCollectionModal] = useState({ open: false, partner: '', action: 'Email reminder sent', nextStep: 'Review in 7 days' });
 
   const showToast = (msg, type = 'success') => {
     setToastMessage({ msg, type });
@@ -236,30 +233,6 @@ export function AccountsReceivablePage() {
     setNewInvoiceModal({ open: false, partner: 'RSA Partners', amount: '15000', policy: '', due: '2026-06-20' });
   };
 
-  // Handle Log Collection Submission
-  const handleLogCollection = (e) => {
-    e.preventDefault();
-    if (!collectionModal.partner) {
-      showToast('Partner name is required', 'error');
-      return;
-    }
-
-    const newLog = {
-      id: `AR-COL-${Math.floor(100 + Math.random() * 900)}`,
-      partner: collectionModal.partner,
-      balance: 15000,
-      daysOverdue: 15,
-      lastContact: new Date().toLocaleDateString('en-US'),
-      action: collectionModal.action,
-      nextStep: collectionModal.nextStep,
-      status: 'Logged'
-    };
-
-    setCollectionLogs([newLog, ...collectionLogs]);
-    showToast(`Logged collection action for ${collectionModal.partner}`, 'success');
-    setCollectionModal({ open: false, partner: '', action: 'Email reminder sent', nextStep: 'Review in 7 days' });
-  };
-
   // Filtered Invoices
   const filteredInvoices = displayInvoices.filter(inv => {
     if (!searchTerm) return true;
@@ -399,59 +372,6 @@ export function AccountsReceivablePage() {
                   Cancel
                 </button>
                 <button type="submit" className="btn btn-primary btn-sm">Issue Invoice</button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Log Action Modal */}
-      {collectionModal.open && (
-        <div className="v-modal-overlay">
-          <div className="v-modal-card">
-            <div style={{ fontSize: '16px', fontWeight: 800, color: 'var(--navy)', marginBottom: '16px' }}>
-              Log Collections Activity
-            </div>
-            <form onSubmit={handleLogCollection}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '20px' }}>
-                <div>
-                  <label className="form-label" style={{ display: 'block', marginBottom: '4px' }}>Account / Partner Name *</label>
-                  <input
-                    className="form-ctrl"
-                    style={{ width: '100%' }}
-                    value={collectionModal.partner}
-                    onChange={(e) => setCollectionModal({ ...collectionModal, partner: e.target.value })}
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="form-label" style={{ display: 'block', marginBottom: '4px' }}>Action Taken</label>
-                  <input
-                    className="form-ctrl"
-                    style={{ width: '100%' }}
-                    value={collectionModal.action}
-                    onChange={(e) => setCollectionModal({ ...collectionModal, action: e.target.value })}
-                  />
-                </div>
-                <div>
-                  <label className="form-label" style={{ display: 'block', marginBottom: '4px' }}>Next Step</label>
-                  <input
-                    className="form-ctrl"
-                    style={{ width: '100%' }}
-                    value={collectionModal.nextStep}
-                    onChange={(e) => setCollectionModal({ ...collectionModal, nextStep: e.target.value })}
-                  />
-                </div>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-                <button
-                  type="button"
-                  className="btn btn-outline btn-sm"
-                  onClick={() => setCollectionModal({ ...collectionModal, open: false })}
-                >
-                  Cancel
-                </button>
-                <button type="submit" className="btn btn-primary btn-sm">Save Log</button>
               </div>
             </form>
           </div>
@@ -671,12 +591,6 @@ export function AccountsReceivablePage() {
           AR Aging
         </button>
         <button
-          className={`sub-tab ${activeTab === 'ar-collections' ? 'active' : ''}`}
-          onClick={() => selectTab('ar-collections')}
-        >
-          Collections
-        </button>
-        <button
           className={`sub-tab ${activeTab === 'ar-statements' ? 'active' : ''}`}
           onClick={() => selectTab('ar-statements')}
         >
@@ -725,7 +639,13 @@ export function AccountsReceivablePage() {
               </tr>
             </thead>
             <tbody>
-              {filteredInvoices.map(inv => {
+              {filteredInvoices.length === 0 ? (
+                <tr>
+                  <td colSpan={9} style={{ textAlign: 'center', padding: '28px 16px', color: 'var(--gray-400)', fontSize: '12.5px' }}>
+                    {searchTerm ? 'No invoices match your search.' : 'No invoices to display yet. Use "+ New Invoice" to create one.'}
+                  </td>
+                </tr>
+              ) : filteredInvoices.map(inv => {
                 const amt = Number(inv.amount || 0);
                 const paid = Number(inv.paidAmount || 0);
                 const bal = amt - paid;
@@ -816,77 +736,40 @@ export function AccountsReceivablePage() {
               </tr>
             </thead>
             <tbody>
-              {agingPartners.map(p => (
-                <tr key={p.name}>
-                  <td style={{ fontWeight: 600 }}>{p.name}</td>
-                  <td style={{ textAlign: 'right', color: p.a0_30 > 0 ? '#2e7d32' : '#9ca3af' }}>{fmtM(p.a0_30)}</td>
-                  <td style={{ textAlign: 'right', color: p.a31_60 > 0 ? '#e65100' : '#9ca3af' }}>{fmtM(p.a31_60)}</td>
-                  <td style={{ textAlign: 'right', color: p.a61_90 > 0 ? '#c62828' : '#9ca3af' }}>{fmtM(p.a61_90)}</td>
-                  <td style={{ textAlign: 'right', color: p.a90_plus > 0 ? '#6a1b9a' : '#9ca3af' }}>{fmtM(p.a90_plus)}</td>
-                  <td style={{ textAlign: 'right', fontWeight: 700 }}>{fmtM(p.total)}</td>
-                </tr>
-              ))}
-              <tr style={{ fontWeight: 700, background: '#f8f9fb', borderTop: '2px solid var(--border)' }}>
-                <td style={{ color: 'var(--navy)' }}>Total</td>
-                <td style={{ textAlign: 'right', color: '#2e7d32' }}>{fmtM(agingPartnersTotal.a0_30)}</td>
-                <td style={{ textAlign: 'right', color: '#e65100' }}>{fmtM(agingPartnersTotal.a31_60)}</td>
-                <td style={{ textAlign: 'right', color: '#c62828' }}>{fmtM(agingPartnersTotal.a61_90)}</td>
-                <td style={{ textAlign: 'right', color: '#6a1b9a' }}>{fmtM(agingPartnersTotal.a90_plus)}</td>
-                <td style={{ textAlign: 'right', color: 'var(--navy)' }}>{fmtM(agingPartnersTotal.total)}</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {/* TAB 3: COLLECTIONS */}
-      {activeTab === 'ar-collections' && (
-        <div className="tbl-wrap">
-          <div className="tbl-hdr">
-            <span className="tbl-hdr-title">Collections Activity</span>
-            <button
-              className="btn btn-primary btn-sm"
-              onClick={() => setCollectionModal({ open: true, partner: '', action: 'Email reminder sent', nextStep: 'Review in 7 days' })}
-            >
-              + Log Action
-            </button>
-          </div>
-          <table>
-            <thead>
-              <tr>
-                <th>Invoice #</th>
-                <th>Partner</th>
-                <th style={{ textAlign: 'right' }}>Balance</th>
-                <th>Days Overdue</th>
-                <th>Last Contact</th>
-                <th>Action Taken</th>
-                <th>Next Step</th>
-                <th>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {collectionLogs.map(c => (
-                <tr key={c.id}>
-                  <td style={{ fontWeight: 600 }}>{c.id}</td>
-                  <td><b>{c.partner}</b></td>
-                  <td style={{ textAlign: 'right', color: '#c62828', fontWeight: 700 }}>{fmtM(c.balance)}</td>
-                  <td style={{ color: '#c62828', fontWeight: 600 }}>{c.daysOverdue}</td>
-                  <td>{c.lastContact}</td>
-                  <td>{c.action}</td>
-                  <td>{c.nextStep}</td>
-                  <td>
-                    <span className={`chip ${c.status === 'Critical' ? 'chip-red' : c.status === 'Overdue' ? 'chip-orange' : 'chip-blue'}`}>
-                      {c.status}
-                    </span>
+              {agingPartners.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ textAlign: 'center', padding: '28px 16px', color: 'var(--gray-400)', fontSize: '12.5px' }}>
+                    No outstanding balances to age yet.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                <>
+                  {agingPartners.map(p => (
+                    <tr key={p.name}>
+                      <td style={{ fontWeight: 600 }}>{p.name}</td>
+                      <td style={{ textAlign: 'right', color: p.a0_30 > 0 ? '#2e7d32' : '#9ca3af' }}>{fmtM(p.a0_30)}</td>
+                      <td style={{ textAlign: 'right', color: p.a31_60 > 0 ? '#e65100' : '#9ca3af' }}>{fmtM(p.a31_60)}</td>
+                      <td style={{ textAlign: 'right', color: p.a61_90 > 0 ? '#c62828' : '#9ca3af' }}>{fmtM(p.a61_90)}</td>
+                      <td style={{ textAlign: 'right', color: p.a90_plus > 0 ? '#6a1b9a' : '#9ca3af' }}>{fmtM(p.a90_plus)}</td>
+                      <td style={{ textAlign: 'right', fontWeight: 700 }}>{fmtM(p.total)}</td>
+                    </tr>
+                  ))}
+                  <tr style={{ fontWeight: 700, background: '#f8f9fb', borderTop: '2px solid var(--border)' }}>
+                    <td style={{ color: 'var(--navy)' }}>Total</td>
+                    <td style={{ textAlign: 'right', color: '#2e7d32' }}>{fmtM(agingPartnersTotal.a0_30)}</td>
+                    <td style={{ textAlign: 'right', color: '#e65100' }}>{fmtM(agingPartnersTotal.a31_60)}</td>
+                    <td style={{ textAlign: 'right', color: '#c62828' }}>{fmtM(agingPartnersTotal.a61_90)}</td>
+                    <td style={{ textAlign: 'right', color: '#6a1b9a' }}>{fmtM(agingPartnersTotal.a90_plus)}</td>
+                    <td style={{ textAlign: 'right', color: 'var(--navy)' }}>{fmtM(agingPartnersTotal.total)}</td>
+                  </tr>
+                </>
+              )}
             </tbody>
           </table>
         </div>
       )}
 
-      {/* TAB 4: STATEMENTS */}
+      {/* TAB 3: STATEMENTS */}
       {activeTab === 'ar-statements' && (
         <div className="tbl-wrap">
           <div className="tbl-hdr">
@@ -920,7 +803,13 @@ export function AccountsReceivablePage() {
               </tr>
             </thead>
             <tbody>
-              {agingPartners.map(p => (
+              {agingPartners.length === 0 ? (
+                <tr>
+                  <td colSpan={8} style={{ textAlign: 'center', padding: '28px 16px', color: 'var(--gray-400)', fontSize: '12.5px' }}>
+                    No account statements to display yet.
+                  </td>
+                </tr>
+              ) : agingPartners.map(p => (
                 <tr key={p.name}>
                   <td style={{ fontWeight: 600 }}>{p.name}</td>
                   <td>May 2026</td>

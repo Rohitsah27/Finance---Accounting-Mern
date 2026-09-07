@@ -4,18 +4,6 @@ import './tax-engine.css';
 
 const ACCOUNT_CODE = '2300'; // Premium Taxes Payable (see mockAccounts.js)
 
-// Real 2026 federal/state statutory payroll tax rates & wage bases.
-// These are reference constants, not transactional data — worth
-// double-checking against the current-year IRS/state figures before
-// relying on them for an actual filing.
-const FICA_FUTA_SUTA_RATES = [
-  { type: 'Social Security (FICA)', rate: '6.20%', wageBase: '$168,600' },
-  { type: 'Medicare (FICA)', rate: '1.45%', wageBase: 'No cap' },
-  { type: 'Additional Medicare', rate: '0.90%', wageBase: 'Over $200,000' },
-  { type: 'FUTA', rate: '0.60% (post-credit)', wageBase: '$7,000' },
-  { type: 'SUTA (Texas / Multi-state)', rate: '2.70%', wageBase: '$9,000' }
-];
-
 // A small, real (if simplified) ZIP-prefix -> surplus lines jurisdiction
 // table, built from the same statutory rates configured elsewhere on this
 // page. Not a substitute for a real tax-rate API, but it actually reacts
@@ -84,7 +72,6 @@ export function TaxEnginePage() {
 
   const [mainTab, setMainTab] = useState('salesuse');
   const [salesSubTab, setSalesSubTab] = useState('sales-nexus');
-  const [paySubTab, setPaySubTab] = useState('pay-summary');
   const [ten99SubTab, setTen99SubTab] = useState('ten99-thresh');
 
   // ── Insurance Premium & Surplus Taxes: real, user-managed lists.
@@ -316,11 +303,6 @@ export function TaxEnginePage() {
     showToast(`Batch of ${pending.length} producer(s) queued for e-filing.`, 'success');
   };
 
-  const handleMarkFiled = (id) => {
-    setFilingStatusList(prev => prev.map(f => f.id === id ? { ...f, status: 'Filed', filedDate: new Date().toISOString().slice(0, 10) } : f));
-    showToast('Filing marked as filed.', 'success');
-  };
-
   const filteredNexus = useMemo(() => {
     if (!nexusFilter) return nexusList;
     const q = nexusFilter.toLowerCase();
@@ -433,9 +415,6 @@ export function TaxEnginePage() {
       <div className="page-tabs">
         <button className={`page-tab ${mainTab === 'salesuse' ? 'active' : ''}`} onClick={() => setMainTab('salesuse')}>
           Insurance Premium &amp; Surplus Taxes
-        </button>
-        <button className={`page-tab ${mainTab === 'payroll' ? 'active' : ''}`} onClick={() => setMainTab('payroll')}>
-          Payroll Tax
         </button>
         <button className={`page-tab ${mainTab === 'filing1099' ? 'active' : ''}`} onClick={() => setMainTab('filing1099')}>
           1099 &amp; Producer Compliance
@@ -732,97 +711,6 @@ export function TaxEnginePage() {
                   </tbody>
                 </table>
               )}
-            </div>
-          )}
-        </>
-      )}
-
-      {/* ── 2. PAYROLL TAX ── */}
-      {mainTab === 'payroll' && (
-        <>
-          <div className="pill-tabbar">
-            <button className={`pill-tab ${paySubTab === 'pay-summary' ? 'active' : ''}`} onClick={() => setPaySubTab('pay-summary')}>Tax Summary</button>
-            <button className={`pill-tab ${paySubTab === 'pay-filing' ? 'active' : ''}`} onClick={() => setPaySubTab('pay-filing')}>Filing Status</button>
-          </div>
-
-          {paySubTab === 'pay-summary' && (
-            <div className="table-wrap" style={{ marginBottom: '20px' }}>
-              <div className="table-head-row">
-                <div className="table-head-title">FICA / FUTA / SUTA Summary</div>
-                <div className="table-head-actions">
-                  <button className="btn btn-outline btn-sm" onClick={() => showToast('Exported FICA/FUTA summary to CSV', 'success')}>Export</button>
-                </div>
-              </div>
-              <div style={{ padding: '10px 16px', fontSize: '11.5px', color: 'var(--color-muted, #64748b)' }}>
-                Rates and wage bases below are statutory reference figures. YTD columns are blank because there's no payroll-run history in this app yet to total up.
-              </div>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Tax Type</th>
-                    <th>Rate</th>
-                    <th>Wage Base</th>
-                    <th>YTD Withheld</th>
-                    <th>YTD Employer Match</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {FICA_FUTA_SUTA_RATES.map((r) => (
-                    <tr key={r.type}>
-                      <td><strong>{r.type}</strong></td>
-                      <td>{r.rate}</td>
-                      <td>{r.wageBase}</td>
-                      <td>—</td>
-                      <td>—</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-
-          {paySubTab === 'pay-filing' && (
-            <div className="table-wrap">
-              <div className="table-head-row">
-                <div className="table-head-title">Filing Status — Forms 940 / 941 / 944</div>
-                <div className="table-head-actions">
-                  <button className="btn btn-outline btn-sm" onClick={() => showToast('Opening quarterly payroll filing calendar…', 'info')}>View Calendar</button>
-                </div>
-              </div>
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Form</th>
-                    <th>Period</th>
-                    <th>Status</th>
-                    <th>Due Date</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filingStatusList.map((f) => {
-                    const isOverdue = f.status !== 'Filed' && new Date(f.due) < new Date();
-                    const badgeClass = f.status === 'Filed' ? 'badge-green' : 'badge-orange';
-                    const label = f.status === 'Filed' ? 'Filed' : isOverdue ? 'Overdue' : 'Not Started';
-                    const badgeStyle = isOverdue ? { background: '#FEE2E2', color: '#DC2626' } : undefined;
-                    return (
-                      <tr key={f.id}>
-                        <td><strong>{f.form}</strong> ({f.label})</td>
-                        <td>{f.period}</td>
-                        <td><span className={`badge ${badgeClass}`} style={badgeStyle}>{label}</span></td>
-                        <td>{f.due}</td>
-                        <td>
-                          {f.status !== 'Filed' ? (
-                            <button className="btn btn-ghost btn-sm" onClick={() => handleMarkFiled(f.id)}>Mark Filed</button>
-                          ) : (
-                            <span style={{ fontSize: '12px', color: 'var(--color-muted, #64748b)' }}>Filed {f.filedDate}</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
             </div>
           )}
         </>
