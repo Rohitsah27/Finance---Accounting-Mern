@@ -681,8 +681,25 @@ export function PasPolicyPage() {
     return true;
   };
 
+  // Event types that already have a successfully POSTED event on the log —
+  // re-injecting the same stage would double-post its journal entries and
+  // AP/AR records, so once a preset has gone through, it's retired from the
+  // picker rather than left selectable for an accidental repeat click.
+  // FAILED events don't count here — Retry Failed intentionally reloads
+  // those for resubmission.
+  const injectedEventTypes = useMemo(
+    () => new Set(events.filter((e) => e.status === 'POSTED').map((e) => e.event_type)),
+    [events]
+  );
+  const isPresetInjected = (key) => injectedEventTypes.has((PRESET_DEFAULTS[key] || {}).evtType);
+  const currentPresetInjected = isPresetInjected(preset);
+
   const handleSubmitCustomEvent = (e) => {
     e.preventDefault();
+    if (currentPresetInjected) {
+      showToast('This event has already been injected — pick a different stage.', 'error');
+      return;
+    }
     const ok = executeEventInjection(currentPayload);
     if (ok) {
       setEvtId(generateUUID('EVT'));
@@ -956,13 +973,23 @@ export function PasPolicyPage() {
                   value={preset}
                   onChange={(e) => handleApplyPreset(e.target.value)}
                 >
-                  {PRESET_OPTIONS.filter((opt) => visiblePresets.includes(opt.value)).map((opt) => (
-                    <option key={opt.value} value={opt.value}>{opt.label}</option>
-                  ))}
+                  {PRESET_OPTIONS.filter((opt) => visiblePresets.includes(opt.value)).map((opt) => {
+                    const injected = isPresetInjected(opt.value);
+                    return (
+                      <option key={opt.value} value={opt.value} disabled={injected}>
+                        {injected ? `✓ ${opt.label} — Already Injected` : opt.label}
+                      </option>
+                    );
+                  })}
                 </select>
                 {ROLE_VISIBLE_PRESETS[currentUser?.role] && (
                   <div style={{ fontSize: '12px', color: 'var(--gray-500)', marginTop: '4px' }}>
                     Showing stages for your role: {currentUser.role.toUpperCase()}
+                  </div>
+                )}
+                {currentPresetInjected && (
+                  <div style={{ fontSize: '12px', color: 'var(--coral, #DC2626)', marginTop: '4px', fontWeight: 600 }}>
+                    This stage has already been injected and posted — pick a different one.
                   </div>
                 )}
               </div>
@@ -1198,9 +1225,10 @@ export function PasPolicyPage() {
                 <button
                   type="submit"
                   className="btn btn-primary"
-                  style={{ width: '100%', padding: '12px', fontWeight: 700 }}
+                  disabled={currentPresetInjected}
+                  style={{ width: '100%', padding: '12px', fontWeight: 700, opacity: currentPresetInjected ? 0.5 : 1, cursor: currentPresetInjected ? 'not-allowed' : 'pointer' }}
                 >
-                  ⚡ Inject Event into Rules Engine
+                  {currentPresetInjected ? '✓ Already Injected' : '⚡ Inject Event into Rules Engine'}
                 </button>
               </form>
             </div>
