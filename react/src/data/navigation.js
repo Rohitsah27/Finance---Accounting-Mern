@@ -146,27 +146,11 @@ export const NAV_CONFIG = [
     ]
   },
   {
-    id: 'statutory-reports',
-    label: 'Statutory & Filing',
-    moduleId: 'insurance',
-    children: [
-      { id: 'statutory-reports', label: 'Statutory Reports', href: '/statutory-reports' }
-    ]
-  },
-  {
     id: 'mga-operations',
     label: 'MGA Operations',
     moduleId: 'insurance',
     children: [
       { id: 'mga-operations', label: 'MGA Operations', href: '/mga-operations' }
-    ]
-  },
-  {
-    id: 'compliance-filings',
-    label: 'Compliance & Filings',
-    moduleId: 'insurance',
-    children: [
-      { id: 'compliance-filings', label: 'Compliance Filings', href: '/compliance-filings' }
     ]
   },
   {
