@@ -1024,6 +1024,17 @@ export function FinanceProvider({ children }) {
     api.matchBankTransaction(txId, { status: 'Matched', contraAccount }).catch(err => console.warn('[Atlas Bank Match Sync]:', err.message));
   };
 
+  // Pulls the bank feed back down from Atlas — what "Get Transactions" and
+  // "Auto-Sync" on Bank Reconciliation actually call (after asking the
+  // server to (re)seed the baseline demo feed) so a collection wiped by
+  // Reset Data can be restored from the page instead of staying empty
+  // until a full database reseed.
+  const refreshBankTransactions = async () => {
+    const dbTxns = await api.getBankTransactions();
+    if (Array.isArray(dbTxns)) setBankTransactions(dbTxns);
+    return dbTxns;
+  };
+
   // ============================================================
   // INSURANCE DEMO SIMULATOR STAGES
   // ============================================================
@@ -1199,6 +1210,7 @@ export function FinanceProvider({ children }) {
       setCashBalances,
       bankTransactions,
       matchBankTransaction,
+      refreshBankTransactions,
 
       // AP & AR Invoices
       apInvoices,

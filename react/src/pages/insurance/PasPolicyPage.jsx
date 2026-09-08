@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom';
 import { useFinance } from '../../context/FinanceContext';
 import { useAuth } from '../../context/AuthContext';
 import { highlightJson } from '../../utils/jsonHighlight';
+import { api } from '../../services/api';
 import './pas-policy.css';
 
 // Preset-driven financial defaults, keyed the same as the LOAD EVENT PRESET
@@ -153,13 +154,16 @@ export function PasPolicyPage() {
   const [events, setEvents] = useState(INITIAL_EVENTS);
   const [policies, setPolicies] = useState(INITIAL_POLICIES);
 
-  // Event types actually injected THIS session via the form below — unlike
-  // `events` (which also carries INITIAL_EVENTS' static "Stage 1 already
-  // happened" seed row so the demo doesn't start on an empty log), this
-  // starts empty every time the page mounts. Using it instead of `events`
-  // for the already-injected lockout means the seed row alone never
-  // permanently disables Stage 1 — including right after a database reset,
-  // which remounts this page with a clean slate.
+  // Event types already injected for this policy — unlike `events` (which
+  // also carries INITIAL_EVENTS' static "Stage 1 already happened" seed row
+  // so the demo doesn't start on an empty log), this starts empty and is
+  // seeded from MongoDB on mount (see the fetch effect below). Backing the
+  // lockout with the persisted record — not just in-session state — is what
+  // keeps a stage locked across a page refresh instead of allowing a repeat
+  // injection the moment the tab reloads. The static seed row is never
+  // added here, so it alone never permanently disables Stage 1 — including
+  // right after a database reset, which remounts this page with a clean
+  // slate and an empty /api/pas-events response.
   const [sessionInjectedTypes, setSessionInjectedTypes] = useState(() => new Set());
   const [selectedEventModal, setSelectedEventModal] = useState(null);
   const [toast, setToast] = useState(null);
@@ -190,6 +194,45 @@ export function PasPolicyPage() {
   const [paymentAmount, setPaymentAmount] = useState(initialPresetValues.paymentAmount);
   const [dateTx, setDateTx] = useState('2026-08-20');
   const [dateEff, setDateEff] = useState('2026-08-20');
+
+  // Load previously-injected events from MongoDB so the "Already Injected"
+  // lockout (sessionInjectedTypes) reflects what's actually been posted
+  // rather than resetting on every page refresh — this is the fix for
+  // stages becoming re-injectable after a reload. Fetched records are
+  // merged ahead of the static INITIAL_EVENTS seed (deduped by event_id) so
+  // the Intake Event Log also survives a refresh.
+  //
+  // Also re-run on a 'veridex:pas-events-reset' event — dispatched by
+  // Header/ClearAllPage after a Reset Data / DB reseed actually clears the
+  // PasEvent collection server-side — so this page's own in-memory state
+  // (fetched once at mount, before that reset happened) doesn't keep
+  // showing stale "Already Injected" locks for events that no longer exist.
+  useEffect(() => {
+    const loadPersistedPasEvents = () => {
+      setEvents(INITIAL_EVENTS);
+      setSessionInjectedTypes(new Set());
+      api.getPasEvents()
+        .then((persisted) => {
+          if (!Array.isArray(persisted) || persisted.length === 0) return;
+          setEvents(prev => {
+            const seenIds = new Set(persisted.map(e => e.event_id));
+            return [...persisted, ...prev.filter(e => !seenIds.has(e.event_id))];
+          });
+          setSessionInjectedTypes(prev => {
+            const next = new Set(prev);
+            persisted.forEach(e => {
+              if (e.status === 'POSTED') next.add(e.event_type);
+            });
+            return next;
+          });
+        })
+        .catch(err => console.warn('[Atlas PAS Event Fetch]:', err.message));
+    };
+
+    loadPersistedPasEvents();
+    window.addEventListener('veridex:pas-events-reset', loadPersistedPasEvents);
+    return () => window.removeEventListener('veridex:pas-events-reset', loadPersistedPasEvents);
+  }, []);
 
   const showToast = (msg, type = 'success') => {
     setToast({ msg, type });
@@ -682,6 +725,14 @@ export function PasPolicyPage() {
 
     setEvents(prev => [postedRecord, ...prev]);
     setSessionInjectedTypes(prev => new Set(prev).add(evt.event_type));
+
+    // Async push to MongoDB Atlas — this is the persisted record the
+    // mount-time fetch above reads back, so the lockout holds even after a
+    // refresh. The DB also enforces one (policy, event_type) pair via a
+    // unique index, rejecting a duplicate with 409 if one somehow slips
+    // past the client-side currentPresetInjected check (e.g. two tabs).
+    api.createPasEvent(postedRecord).catch(err => console.warn('[Atlas PAS Event Sync]:', err.message));
+
     const jeList = jeGroups.map(g => `${g.jeNumber} (${g.entity.name})`).join(' + ');
     const arNote = arInvoiceRecords.length > 0 ? ` AR invoice${arInvoiceRecords.length > 1 ? 's' : ''} ${arInvoiceRecords.map(r => `${r.id} (${r.entityName})`).join(' + ')} raised — visible on each book's Accounts Receivable.` : '';
     const arPaidNote = paidArInvoiceRecords.length > 0 ? ` AR invoice${paidArInvoiceRecords.length > 1 ? 's' : ''} ${paidArInvoiceRecords.map(r => r.id).join(', ')} marked Paid.` : '';

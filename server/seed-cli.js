@@ -9,6 +9,7 @@ import Period from './models/Period.js';
 import BankTransaction from './models/BankTransaction.js';
 import User from './models/User.js';
 import Invoice from './models/Invoice.js';
+import PasEvent from './models/PasEvent.js';
 import {
   SEED_ACCOUNTS,
   SEED_PERIODS,
@@ -36,7 +37,8 @@ export async function seedDatabase(clean = false) {
         Period.deleteMany({}),
         BankTransaction.deleteMany({}),
         User.deleteMany({}),
-        Invoice.deleteMany({})
+        Invoice.deleteMany({}),
+        PasEvent.deleteMany({})
       ]);
       console.log('[Seed] Existing collections cleared.');
     }
@@ -129,7 +131,8 @@ export async function resetDataKeepUsers() {
     JournalEntry.deleteMany({}),
     Period.deleteMany({}),
     BankTransaction.deleteMany({}),
-    Invoice.deleteMany({})
+    Invoice.deleteMany({}),
+    PasEvent.deleteMany({})
   ]);
 
   // Ensure the standard login accounts still exist so the app stays usable.
@@ -150,6 +153,7 @@ export async function resetDataKeepUsers() {
       bankTransactions: 0,
       journalEntries: 0,
       invoices: 0,
+      pasEvents: 0,
       users: seededUsers
     }
   };

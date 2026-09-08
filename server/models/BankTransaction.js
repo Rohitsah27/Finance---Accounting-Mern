@@ -32,6 +32,20 @@ const bankTransactionSchema = new mongoose.Schema({
   contraAccount: {
     type: String,
     default: null
+  },
+  // Which entity and which of its bank accounts this transaction actually
+  // hit — Bank Reconciliation filters the feed down to the logged-in
+  // role's own account by these two fields (see ROLE_CONFIG in
+  // BankReconciliationPage.jsx), so without them every synced transaction
+  // fails that filter and the page shows empty no matter how many
+  // transactions exist in this collection.
+  entity: {
+    type: String,
+    default: null
+  },
+  account: {
+    type: String,
+    default: null
   }
 }, {
   timestamps: true

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useFinance } from '../../context/FinanceContext';
 import { useAuth } from '../../context/AuthContext';
+import { api } from '../../services/api';
 import './bank-reconciliation.css';
 
 // Role-specific framing: broker, MGA, and carrier each keep their own bank
@@ -47,7 +48,7 @@ const APPROVAL_CHAIN = [
 const approvalLevelFor = (amount) => APPROVAL_CHAIN.find(l => amount <= l.max) || APPROVAL_CHAIN[APPROVAL_CHAIN.length - 1];
 
 export function BankReconciliationPage() {
-  const { getAccountBalance, bankTransactions, matchBankTransaction, entityApInvoices, payApInvoice, fiscalPeriods } = useFinance();
+  const { getAccountBalance, bankTransactions, matchBankTransaction, entityApInvoices, payApInvoice, fiscalPeriods, refreshBankTransactions, entityJournalEntries } = useFinance();
   const { currentUser, activeEntity } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
@@ -130,9 +131,53 @@ export function BankReconciliationPage() {
   // Real, per-account transactions — bankTransactions is tagged with the
   // account it actually posted against (see FinanceContext), so each role
   // sees only what hit its own bank account instead of one shared feed.
+  // This — not displayTransactions below — is what bankBalance/matched
+  // count are computed from, so "Needs attention" stays a genuine
+  // bank-vs-GL difference instead of being masked by its own GL side.
   const accountTransactions = useMemo(
     () => bankTransactions.filter(t => t.account === selectedAccountKey),
     [bankTransactions, selectedAccountKey]
+  );
+
+  // Book-side rows synthesized from posted journal entries that hit the
+  // cash account (1001) — without these, GL Balance (below) can move the
+  // moment a new JE posts (e.g. a PAS injection) while this table kept
+  // showing nothing, because bankTransactions and journalEntries were two
+  // completely disconnected data sources. These are display-only — flagged
+  // origin: 'gl' — so they show up as "awaiting bank feed" instead of a
+  // clickable Match (there's no real bank-feed row yet to match them to).
+  const glCashActivity = useMemo(() => {
+    const rows = [];
+    entityJournalEntries
+      .filter(je => je.status === 'Posted' || je.status === 'posted')
+      .forEach(je => {
+        (je.lines || []).forEach((line, i) => {
+          const code = line.accountCode || line.acct;
+          if (code !== '1001') return;
+          const amount = (parseFloat(line.debit) || 0) - (parseFloat(line.credit) || 0);
+          if (!amount) return;
+          rows.push({
+            id: `${je.id}-L${i}`,
+            date: je.date,
+            description: line.description || je.description || je.id,
+            amount,
+            type: amount > 0 ? 'Credit' : 'Debit',
+            status: 'GL Only',
+            contraAccount: null,
+            origin: 'gl',
+            jeId: je.id
+          });
+        });
+      });
+    return rows;
+  }, [entityJournalEntries]);
+
+  // What the Listing/Details tables actually render — real feed rows plus
+  // the GL-only rows above, so the table always reflects what the KPI
+  // cards show instead of lagging behind a separate data source.
+  const displayTransactions = useMemo(
+    () => [...accountTransactions, ...glCashActivity],
+    [accountTransactions, glCashActivity]
   );
 
   // Live General Ledger Balance for Account 1001 — already scoped to the
@@ -163,12 +208,19 @@ export function BankReconciliationPage() {
     showToast(`Transaction ${id} matched to general ledger`, 'success');
   };
 
-  // Handle Auto-Sync
-  const handleAutoSync = () => {
+  // Handle Auto-Sync — actually pulls the bank feed back down from Atlas
+  // (re-seeding the baseline demo feed first, additive-only, so this is
+  // what recovers a feed a Reset Data wipe emptied out) rather than just
+  // showing a "refreshed" toast with nothing behind it.
+  const handleAutoSync = async () => {
     showToast(`Connecting to ${selectedAccount.bankName} banking gateway via BAI2/OFX…`, 'info');
-    setTimeout(() => {
+    try {
+      await api.seedBankTransactions();
+      await refreshBankTransactions();
       showToast(`Bank feed refreshed for ${selectedAccount.label}.`, 'success');
-    }, 1200);
+    } catch (e) {
+      showToast('Bank feed sync failed — is the server running?', 'error');
+    }
   };
 
   // Handle Auto-Match — matches every pending transaction on this account.
@@ -204,22 +256,22 @@ export function BankReconciliationPage() {
   };
 
   // Filtered listing rows
-  const filteredTransactions = accountTransactions
+  const filteredTransactions = displayTransactions
     .filter(t => statusFilter === 'All' || (statusFilter === 'Matched' ? t.status === 'Matched' : t.status !== 'Matched'))
     .filter(t => !searchTerm || t.description.toLowerCase().includes(searchTerm.toLowerCase()) || (t.contraAccount || '').toLowerCase().includes(searchTerm.toLowerCase()));
 
-  // Detail rows are derived from the same real accountTransactions instead
-  // of a second, separately-hardcoded dataset.
-  const detailRows = useMemo(() => accountTransactions.map(t => ({
+  // Detail rows are derived from the same real+GL displayTransactions
+  // instead of a second, separately-hardcoded dataset.
+  const detailRows = useMemo(() => displayTransactions.map(t => ({
     id: t.id,
     date: t.date,
     desc: t.description,
     spent: t.amount < 0 ? -t.amount : 0,
     received: t.amount > 0 ? t.amount : 0,
     source: t.type,
-    matchAcct: t.contraAccount ? `${t.contraAccount} - GL Account` : 'Unallocated Suspense',
+    matchAcct: t.origin === 'gl' ? 'Awaiting Bank Feed' : (t.contraAccount ? `${t.contraAccount} - GL Account` : 'Unallocated Suspense'),
     status: t.status === 'Matched' ? 'posted' : 'pending'
-  })), [accountTransactions]);
+  })), [displayTransactions]);
 
   const filteredDetails = detailRows.filter(r => {
     if (detailFilter !== 'all' && r.status !== detailFilter) return false;
@@ -491,7 +543,15 @@ export function BankReconciliationPage() {
                 <button
                   className="btn btn-primary"
                   style={{ alignSelf: 'flex-end' }}
-                  onClick={() => showToast(`Refreshed live feed for ${selectedAccount.label}`, 'success')}
+                  onClick={async () => {
+                    try {
+                      await api.seedBankTransactions();
+                      await refreshBankTransactions();
+                      showToast(`Refreshed live feed for ${selectedAccount.label}`, 'success');
+                    } catch (e) {
+                      showToast('Failed to refresh feed — is the server running?', 'error');
+                    }
+                  }}
                 >
                   Get Transactions
                 </button>
@@ -571,7 +631,7 @@ export function BankReconciliationPage() {
                     {filteredTransactions.length === 0 ? (
                       <tr>
                         <td colSpan={9} style={{ textAlign: 'center', padding: '28px 16px', color: 'var(--gray-400)', fontSize: '12.5px' }}>
-                          {accountTransactions.length === 0
+                          {displayTransactions.length === 0
                             ? `No bank feed transactions for ${selectedAccount.label} yet.`
                             : 'No transactions match the current filters.'}
                         </td>
@@ -588,14 +648,27 @@ export function BankReconciliationPage() {
                           {t.amount < 0 ? fmtM(-t.amount) : ' - '}
                         </td>
                         <td><span className="chip chip-blue">{t.type}</span></td>
-                        <td style={{ fontSize: '12px', color: 'var(--gray-600)' }}>{t.contraAccount ? `${t.contraAccount} - GL Account` : 'Unallocated'}</td>
-                        <td>
-                          <span className={`chip ${t.status === 'Matched' ? 'chip-green' : 'chip-orange'}`}>
-                            {t.status}
-                          </span>
+                        <td style={{ fontSize: '12px', color: 'var(--gray-600)' }}>
+                          {t.origin === 'gl' ? 'From General Ledger' : (t.contraAccount ? `${t.contraAccount} - GL Account` : 'Unallocated')}
                         </td>
                         <td>
-                          {t.status !== 'Matched' ? (
+                          {t.origin === 'gl' ? (
+                            <span
+                              className="chip"
+                              style={{ background: '#ede9fe', color: '#6d28d9', fontWeight: 600 }}
+                            >
+                              GL Posted
+                            </span>
+                          ) : (
+                            <span className={`chip ${t.status === 'Matched' ? 'chip-green' : 'chip-orange'}`}>
+                              {t.status}
+                            </span>
+                          )}
+                        </td>
+                        <td>
+                          {t.origin === 'gl' ? (
+                            <span style={{ color: 'var(--gray-400)', fontSize: '11px' }}>Awaiting bank feed</span>
+                          ) : t.status !== 'Matched' ? (
                             <button
                               className="btn btn-primary btn-sm"
                               style={{ padding: '3px 8px', fontSize: '11px' }}

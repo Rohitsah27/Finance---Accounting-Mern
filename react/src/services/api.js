@@ -123,6 +123,7 @@ export const api = {
     method: 'PATCH',
     body: JSON.stringify(matchData),
   }),
+  seedBankTransactions: () => request('/bank-transactions/seed', { method: 'POST' }),
 
   // Commission Engine
   getCommissionPlans: (params = {}) => {
@@ -142,7 +143,17 @@ export const api = {
     body: JSON.stringify(txnData),
   }),
   deleteCommissionPlan: (id) => request(`/commission-plans/${encodeURIComponent(id)}`, { method: 'DELETE' }),
-  deleteCommissionTransaction: (id) => request(`/commission-transactions/${encodeURIComponent(id)}`, { method: 'DELETE' })
+  deleteCommissionTransaction: (id) => request(`/commission-transactions/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+
+  // PAS Event Data Injector
+  getPasEvents: (params = {}) => {
+    const query = new URLSearchParams(params).toString();
+    return request(`/pas-events${query ? `?${query}` : ''}`);
+  },
+  createPasEvent: (eventData) => request('/pas-events', {
+    method: 'POST',
+    body: JSON.stringify(eventData),
+  })
 };
 
 export default api;

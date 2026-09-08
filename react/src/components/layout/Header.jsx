@@ -140,6 +140,7 @@ export function Header() {
       await api.resetData();
       clearAllData();
       await syncWithBackend();
+      window.dispatchEvent(new Event('veridex:pas-events-reset'));
       setToastMessage('Transactions cleared. Chart of Accounts and login credentials kept.');
       setTimeout(() => setToastMessage(null), 3500);
     } catch (e) {
@@ -763,7 +764,7 @@ export function Header() {
             🗑 Reset Data
           </div>
           <p style={{ fontSize: '13px', color: '#475569', marginBottom: '20px', lineHeight: 1.6 }}>
-            Reset Data will permanently delete all Journal Entries, Periods, Bank Transactions, and AR/AP Invoices from MongoDB Atlas, and zero out every account balance. The Chart of Accounts itself (including any custom accounts you've added) and login credentials are kept. <strong>This cannot be undone.</strong> Continue?
+            Reset Data will permanently delete all Journal Entries, Periods, Bank Transactions, AR/AP Invoices, and Policy Admin (PAS) injected events from MongoDB Atlas, and zero out every account balance. The Chart of Accounts itself (including any custom accounts you've added) and login credentials are kept. <strong>This cannot be undone.</strong> Continue?
           </p>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
             <button
