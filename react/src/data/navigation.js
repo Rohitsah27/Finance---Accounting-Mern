@@ -270,6 +270,11 @@ export function isGroupVisibleForType(groupId, businessType) {
    hides, just individual sub-items that don't apply to a retail broker). */
 const BROKER_HIDDEN_CHILD_IDS = ['explore-industries', 'entity-hierarchy', 'manual-entry', 'gl-simulation', 'clear-all'];
 
+// Insurance Flow Simulator ('gl-simulation') is deliberately NOT hardcoded
+// here for carrier — it defaults to hidden for that business type, but as a
+// user-toggleable default (Header's Density & Sizing panel /
+// ThemeContext's showGlSimulation), not a permanent rule. See Sidebar.jsx,
+// which combines this function's result with that toggle.
 export function isChildVisibleForType(childId, businessType) {
   if ((businessType === 'agency' || businessType === 'broker') && BROKER_HIDDEN_CHILD_IDS.includes(childId)) {
     return false;

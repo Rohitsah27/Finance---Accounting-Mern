@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useTheme } from '../../context/ThemeContext';
 import { NAV_CONFIG, isGroupVisibleForType, isChildVisibleForType } from '../../data/navigation';
 import {
   MonogramLogo,
@@ -12,7 +13,14 @@ import {
 export function Sidebar({ isCollapsed, onToggleCollapse }) {
   const location = useLocation();
   const { activeEntity, currentUser } = useAuth();
+  const { showGlSimulation } = useTheme();
   const bType = currentUser?.businessType || activeEntity?.businessType || 'mga';
+
+  // Insurance Flow Simulator's role default — hidden for carrier, shown for
+  // everyone else — unless the user has explicitly picked a preference via
+  // the Density & Sizing panel (showGlSimulation is then true/false, not
+  // null, and wins regardless of role).
+  const glSimVisible = showGlSimulation === null ? bType !== 'carrier' : showGlSimulation;
 
   // Visible groups based on business type
   const visibleGroups = NAV_CONFIG.filter(group => isGroupVisibleForType(group.id, bType));
@@ -66,7 +74,9 @@ export function Sidebar({ isCollapsed, onToggleCollapse }) {
       {/* Navigation List */}
       <nav className="sidebar-nav">
         {visibleGroups.map((group) => {
-          const visibleChildren = group.children.filter(c => isChildVisibleForType(c.id, bType));
+          const visibleChildren = group.children.filter(c =>
+            isChildVisibleForType(c.id, bType) && (c.id !== 'gl-simulation' || glSimVisible)
+          );
           if (!visibleChildren.length) return null;
 
           const hasActiveChild = visibleChildren.some(c => {

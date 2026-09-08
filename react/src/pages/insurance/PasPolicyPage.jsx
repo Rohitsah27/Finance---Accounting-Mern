@@ -54,8 +54,7 @@ const MGA_OPTIONS = ['NTA', 'NTA Program Administrators', 'Meridian Program Mana
 // generateRulesEngineGroups actually posts JE lines for below — e.g. Stage 2
 // only touches the Broker's book (Ayushi pays Broker), Stage 3 only settles
 // the Broker -> MGA leg, so there's no reason to show a Carrier picker there.
-// Stage 1/PREMIUM_ADJUSTED establish the whole chain up front, so all three
-// stay visible.
+// Stage 1 establishes the whole chain up front, so all three stay visible.
 const PRESET_VISIBLE_PARTIES = {
   policy_bound: ['broker', 'mga', 'carrier'],
   payment_received: ['broker'],
@@ -63,9 +62,7 @@ const PRESET_VISIBLE_PARTIES = {
   payment_underpaid: ['broker'],
   broker_settlement: ['mga'],
   bordereau_ingested: ['carrier'],
-  carrier_payment_completed: ['carrier'],
-  premium_adjusted: ['broker', 'mga', 'carrier'],
-  policy_cancelled: ['broker']
+  carrier_payment_completed: ['carrier']
 };
 
 // Which LOAD EVENT PRESET stages apply to each logged-in role — mirrors
@@ -75,8 +72,8 @@ const PRESET_VISIBLE_PARTIES = {
 // stage to appear in their picker, and vice versa. Roles without an entry
 // here (owner, insured, reinsurance-analyst, etc.) see every stage.
 const ROLE_VISIBLE_PRESETS = {
-  broker: ['policy_bound', 'payment_received', 'payment_overpaid', 'payment_underpaid', 'broker_settlement', 'premium_adjusted', 'policy_cancelled'],
-  mga: ['policy_bound', 'broker_settlement', 'bordereau_ingested', 'carrier_payment_completed', 'premium_adjusted'],
+  broker: ['policy_bound', 'payment_received', 'payment_overpaid', 'payment_underpaid', 'broker_settlement'],
+  mga: ['policy_bound', 'broker_settlement', 'bordereau_ingested', 'carrier_payment_completed'],
   carrier: ['bordereau_ingested', 'carrier_payment_completed']
 };
 
@@ -99,10 +96,8 @@ const PRESET_OPTIONS = [
   { value: 'payment_overpaid', label: 'Stage 2 (Extra Pay): PAYMENT_OVERPAID — Ayushi pays Broker $40,500 vs $39,260 Billed' },
   { value: 'payment_underpaid', label: 'Stage 2 (Pay Short): PAYMENT_UNDERPAID — Ayushi pays Broker $35,000 vs $39,260 Billed' },
   { value: 'broker_settlement', label: 'Stage 3: BROKER_SETTLEMENT_COMPLETED (Broker pays MGA · $36,760)' },
-  { value: 'bordereau_ingested', label: 'Stage 4: BORDEREAU_INGESTED (Carrier Ingestion · $33,257 GWP)' },
-  { value: 'carrier_payment_completed', label: 'Stage 5: CARRIER_PAYMENT_COMPLETED (MGA pays Carrier · $29,757)' },
-  { value: 'premium_adjusted', label: 'Preset: PREMIUM_ADJUSTED (Endorsement Increase)' },
-  { value: 'policy_cancelled', label: 'Preset: POLICY_CANCELLED (Pro-Rata Reversal)' }
+  { value: 'bordereau_ingested', label: 'Stage 4: BORDEREAU_INGESTED (Carrier Ingestion · $35,757 GWP)' },
+  { value: 'carrier_payment_completed', label: 'Stage 5: CARRIER_PAYMENT_COMPLETED (MGA pays Carrier · $29,757)' }
 ];
 const ALL_PRESET_KEYS = PRESET_OPTIONS.map((opt) => opt.value);
 
@@ -471,6 +466,14 @@ export function PasPolicyPage() {
     const mgaOverride = evt.financials.mga_commission ?? 3500;
     const taxAndFees = evt.financials.tax_and_fees ?? 3503;
     const netToCarrier = netToMGA - mgaOverride - taxAndFees;
+    // Same idea as mgaOverride above — the retail Broker's $2,500 commission
+    // from Stage 1 isn't a field on THIS event either (Bordereau Ingestion
+    // is its own independently-injected event with its own form), so it
+    // falls back to the same fixed demo figure. Used only to gross up the
+    // Carrier's own GWP/acquisition-cost recognition at Stage 4 — see
+    // BORDEREAU_INGESTED below — never for cash movement, since no cash
+    // actually passes between Carrier and Broker.
+    const brokerCommission = evt.financials.broker_retail_commission ?? 2500;
 
     const broker = { id: DBA_ENTITIES.BROKER.id, name: evt.parties.producer || DBA_ENTITIES.BROKER.name };
     const mga = { id: DBA_ENTITIES.MGA.id, name: evt.parties.mga_name || DBA_ENTITIES.MGA.name };
@@ -655,13 +658,30 @@ export function PasPolicyPage() {
         }
       ];
     } else if (evt.event_type === 'BORDEREAU_INGESTED') {
-      // Stage 4b — Carrier book only.
+      // Stage 4b — Carrier book only. GWP is recognized gross of the FULL
+      // distribution load ($6,000 = MGA override + the retail Broker's own
+      // commission), not just the MGA's own cut — that's the standard
+      // industry definition of Gross Written Premium: full premium for the
+      // risk, net only of non-premium pass-throughs like state tax, before
+      // any commission deduction. Netting the Broker's commission out of
+      // GWP silently (the old behavior) understated both GWP and the
+      // Carrier's true acquisition-cost load by $2,500.
+      //
+      // That $6,000 posts as ONE line to NTA, not two — the Carrier has no
+      // contract with HIT and doesn't know or care that NTA is passing part
+      // of it downstream to a retail producer. From the Carrier's side this
+      // is a single acquisition-cost obligation to its one counterparty;
+      // how NTA further splits it is NTA's own book, not the Carrier's. No
+      // cash changes hands between Carrier and Broker either way — this
+      // only changes what the Carrier's own P&L reports, not what it
+      // collects (netToCarrier, and therefore the AP bill below, is
+      // unchanged).
       groups = [{
         entity: carrier,
         lines: [
           { acct: '1100', desc: `Settlement Receivable — ${evt.parties.mga_name}`, debit: Math.abs(netToCarrier), credit: 0 },
-          { acct: '5100', desc: `Acquisition Costs & Broker Commissions — MGA Override`, debit: Math.abs(mgaOverride), credit: 0 },
-          { acct: '4001', desc: `Gross Written Premium (GWP)`, debit: 0, credit: Math.abs(netToCarrier + mgaOverride) }
+          { acct: '5100', desc: `Acquisition Costs & Broker Commissions — ${evt.parties.mga_name} Program Distribution Commission`, debit: Math.abs(mgaOverride + brokerCommission), credit: 0 },
+          { acct: '4001', desc: `Gross Written Premium (GWP)`, debit: 0, credit: Math.abs(netToCarrier + mgaOverride + brokerCommission) }
         ]
       }];
       // Only NOW — once the Carrier has actually received and ingested the
@@ -1023,11 +1043,17 @@ export function PasPolicyPage() {
         ]);
 
         setTimeout(() => {
-          // Stage 4b: Carrier Bordereau Ingestion — Carrier book
+          // Stage 4b: Carrier Bordereau Ingestion — Carrier book. GWP is
+          // gross of the full $6,000 distribution load (MGA override + the
+          // retail Broker's own commission) — see the matching comment in
+          // generateRulesEngineGroups' BORDEREAU_INGESTED branch. Posts as
+          // ONE line to NTA, not split out by HIT's name — the Carrier's
+          // only contract is with NTA; how NTA further splits it downstream
+          // isn't the Carrier's book to keep.
           postStageJE(DBA_ENTITIES.CARRIER, `Bordereau Ingestion — ${policyNumber} (Stage 4b)`, [
             line('1100', 29757.00, 0, 'Settlement Receivable — NTA'),
-            line('5100', 3500.00, 0, 'Acquisition Costs & Broker Commissions — MGA Override'),
-            line('4001', 0, 33257.00, 'Gross Written Premium (GWP)')
+            line('5100', 6000.00, 0, 'Acquisition Costs & Broker Commissions — NTA Program Distribution Commission'),
+            line('4001', 0, 35757.00, 'Gross Written Premium (GWP)')
           ]);
 
           setTimeout(() => {

@@ -15,7 +15,8 @@ import {
 export function Header() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { currentUser, switchRole, allUsers, logout } = useAuth();
+  const { currentUser, activeEntity, switchRole, allUsers, logout } = useAuth();
+  const bType = currentUser?.businessType || activeEntity?.businessType || 'mga';
   const {
     currentTheme,
     changeTheme,
@@ -28,7 +29,9 @@ export function Header() {
     isZebra,
     toggleZebra,
     isGrid,
-    toggleGrid
+    toggleGrid,
+    showGlSimulation,
+    toggleGlSimulation
   } = useTheme();
 
   const { isDbConnected, dbInfo, syncWithBackend, clearAllData } = useFinance();
@@ -502,6 +505,20 @@ export function Header() {
                   className="v-density-checkbox"
                   checked={isGrid}
                   onChange={(e) => toggleGrid(e.target.checked)}
+                />
+                <span className="v-density-switch"></span>
+              </label>
+
+              <label className="v-density-toggle-item">
+                <div className="v-density-toggle-info">
+                  <div className="v-toggle-title">Insurance Flow Simulator</div>
+                  <div className="v-toggle-desc">Show the sidebar link under General Ledger{showGlSimulation === null ? ` (currently ${bType === 'carrier' ? 'hidden' : 'shown'} by default)` : ''}</div>
+                </div>
+                <input
+                  type="checkbox"
+                  className="v-density-checkbox"
+                  checked={showGlSimulation === null ? bType !== 'carrier' : showGlSimulation}
+                  onChange={(e) => toggleGlSimulation(e.target.checked)}
                 />
                 <span className="v-density-switch"></span>
               </label>

@@ -62,6 +62,18 @@ export function ThemeProvider({ children }) {
     return localStorage.getItem('v_table_grid') === 'true';
   });
 
+  // Manual override for the sidebar's Insurance Flow Simulator link.
+  // Tri-state: null means "no explicit preference yet" — Sidebar.jsx then
+  // falls back to a role default (hidden for carrier, shown otherwise).
+  // Once the user actually flips the Density panel switch, it becomes an
+  // explicit true/false that wins regardless of role.
+  const [showGlSimulation, setShowGlSimulation] = useState(() => {
+    const stored = localStorage.getItem('v_show_gl_simulation');
+    if (stored === 'true') return true;
+    if (stored === 'false') return false;
+    return null;
+  });
+
   // Apply Theme
   useEffect(() => {
     const t = THEMES[currentTheme] || THEMES.default;
@@ -129,6 +141,16 @@ export function ThemeProvider({ children }) {
     localStorage.setItem('v_table_grid', String(isGrid));
   }, [isGrid]);
 
+  // Persist the Insurance Flow Simulator override — only once it's an
+  // explicit true/false; leave storage untouched while it's still null so a
+  // later role-default change (if any) keeps applying until the user
+  // actually picks a preference.
+  useEffect(() => {
+    if (showGlSimulation !== null) {
+      localStorage.setItem('v_show_gl_simulation', String(showGlSimulation));
+    }
+  }, [showGlSimulation]);
+
   const changeTheme = (key) => {
     if (THEMES[key]) setCurrentTheme(key);
   };
@@ -153,6 +175,8 @@ export function ThemeProvider({ children }) {
     setScale(100);
     setIsZebra(false);
     setIsGrid(false);
+    setShowGlSimulation(null);
+    localStorage.removeItem('v_show_gl_simulation');
   };
 
   const toggleZebra = (val) => {
@@ -161,6 +185,10 @@ export function ThemeProvider({ children }) {
 
   const toggleGrid = (val) => {
     setIsGrid(typeof val === 'boolean' ? val : !isGrid);
+  };
+
+  const toggleGlSimulation = (val) => {
+    setShowGlSimulation(typeof val === 'boolean' ? val : !showGlSimulation);
   };
 
   return (
@@ -178,7 +206,9 @@ export function ThemeProvider({ children }) {
         isZebra,
         toggleZebra,
         isGrid,
-        toggleGrid
+        toggleGrid,
+        showGlSimulation,
+        toggleGlSimulation
       }}
     >
       {children}
