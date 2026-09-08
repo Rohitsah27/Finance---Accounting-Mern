@@ -23,6 +23,26 @@ const PRESET_DEFAULTS = {
   policy_cancelled: { evtType: 'POLICY_CANCELLED', premium: '-16128', taxAndFees: '-3501', commission: '-1250', paymentAmount: '0' }
 };
 
+// Shared by both the LOAD EVENT PRESET dropdown's labels (so the menu itself
+// shows the real amount Stage 3/5 will post) and handleApplyPreset's form
+// pre-fill (so the JSON payload matches what the menu promised) — a single
+// source of truth for the cash shortfall a Stage 2 Pay Short leaves behind.
+// That same dollar gap rides down the whole settlement chain: the Broker
+// forwards $4,260 less to the MGA (Stage 3), so the MGA in turn has $4,260
+// less to forward to the Carrier (Stage 5) — nobody downstream ever collects
+// more than what's actually moved up from the insured. Returns 0 when Stage
+// 2 Pay Short hasn't happened (or was matched/overpaid), meaning Stage 3/5
+// stay at their full net amounts.
+const getStage2CashShortfall = (events) => {
+  const shortEvt = events.find(e =>
+    e.policy?.policy_number === 'POL-V8NHT' &&
+    e.event_type === 'PAYMENT_UNDERPAID' &&
+    e.status === 'POSTED'
+  );
+  if (!shortEvt) return 0;
+  return Math.max((shortEvt.financials.total_premium ?? 0) - (shortEvt.financials.payment_amount ?? 0), 0);
+};
+
 // Known parties for the injector form's Broker/Carrier/MGA fields, so users
 // pick from the same demo entities used across the DBA books (Commission
 // Engine, Flow Simulator) instead of free-typing a name that won't match.
@@ -276,7 +296,40 @@ export function PasPolicyPage() {
     setPremium(defaults.premium);
     setTaxAndFees(defaults.taxAndFees);
     setCommission(defaults.commission);
-    setPaymentAmount(defaults.paymentAmount);
+
+    // Stage 3 (Broker pays MGA) normally forwards the full $36,760 net
+    // premium regardless of what Stage 2 actually collected — but if the
+    // insured came up short (Stage 2 Pay Short / PAYMENT_UNDERPAID), the
+    // Broker never actually holds that much cash to forward. Pre-fill the
+    // settlement with only what's left after that shortfall, so picking
+    // Stage 3 right after Pay Short reflects real available cash instead of
+    // silently assuming the full amount showed up. Extra Pay doesn't need
+    // this — the overage there is booked straight to the insured's credit
+    // balance (see PAYMENT_OVERPAID above), not routed toward the MGA.
+    if (val === 'broker_settlement') {
+      const shortfall = getStage2CashShortfall(events);
+      const fullNetToMga = parseFloat(defaults.paymentAmount) || 0;
+      const adjustedNetToMga = Math.max(fullNetToMga - shortfall, 0);
+      setPaymentAmount(String(adjustedNetToMga));
+      if (shortfall > 0) {
+        showToast(`Broker Settlement pre-filled at $${adjustedNetToMga.toLocaleString()} (reduced from $${fullNetToMga.toLocaleString()}) — Stage 2 Pay Short left a $${shortfall.toLocaleString()} cash shortfall.`, 'info');
+      }
+    } else if (val === 'carrier_payment_completed') {
+      // Same cash shortfall, one more hop down the chain — the MGA only
+      // ever has what the Broker actually forwarded in Stage 3, so it can't
+      // remit the full $29,757 to the Carrier either. Stage 4 (Bordereau)
+      // is deliberately left alone here — that's the Carrier's fixed GWP
+      // recognition and AP-bill obligation, unaffected by anyone's cash flow.
+      const shortfall = getStage2CashShortfall(events);
+      const fullNetToCarrier = parseFloat(defaults.paymentAmount) || 0;
+      const adjustedNetToCarrier = Math.max(fullNetToCarrier - shortfall, 0);
+      setPaymentAmount(String(adjustedNetToCarrier));
+      if (shortfall > 0) {
+        showToast(`Carrier Payment pre-filled at $${adjustedNetToCarrier.toLocaleString()} (reduced from $${fullNetToCarrier.toLocaleString()}) — the Stage 2 shortfall carries through to what the MGA can remit.`, 'info');
+      }
+    } else {
+      setPaymentAmount(defaults.paymentAmount);
+    }
   };
 
   // If the active role's picker no longer includes the currently-loaded
@@ -564,19 +617,40 @@ export function PasPolicyPage() {
       };
     } else if (evt.event_type === 'BROKER_SETTLEMENT_COMPLETED') {
       // Stage 3 — Broker disburses to MGA; MGA simultaneously receives it.
+      // Settles for whatever the Broker actually sends (`paid`, pre-filled
+      // by handleApplyPreset off any Stage 2 shortfall), capped at what's
+      // actually owed (`netToMGA`) — mirrors Stage 2's own partial-clear
+      // treatment. Settling for less than netToMGA leaves both the Broker's
+      // 2200 payable and the MGA's 1100 receivable with a residual open
+      // balance for the rest, rather than wiping out an obligation that
+      // wasn't actually paid off.
+      const disbursed = Math.min(Math.abs(paid || netToMGA), Math.abs(netToMGA));
+      const settlementShort = Math.max(Math.abs(netToMGA) - disbursed, 0);
       groups = [
         {
           entity: broker,
           lines: [
-            { acct: '2200', desc: `Clear Net Premium Payable to ${evt.parties.mga_name}`, debit: Math.abs(netToMGA), credit: 0 },
-            { acct: '1001', desc: `Disburse Net Premium to ${evt.parties.mga_name}`, debit: 0, credit: Math.abs(netToMGA) }
+            {
+              acct: '2200',
+              desc: settlementShort > 0
+                ? `Partial Clear Net Premium Payable to ${evt.parties.mga_name} ($${settlementShort.toLocaleString()} remains outstanding)`
+                : `Clear Net Premium Payable to ${evt.parties.mga_name}`,
+              debit: disbursed, credit: 0
+            },
+            { acct: '1001', desc: `Disburse Net Premium to ${evt.parties.mga_name}`, debit: 0, credit: disbursed }
           ]
         },
         {
           entity: mga,
           lines: [
-            { acct: '1001', desc: `Cash Receipt from ${evt.parties.producer}`, debit: Math.abs(netToMGA), credit: 0 },
-            { acct: '1100', desc: `Clear Premium Receivable — ${evt.parties.producer}`, debit: 0, credit: Math.abs(netToMGA) }
+            { acct: '1001', desc: `Cash Receipt from ${evt.parties.producer}`, debit: disbursed, credit: 0 },
+            {
+              acct: '1100',
+              desc: settlementShort > 0
+                ? `Partial Clear Premium Receivable — ${evt.parties.producer} ($${settlementShort.toLocaleString()} remains outstanding)`
+                : `Clear Premium Receivable — ${evt.parties.producer}`,
+              debit: 0, credit: disbursed
+            }
           ]
         }
       ];
@@ -616,20 +690,40 @@ export function PasPolicyPage() {
         description: `Net Premium Payable to ${carrier.name} on ${evt.policy.policy_number} (Stage 5 settlement)`
       };
     } else if (evt.event_type === 'CARRIER_PAYMENT_COMPLETED') {
-      // Stage 5a+5b — MGA disburses to Carrier; Carrier simultaneously receives it.
+      // Stage 5a+5b — MGA disburses to Carrier; Carrier simultaneously
+      // receives it. Same partial-clear treatment as Stage 3: settles for
+      // whatever the MGA actually sends (`paid`, pre-filled by
+      // handleApplyPreset off any Stage 2 shortfall), capped at what's
+      // actually owed (`netToCarrier`) — under-settling leaves both the
+      // MGA's 2200 payable and the Carrier's 1100 receivable with a
+      // residual open balance instead of wiping out an unpaid obligation.
+      const disbursedToCarrier = Math.min(Math.abs(paid || netToCarrier), Math.abs(netToCarrier));
+      const carrierSettlementShort = Math.max(Math.abs(netToCarrier) - disbursedToCarrier, 0);
       groups = [
         {
           entity: mga,
           lines: [
-            { acct: '2200', desc: `Clear Net Premium Payable to ${evt.parties.carrier_name}`, debit: Math.abs(netToCarrier), credit: 0 },
-            { acct: '1001', desc: `ACH Disburse to ${evt.parties.carrier_name}`, debit: 0, credit: Math.abs(netToCarrier) }
+            {
+              acct: '2200',
+              desc: carrierSettlementShort > 0
+                ? `Partial Clear Net Premium Payable to ${evt.parties.carrier_name} ($${carrierSettlementShort.toLocaleString()} remains outstanding)`
+                : `Clear Net Premium Payable to ${evt.parties.carrier_name}`,
+              debit: disbursedToCarrier, credit: 0
+            },
+            { acct: '1001', desc: `ACH Disburse to ${evt.parties.carrier_name}`, debit: 0, credit: disbursedToCarrier }
           ]
         },
         {
           entity: carrier,
           lines: [
-            { acct: '1001', desc: `MGA Premium Settlement Receipt — ${evt.parties.mga_name}`, debit: Math.abs(netToCarrier), credit: 0 },
-            { acct: '1100', desc: `Clear Settlement Receivable — ${evt.parties.mga_name}`, debit: 0, credit: Math.abs(netToCarrier) }
+            { acct: '1001', desc: `MGA Premium Settlement Receipt — ${evt.parties.mga_name}`, debit: disbursedToCarrier, credit: 0 },
+            {
+              acct: '1100',
+              desc: carrierSettlementShort > 0
+                ? `Partial Clear Settlement Receivable — ${evt.parties.mga_name} ($${carrierSettlementShort.toLocaleString()} remains outstanding)`
+                : `Clear Settlement Receivable — ${evt.parties.mga_name}`,
+              debit: 0, credit: disbursedToCarrier
+            }
           ]
         }
       ];
@@ -798,6 +892,28 @@ export function PasPolicyPage() {
   // `events` — see that state's comment for why.
   const isPresetInjected = (key) => sessionInjectedTypes.has((PRESET_DEFAULTS[key] || {}).evtType);
   const currentPresetInjected = isPresetInjected(preset);
+
+  // Keeps the dropdown's own text honest — Stage 3/5's options would
+  // otherwise keep advertising their full amounts even after Stage 2 Pay
+  // Short has already left a shortfall and handleApplyPreset is about to
+  // pre-fill a reduced amount instead. Recomputed from `events` (not
+  // memoized) since the PAS event log is small and this only runs per
+  // render of the option list.
+  const getPresetLabel = (opt) => {
+    const shortfall = getStage2CashShortfall(events);
+    if (shortfall <= 0) return opt.label;
+    if (opt.value === 'broker_settlement') {
+      const fullNetToMga = parseFloat(PRESET_DEFAULTS.broker_settlement.paymentAmount) || 0;
+      const adjustedNetToMga = Math.max(fullNetToMga - shortfall, 0);
+      return `Stage 3: BROKER_SETTLEMENT_COMPLETED (Broker pays MGA · $${adjustedNetToMga.toLocaleString()} — reduced from $${fullNetToMga.toLocaleString()} after Stage 2 shortfall)`;
+    }
+    if (opt.value === 'carrier_payment_completed') {
+      const fullNetToCarrier = parseFloat(PRESET_DEFAULTS.carrier_payment_completed.paymentAmount) || 0;
+      const adjustedNetToCarrier = Math.max(fullNetToCarrier - shortfall, 0);
+      return `Stage 5: CARRIER_PAYMENT_COMPLETED (MGA pays Carrier · $${adjustedNetToCarrier.toLocaleString()} — reduced from $${fullNetToCarrier.toLocaleString()} after Stage 2 shortfall)`;
+    }
+    return opt.label;
+  };
 
   const handleSubmitCustomEvent = (e) => {
     e.preventDefault();
@@ -1080,9 +1196,10 @@ export function PasPolicyPage() {
                 >
                   {PRESET_OPTIONS.filter((opt) => visiblePresets.includes(opt.value)).map((opt) => {
                     const injected = isPresetInjected(opt.value);
+                    const label = getPresetLabel(opt);
                     return (
                       <option key={opt.value} value={opt.value} disabled={injected}>
-                        {injected ? `✓ ${opt.label} — Already Injected` : opt.label}
+                        {injected ? `✓ ${label} — Already Injected` : label}
                       </option>
                     );
                   })}
