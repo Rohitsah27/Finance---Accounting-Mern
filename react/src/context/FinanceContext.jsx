@@ -29,11 +29,16 @@ const INITIAL_PERIODS = [
 // `executeStageAction` below), so Bank Reconciliation can show each role
 // (broker/MGA/carrier) only the transactions that hit their own bank
 // account instead of one shared, un-scoped list.
+// Only genuinely external/unrelated bank activity lives here now — the
+// three PAS lifecycle rows (Ayushi's deposit, the wire to NTA, Southlake's
+// net remittance) used to be hardcoded here too, but that meant they never
+// changed no matter what the PAS Event Injector actually posted (Match,
+// Extra Pay, Pay Short, or any future variant). Those are now generated
+// live from posted PAS journal entries — see `pasBankFeedTransactions` in
+// FinanceProvider below — so this seed only needs to cover activity that
+// has no journal entry driving it.
 const INITIAL_BANK_TRANSACTIONS = [
-  { id: 'TXN-9021', date: '2026-08-28', description: 'Ayushi Fleet Logistics ACH Premium Deposit', amount: 39260.00, type: 'Credit', status: 'Matched', contraAccount: '1100', entity: 'ENT-AGY-01', account: 'brokerTrust' },
-  { id: 'TXN-9022', date: '2026-08-30', description: 'Wire Transfer Out to NTA Delegated Underwriters', amount: -36760.00, type: 'Debit', status: 'Matched', contraAccount: '2200', entity: 'ENT-AGY-01', account: 'brokerTrust' },
   { id: 'TXN-9023', date: '2026-09-01', description: 'Texas Dept of Insurance Stamping Fee Q3', amount: -350.00, type: 'Debit', status: 'Unallocated Suspense', contraAccount: null, entity: 'ENT-MGA-01', account: 'mgaOperating' },
-  { id: 'TXN-9024', date: '2026-09-02', description: 'Southlake Insurance Co Net Remittance ACH', amount: 29757.00, type: 'Credit', status: 'Matched', contraAccount: '1150', entity: 'ENT-CAR-01', account: 'carrierOperating' },
   { id: 'TXN-9025', date: '2026-09-03', description: 'AWS Cloud Hosting Monthly Infrastructure', amount: -1240.00, type: 'Debit', status: 'Matched', contraAccount: '2001', entity: 'ENT-MGA-01', account: 'mgaOperating' }
 ];
 
@@ -171,8 +176,12 @@ export function FinanceProvider({ children }) {
   });
 
 
-  // Bank Transactions
-  const [bankTransactions, setBankTransactions] = useState(() => {
+  // Bank Transactions — the "real" external feed (synced from Atlas /
+  // seeded demo entries like the stamping fee and AWS hosting charge).
+  // Renamed from `bankTransactions` because that name is now the merged
+  // view exposed below (this feed plus the PAS-derived rows) — see
+  // `pasBankFeedTransactions` and the `bankTransactions` memo further down.
+  const [rawBankTransactions, setRawBankTransactions] = useState(() => {
     try {
       const saved = localStorage.getItem('v_bank_transactions');
       if (saved) return JSON.parse(saved);
@@ -334,8 +343,8 @@ export function FinanceProvider({ children }) {
   }, [arInvoices]);
 
   useEffect(() => {
-    localStorage.setItem('v_bank_transactions', JSON.stringify(bankTransactions));
-  }, [bankTransactions]);
+    localStorage.setItem('v_bank_transactions', JSON.stringify(rawBankTransactions));
+  }, [rawBankTransactions]);
 
   // MongoDB Atlas Live Database State
   const [isDbConnected, setIsDbConnected] = useState(false);
@@ -379,7 +388,7 @@ export function FinanceProvider({ children }) {
         // Load bank transactions from Atlas
         const dbTxns = await api.getBankTransactions().catch(() => null);
         if (Array.isArray(dbTxns)) {
-          setBankTransactions(dbTxns);
+          setRawBankTransactions(dbTxns);
         }
 
         // Load AP invoices (bills) from Atlas
@@ -1018,7 +1027,7 @@ export function FinanceProvider({ children }) {
   // BANK RECONCILIATION MATCHING
   // ============================================================
   const matchBankTransaction = (txId, contraAccount = '1001') => {
-    setBankTransactions(prev => prev.map(tx => tx.id === txId ? { ...tx, status: 'Matched', contraAccount } : tx));
+    setRawBankTransactions(prev => prev.map(tx => tx.id === txId ? { ...tx, status: 'Matched', contraAccount } : tx));
 
     // Async push to MongoDB Atlas
     api.matchBankTransaction(txId, { status: 'Matched', contraAccount }).catch(err => console.warn('[Atlas Bank Match Sync]:', err.message));
@@ -1031,9 +1040,72 @@ export function FinanceProvider({ children }) {
   // until a full database reseed.
   const refreshBankTransactions = async () => {
     const dbTxns = await api.getBankTransactions();
-    if (Array.isArray(dbTxns)) setBankTransactions(dbTxns);
+    if (Array.isArray(dbTxns)) setRawBankTransactions(dbTxns);
     return dbTxns;
   };
+
+  // Which bank sub-account (see BankReconciliationPage's ROLE_CONFIG) each
+  // DBA book's Cash/Bank (1001) activity actually lands in. Premium cash is
+  // fiduciary money, so Broker/MGA both post it to their Trust account; the
+  // Carrier only has one operating account in this demo.
+  const PAS_CASH_ACCOUNT_BY_ENTITY = {
+    'ENT-AGY-01': 'brokerTrust',
+    'ENT-MGA-01': 'mgaTrust',
+    'ENT-CAR-01': 'carrierOperating'
+  };
+
+  // Bank-feed rows synthesized from POSTED journal entries the PAS Event
+  // Injector raised (identified by the "(EVT-...)" it always appends to a
+  // JE's description — see PasPolicyPage's addJournalEntry call) that hit
+  // Cash (1001). Without this, `rawBankTransactions` stayed hardcoded to
+  // whichever amounts were seeded at demo setup — always the Stage 2
+  // "Match" numbers ($39,260 / $36,760 / $29,757) — regardless of what the
+  // injector actually posted. A Pay Short or Extra Pay run would then show
+  // a stale, already-"Matched" bank row for an amount that never happened,
+  // sitting right next to nothing representing what actually did. Pulling
+  // these from the same posted-JE source of truth the GL side already uses
+  // (and pre-marking them Matched, since there's no separate real bank feed
+  // to diverge from in this demo) keeps the two sides honest by
+  // construction instead of by two people remembering to update both.
+  const pasBankFeedTransactions = useMemo(() => {
+    const rows = [];
+    journalEntries
+      .filter(je => (je.status === 'Posted' || je.status === 'posted') && (je.description || '').includes('(EVT-'))
+      .forEach(je => {
+        const account = PAS_CASH_ACCOUNT_BY_ENTITY[je.entity];
+        if (!account) return;
+        (je.lines || []).forEach((line, i) => {
+          const code = line.accountCode || line.acct;
+          if (code !== '1001') return;
+          const amount = (parseFloat(line.debit) || 0) - (parseFloat(line.credit) || 0);
+          if (!amount) return;
+          const contraLine = (je.lines || []).find(l => (l.accountCode || l.acct) !== '1001');
+          rows.push({
+            id: `${je.id}-BANK-L${i}`,
+            date: je.date,
+            description: line.description || je.description || je.id,
+            amount,
+            type: amount > 0 ? 'Credit' : 'Debit',
+            status: 'Matched',
+            contraAccount: contraLine ? (contraLine.accountCode || contraLine.acct) : null,
+            entity: je.entity,
+            account,
+            origin: 'pas'
+          });
+        });
+      });
+    return rows;
+  }, [journalEntries]);
+
+  // What every consumer (Bank Reconciliation, the dashboards, …) actually
+  // reads as "the bank feed" — the real/manually-synced feed above plus the
+  // PAS-derived rows. `rawBankTransactions` stays the thing Reset Data,
+  // localStorage, and Atlas sync all operate on; this merge is
+  // recomputed, never stored.
+  const bankTransactions = useMemo(
+    () => [...rawBankTransactions, ...pasBankFeedTransactions],
+    [rawBankTransactions, pasBankFeedTransactions]
+  );
 
   // ============================================================
   // INSURANCE DEMO SIMULATOR STAGES
@@ -1113,7 +1185,7 @@ export function FinanceProvider({ children }) {
     setPolicy(REFERENCE_POLICY);
     setAccounts(MOCK_ACCOUNTS.map(a => ({ ...a, status: 'active' })));
     setFiscalPeriods(INITIAL_PERIODS);
-    setBankTransactions(INITIAL_BANK_TRANSACTIONS);
+    setRawBankTransactions(INITIAL_BANK_TRANSACTIONS);
     setCashBalances({
       carrierOperating: 540200.00,
       mgaTrust: 480300.00,
@@ -1138,7 +1210,7 @@ export function FinanceProvider({ children }) {
     setOpeningBalances({});
     setJournalEntries([]);
     setFiscalPeriods([]);
-    setBankTransactions([]);
+    setRawBankTransactions([]);
     setApInvoices([]);
     setArInvoices([]);
     setCashBalances({

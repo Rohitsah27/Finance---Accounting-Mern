@@ -90,27 +90,11 @@ export const NAV_CONFIG = [
     ]
   },
   {
-    id: 'commission',
-    label: 'Commission Engine',
-    moduleId: 'commission',
-    children: [
-      { id: 'commission', label: 'Commission Schedules & Statements', href: '/commission-engine' }
-    ]
-  },
-  {
     id: 'fx',
     label: 'Multi-Currency & FX',
     moduleId: 'fx',
     children: [
       { id: 'fx', label: 'FX Rates & Revaluation', href: '/multi-currency-fx' }
-    ]
-  },
-  {
-    id: 'tax',
-    label: 'Tax Engine',
-    moduleId: 'tax',
-    children: [
-      { id: 'tax', label: 'Tax Engine', href: '/tax-engine' }
     ]
   },
   {
@@ -135,14 +119,6 @@ export const NAV_CONFIG = [
     moduleId: 'insurance',
     children: [
       { id: 'subledger', label: 'Subledger Processing', href: '/subledger-processing' }
-    ]
-  },
-  {
-    id: 'reinsurance',
-    label: 'Reinsurance',
-    moduleId: 'insurance',
-    children: [
-      { id: 'reinsurance', label: 'Reinsurance Accounting', href: '/reinsurance-accounting' }
     ]
   },
   {

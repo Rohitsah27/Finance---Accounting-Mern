@@ -141,15 +141,20 @@ export function BankReconciliationPage() {
 
   // Book-side rows synthesized from posted journal entries that hit the
   // cash account (1001) — without these, GL Balance (below) can move the
-  // moment a new JE posts (e.g. a PAS injection) while this table kept
+  // moment a new JE posts (e.g. a manual entry) while this table kept
   // showing nothing, because bankTransactions and journalEntries were two
   // completely disconnected data sources. These are display-only — flagged
   // origin: 'gl' — so they show up as "awaiting bank feed" instead of a
   // clickable Match (there's no real bank-feed row yet to match them to).
+  // PAS Event Injector entries are excluded here (the "(EVT-" marker its
+  // own descriptions always carry) — those already arrive pre-matched via
+  // `bankTransactions` itself (see `pasBankFeedTransactions` in
+  // FinanceContext), so including them here too would double-count the
+  // same cash movement as both a real bank row and an "awaiting" one.
   const glCashActivity = useMemo(() => {
     const rows = [];
     entityJournalEntries
-      .filter(je => je.status === 'Posted' || je.status === 'posted')
+      .filter(je => (je.status === 'Posted' || je.status === 'posted') && !(je.description || '').includes('(EVT-'))
       .forEach(je => {
         (je.lines || []).forEach((line, i) => {
           const code = line.accountCode || line.acct;
