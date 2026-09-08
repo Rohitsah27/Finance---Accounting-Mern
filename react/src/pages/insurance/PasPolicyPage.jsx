@@ -14,6 +14,8 @@ import './pas-policy.css';
 const PRESET_DEFAULTS = {
   policy_bound: { evtType: 'POLICY_BINDING_INVOICED', premium: '33257', taxAndFees: '3503', commission: '2500', paymentAmount: '0' },
   payment_received: { evtType: 'PAYMENT_RECEIVED', premium: '33257', taxAndFees: '3503', commission: '2500', paymentAmount: '39260' },
+  payment_overpaid: { evtType: 'PAYMENT_OVERPAID', premium: '33257', taxAndFees: '3503', commission: '2500', paymentAmount: '40500' },
+  payment_underpaid: { evtType: 'PAYMENT_UNDERPAID', premium: '33257', taxAndFees: '3503', commission: '2500', paymentAmount: '35000' },
   broker_settlement: { evtType: 'BROKER_SETTLEMENT_COMPLETED', premium: '33257', taxAndFees: '3503', commission: '2500', paymentAmount: '36760' },
   bordereau_ingested: { evtType: 'BORDEREAU_INGESTED', premium: '33257', taxAndFees: '0', commission: '3500', paymentAmount: '0' },
   carrier_payment_completed: { evtType: 'CARRIER_PAYMENT_COMPLETED', premium: '33257', taxAndFees: '0', commission: '3500', paymentAmount: '29757' },
@@ -37,6 +39,8 @@ const MGA_OPTIONS = ['NTA', 'NTA Program Administrators', 'Meridian Program Mana
 const PRESET_VISIBLE_PARTIES = {
   policy_bound: ['broker', 'mga', 'carrier'],
   payment_received: ['broker'],
+  payment_overpaid: ['broker'],
+  payment_underpaid: ['broker'],
   broker_settlement: ['mga'],
   bordereau_ingested: ['carrier'],
   carrier_payment_completed: ['carrier'],
@@ -51,7 +55,7 @@ const PRESET_VISIBLE_PARTIES = {
 // stage to appear in their picker, and vice versa. Roles without an entry
 // here (owner, insured, reinsurance-analyst, etc.) see every stage.
 const ROLE_VISIBLE_PRESETS = {
-  broker: ['policy_bound', 'payment_received', 'broker_settlement', 'premium_adjusted', 'policy_cancelled'],
+  broker: ['policy_bound', 'payment_received', 'payment_overpaid', 'payment_underpaid', 'broker_settlement', 'premium_adjusted', 'policy_cancelled'],
   mga: ['policy_bound', 'broker_settlement', 'bordereau_ingested', 'carrier_payment_completed', 'premium_adjusted'],
   carrier: ['bordereau_ingested', 'carrier_payment_completed']
 };
@@ -60,9 +64,20 @@ const ROLE_VISIBLE_PRESETS = {
 // ROLE_VISIBLE_PRESETS filters this list per logged-in role; ALL_PRESET_KEYS
 // (its key order) is also the fallback for roles with no entry there, and
 // picks a replacement when the active role's list drops the current preset.
+//
+// Stage 2 has three mutually-exclusive variants (Match / Extra Pay / Pay
+// Short) grouped together right here, each carrying its own event_type
+// (PAYMENT_RECEIVED / PAYMENT_OVERPAID / PAYMENT_UNDERPAID) so injecting one
+// doesn't lock out the other two on the same policy — see generateRulesEngineGroups.
+// Whichever one you pick, Stage 3 onward (Broker pays MGA, Bordereau, Carrier
+// payment) is unaffected and still available to continue the chain, since the
+// AP bill the Broker owes the MGA is always the billed net premium, not
+// whatever the insured actually paid in.
 const PRESET_OPTIONS = [
   { value: 'policy_bound', label: 'Stage 1: POLICY_BINDING_INVOICED (POL-V8NHT · $39,260)' },
-  { value: 'payment_received', label: 'Stage 2: PAYMENT_RECEIVED (Ayushi pays Broker · $39,260)' },
+  { value: 'payment_received', label: 'Stage 2 (Match): PAYMENT_RECEIVED — Ayushi pays Broker exactly · $39,260' },
+  { value: 'payment_overpaid', label: 'Stage 2 (Extra Pay): PAYMENT_OVERPAID — Ayushi pays Broker $40,500 vs $39,260 Billed' },
+  { value: 'payment_underpaid', label: 'Stage 2 (Pay Short): PAYMENT_UNDERPAID — Ayushi pays Broker $35,000 vs $39,260 Billed' },
   { value: 'broker_settlement', label: 'Stage 3: BROKER_SETTLEMENT_COMPLETED (Broker pays MGA · $36,760)' },
   { value: 'bordereau_ingested', label: 'Stage 4: BORDEREAU_INGESTED (Carrier Ingestion · $33,257 GWP)' },
   { value: 'carrier_payment_completed', label: 'Stage 5: CARRIER_PAYMENT_COMPLETED (MGA pays Carrier · $29,757)' },
@@ -477,16 +492,50 @@ export function PasPolicyPage() {
           description: `Premium Receivable — ${evt.parties.producer} on ${evt.policy.policy_number} (Stage 1 binding)`
         }
       ];
-    } else if (evt.event_type === 'PAYMENT_RECEIVED') {
+    } else if (evt.event_type === 'PAYMENT_RECEIVED' || evt.event_type === 'PAYMENT_OVERPAID' || evt.event_type === 'PAYMENT_UNDERPAID') {
       // Stage 2 — Broker book only. Now that the Broker actually holds the
       // customer's cash, also raise a real Accounts Payable bill for the
       // net premium it owes the MGA (Stage 1's 2200 credit becomes a
       // payable Broker can action from the AP module, not just a JE line).
+      // PAYMENT_OVERPAID/PAYMENT_UNDERPAID reuse this same posting logic,
+      // but 1100 can only ever be cleared up to what was actually billed —
+      // crediting it past that would push a debit-normal asset account
+      // negative. So the receipt is split: up to `totalBilled` clears 1100,
+      // and anything received beyond that lands on 2001 as a credit balance
+      // owed back to the insured (PAYMENT_OVERPAID). Paying in short simply
+      // clears less of 1100, correctly leaving the remainder as an open
+      // receivable (PAYMENT_UNDERPAID) — no extra line needed for that case.
+      // What the Broker owes the MGA below is unaffected either way — that
+      // obligation is fixed at the billed net premium, not at whatever cash
+      // happened to come in from the insured.
+      const amountReceived = paid || totalBilled;
+      const arClear = Math.min(amountReceived, totalBilled);
+      const overpaymentCredit = Math.max(amountReceived - totalBilled, 0);
+      const shortBy = Math.max(totalBilled - amountReceived, 0);
+
       groups = [{
         entity: broker,
         lines: [
-          { acct: '1001', desc: `Customer Premium Receipt — ${evt.parties.insured_name}`, debit: paid || totalBilled, credit: 0 },
-          { acct: '1100', desc: `Clear Premium Receivable — ${evt.parties.insured_name}`, debit: 0, credit: paid || totalBilled }
+          {
+            acct: '1001',
+            desc: `Customer Premium Receipt — ${evt.parties.insured_name}${overpaymentCredit > 0 ? ` (includes $${overpaymentCredit.toLocaleString()} overpayment)` : ''}`,
+            debit: amountReceived,
+            credit: 0
+          },
+          {
+            acct: '1100',
+            desc: shortBy > 0
+              ? `Partial Clear Premium Receivable — ${evt.parties.insured_name} ($${shortBy.toLocaleString()} remains outstanding)`
+              : `Clear Premium Receivable — ${evt.parties.insured_name}`,
+            debit: 0,
+            credit: arClear
+          },
+          ...(overpaymentCredit > 0 ? [{
+            acct: '2001',
+            desc: `Customer Credit Balance Payable — ${evt.parties.insured_name} (Overpayment Refund Due)`,
+            debit: 0,
+            credit: overpaymentCredit
+          }] : [])
         ]
       }];
       apBill = {
@@ -656,8 +705,8 @@ export function PasPolicyPage() {
     // post a second, duplicate cash-receipt JE on top of the one the
     // relevant group above already posted.
     let paidArInvoiceRecords = [];
-    if (evt.event_type === 'PAYMENT_RECEIVED') {
-      // Stage 2 — customer's payment clears the Broker's own AR invoice.
+    if (evt.event_type === 'PAYMENT_RECEIVED' || evt.event_type === 'PAYMENT_OVERPAID' || evt.event_type === 'PAYMENT_UNDERPAID') {
+      // Stage 2 (and its overpaid/underpaid variants) — customer's payment clears the Broker's own AR invoice.
       const matchingArId = evt.invoice_number || `INV-AR-${evt.policy.policy_number}`;
       const rec = markArInvoicePaid(matchingArId, evt.financials.payment_amount || evt.financials.total_premium);
       if (rec) paidArInvoiceRecords.push(rec);
